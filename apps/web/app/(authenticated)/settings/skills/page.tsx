@@ -49,19 +49,24 @@ export default async function SkillsSettingsPage() {
           as markdown with YAML frontmatter (under <span className="font-mono">skills/*.md</span>
           ). They are merged with built-in and per-repo skills when you start a session.
         </p>
-        {base && (
-          <a
-            href={repoWebUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 hover:text-emerald-300"
-          >
-            Open skills repo in Forgejo
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-            </svg>
-          </a>
-        )}
+        {base ? (
+          <>
+            <a
+              href={repoWebUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 hover:text-emerald-300"
+            >
+              Open skills repo in Forgejo
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+            </a>
+            <p className="mt-1 text-xs text-zinc-600">
+              If this link returns a 404, ensure Forgejo is running and revisit this page to trigger repo creation.
+            </p>
+          </>
+        ) : null}
       </div>
 
       {/* Install from URL */}
@@ -79,7 +84,7 @@ export default async function SkillsSettingsPage() {
             {userSkills.map((s) => (
               <li
                 key={`${s.source}-${s.slug}`}
-                className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2"
+                className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 transition hover:border-zinc-700"
               >
                 <div className="text-sm font-medium text-zinc-200">{s.name}</div>
                 <div className="text-xs text-zinc-500">{s.description}</div>
@@ -99,7 +104,7 @@ export default async function SkillsSettingsPage() {
           {builtins.map((s) => (
             <li
               key={s.slug}
-              className="rounded-lg border border-zinc-800/80 bg-zinc-950/50 px-3 py-2"
+              className="rounded-lg border border-zinc-800/80 bg-zinc-950/50 px-3 py-2 transition hover:border-zinc-700"
             >
               <div className="text-sm font-medium text-zinc-300">{s.name}</div>
               <div className="text-xs text-zinc-500">{s.description}</div>

@@ -1,11 +1,12 @@
 import type Redis from "ioredis";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { ciEvents, sessions } from "@render-open-forge/db";
+import { ciEvents, sessions, prEvents } from "@render-open-forge/db";
 import { logger } from "@render-open-forge/shared";
 import type { ForgeDb } from "@/lib/db";
 import { getAgentForgeProvider } from "@/lib/forgejo/client";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
 import { enqueueSessionTriggerJob } from "@/lib/agent/enqueue-session-job";
+import { dispatchCIForEvent } from "@/lib/ci/dispatcher";
 
 function repoFullName(repository: unknown): string | undefined {
   if (!repository || typeof repository !== "object") return undefined;
@@ -132,6 +133,20 @@ async function handleWorkflowRun(db: ForgeDb, redis: Redis | null, payload: unkn
       processed: false,
     });
 
+    if (s.prNumber != null && s.prStatus === "open") {
+      await db.insert(prEvents).values({
+        id: crypto.randomUUID(),
+        userId: s.userId,
+        sessionId: s.id,
+        repoPath: repo,
+        prNumber: s.prNumber,
+        action: status === "success" ? "ci_passed" : "ci_failed",
+        title: s.title,
+        actionNeeded: status === "success",
+        metadata: { workflowName, runId, conclusion: status },
+      });
+    }
+
     if (
       status === "success" &&
       s.prNumber != null &&
@@ -194,6 +209,8 @@ async function handlePullRequest(db: ForgeDb, redis: Redis | null, payload: unkn
     ? await findSessionsForRepoBranch(db, repo, branch)
     : await findSessionsForPr(db, repo, number);
 
+  const prTitle = typeof pr.title === "string" ? pr.title : undefined;
+
   for (const s of sessionRows) {
     if (action === "opened" || action === "reopened") {
       await db
@@ -205,6 +222,18 @@ async function handlePullRequest(db: ForgeDb, redis: Redis | null, payload: unkn
         })
         .where(eq(sessions.id, s.id));
 
+      await db.insert(prEvents).values({
+        id: crypto.randomUUID(),
+        userId: s.userId,
+        sessionId: s.id,
+        repoPath: repo,
+        prNumber: number,
+        action: "opened",
+        title: prTitle ?? s.title,
+        actionNeeded: true,
+        metadata: { headRef: branch, author: (pr.user as Record<string, unknown>)?.login ?? null },
+      });
+
       if (redis && action === "opened") {
         const ctx = `Pull request #${number} was opened for ${repo}. Review and continue the task as needed.`;
         await enqueueSessionTriggerJob(db, redis, {
@@ -213,6 +242,27 @@ async function handlePullRequest(db: ForgeDb, redis: Redis | null, payload: unkn
           trigger: "pr_opened",
           fixContext: ctx,
         }).catch((err) => logger.errorWithCause(err, "enqueue pr_opened job failed", { sessionId: s.id }));
+      }
+    }
+
+    // Dispatch CI for new/updated PRs (outside opened/reopened block so "synchronized" is reachable)
+    if ((action === "opened" || action === "synchronized") && branch) {
+      const headSha = headRef && typeof headRef.sha === "string" ? headRef.sha : "";
+      if (headSha) {
+        const parts = parseForgejoRepoPath(repo);
+        if (parts) {
+          const forge = getAgentForgeProvider();
+          dispatchCIForEvent(db, forge, {
+            repoOwner: parts.owner,
+            repoName: parts.repo,
+            branch,
+            commitSha: headSha,
+            event: "pull_request",
+            sessionId: s.id,
+          }).catch((err) =>
+            logger.errorWithCause(err, "ci dispatch on PR failed", { repo, pr: number }),
+          );
+        }
       }
     }
 
@@ -237,6 +287,17 @@ async function handlePullRequest(db: ForgeDb, redis: Redis | null, payload: unkn
         processed: false,
       });
 
+      await db.insert(prEvents).values({
+        id: crypto.randomUUID(),
+        userId: s.userId,
+        sessionId: s.id,
+        repoPath: repo,
+        prNumber: number,
+        action: merged ? "merged" : "closed",
+        title: prTitle ?? s.title,
+        actionNeeded: false,
+      });
+
       if (merged && redis) {
         const ctx = `Pull request #${number} was merged. Session can be archived if work is complete.`;
         await enqueueSessionTriggerJob(db, redis, {
@@ -258,13 +319,10 @@ async function handlePush(db: ForgeDb, payload: unknown) {
   const branch = branchFromPushRef(ref);
   if (!branch) return;
 
-  // Only update the most recently active session for this repo+branch
   const rows = await findSessionsForRepoBranch(db, repo, branch);
-  const s = rows[0]; // already sorted by updatedAt desc
+  const s = rows[0];
   if (!s) return;
 
-  // Forgejo push payloads list filenames in added/removed/modified arrays;
-  // count modified files as both an add and a remove for rough approximation.
   let filesAdded = 0;
   let filesRemoved = 0;
   const commits = p.commits as unknown[] | undefined;
@@ -289,6 +347,25 @@ async function handlePush(db: ForgeDb, payload: unknown) {
       updatedAt: new Date(),
     })
     .where(eq(sessions.id, s.id));
+
+  // Dispatch CI via Render Workflows
+  const parts = parseForgejoRepoPath(repo);
+  if (parts) {
+    const after = typeof p.after === "string" ? p.after : "";
+    if (after && after !== "0000000000000000000000000000000000000000") {
+      const forge = getAgentForgeProvider();
+      dispatchCIForEvent(db, forge, {
+        repoOwner: parts.owner,
+        repoName: parts.repo,
+        branch,
+        commitSha: after,
+        event: "push",
+        sessionId: s.id,
+      }).catch((err) =>
+        logger.errorWithCause(err, "ci dispatch on push failed", { repo, branch }),
+      );
+    }
+  }
 }
 
 async function handlePrComment(
@@ -334,6 +411,18 @@ async function handlePrComment(
     .filter(Boolean)
     .join("\n\n");
 
+  await db.insert(prEvents).values({
+    id: crypto.randomUUID(),
+    userId: s.userId,
+    sessionId: s.id,
+    repoPath: repo,
+    prNumber: prNum,
+    action: "commented",
+    title: s.title,
+    actionNeeded: true,
+    metadata: { commentBody: body.slice(0, 500), path: path || undefined },
+  });
+
   await enqueueSessionTriggerJob(db, redis, {
     sessionId: s.id,
     userId: s.userId,
@@ -346,6 +435,9 @@ async function handlePrComment(
 
 async function handleStatus(db: ForgeDb, payload: unknown) {
   const p = payload as Record<string, unknown>;
+  const ctx = typeof p.context === "string" ? p.context : "";
+  if (ctx.startsWith("ci/")) return;
+
   const state = typeof p.state === "string" ? p.state.toLowerCase() : "";
   const sha = typeof p.sha === "string" ? p.sha : "";
   const repo = repoFullName(p.repository);

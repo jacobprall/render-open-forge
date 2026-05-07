@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
-import { syncMirror } from "@/lib/sync/mirror-engine";
+import { syncMirror, getMirrorIfOwned } from "@/lib/sync/mirror-engine";
 
 export async function POST(
   _req: Request,
@@ -14,6 +14,11 @@ export async function POST(
 
   const { id } = await params;
   const db = getDb();
+
+  const mirror = await getMirrorIfOwned(db, id, String(session.userId));
+  if (!mirror) {
+    return NextResponse.json({ error: "Mirror not found" }, { status: 404 });
+  }
 
   try {
     await syncMirror(db, id);

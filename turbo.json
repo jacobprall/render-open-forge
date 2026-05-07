@@ -12,7 +12,9 @@
         "FORGEJO_OAUTH_CLIENT_SECRET",
         "FORGEJO_AGENT_TOKEN",
         "SESSION_SECRET",
-        "ANTHROPIC_API_KEY"
+        "ANTHROPIC_API_KEY",
+        "RENDER_API_KEY",
+        "CI_RUNNER_MODE"
       ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },

@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { createForgeProvider } from "@/lib/forgejo/client";
+import { getForgeRepoCached } from "@/lib/forgejo/cached-repo";
 import type { ForgeFileContent } from "@render-open-forge/shared/lib/forge/types";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -11,20 +12,19 @@ export default async function RepoDetailPage({
 }: {
   params: Promise<{ owner: string; repo: string }>;
 }) {
-  const session = await getSession();
+  const [session, { owner, repo: repoName }] = await Promise.all([getSession(), params]);
   if (!session) redirect("/");
 
-  const { owner, repo: repoName } = await params;
   const forge = createForgeProvider(session.forgejoToken);
 
   let repoData;
   try {
-    repoData = await forge.repos.get(owner, repoName);
+    repoData = await getForgeRepoCached(session.forgejoToken, owner, repoName);
   } catch {
     notFound();
   }
 
-  const [branches, contents, commits] = await Promise.all([
+  const [branches, contents, commits, readmeProbe] = await Promise.all([
     forge.branches.list(owner, repoName).catch(() => []),
     forge.files
       .getContents(owner, repoName, "", repoData.defaultBranch)
@@ -35,6 +35,9 @@ export default async function RepoDetailPage({
         limit: 1,
       })
       .catch(() => []),
+    forge.files
+      .getContents(owner, repoName, "README.md", repoData.defaultBranch)
+      .catch(() => null),
   ]);
 
   const files = (Array.isArray(contents) ? contents : [contents]).sort(
@@ -48,8 +51,12 @@ export default async function RepoDetailPage({
   const readmeEntry = files.find(
     (f) => f.name.toLowerCase() === "readme.md" && f.type === "file",
   );
+
   let readmeContent: string | null = null;
-  if (readmeEntry) {
+  const probe = readmeProbe as ForgeFileContent | null;
+  if (probe?.content && probe.encoding === "base64") {
+    readmeContent = Buffer.from(probe.content, "base64").toString("utf-8");
+  } else if (readmeEntry) {
     try {
       const readmeData = (await forge.files.getContents(
         owner,

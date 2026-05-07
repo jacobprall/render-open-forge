@@ -1,4 +1,7 @@
 node_modules/
+
+# Local copy from `npx skills add` (canonical skill files live under .cursor/skills/)
+.agents/
 .next/
 dist/
 .turbo/

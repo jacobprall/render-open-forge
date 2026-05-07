@@ -2,7 +2,7 @@ import { generateText, stepCountIs, type LanguageModel, type ModelMessage, type 
 import type Redis from "ioredis";
 import { desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { agentRuns, chats, chatMessages, specs, sessions } from "@render-open-forge/db";
+import { agentRuns, chats, chatMessages, specs, sessions, prEvents } from "@render-open-forge/db";
 import {
   AppError,
   publishRunEvent,
@@ -280,7 +280,7 @@ async function runTurn(params: {
 
   const db = getDb();
   const [sessionRow] = await db
-    .select({ forgejoRepoPath: sessions.forgejoRepoPath, branch: sessions.branch, baseBranch: sessions.baseBranch })
+    .select({ forgejoRepoPath: sessions.forgejoRepoPath, branch: sessions.branch, baseBranch: sessions.baseBranch, title: sessions.title })
     .from(sessions)
     .where(eq(sessions.id, job.sessionId))
     .limit(1);
@@ -309,10 +309,23 @@ async function runTurn(params: {
       assistantParts.push({ type: "file_changed", ...p });
     },
     onPrCreated: async ({ prNumber }) => {
-      await getDb()
+      const db = getDb();
+      await db
         .update(sessions)
         .set({ prNumber, prStatus: "open", updatedAt: new Date() })
         .where(eq(sessions.id, job.sessionId));
+
+      await db.insert(prEvents).values({
+        id: crypto.randomUUID(),
+        userId: job.userId,
+        sessionId: job.sessionId,
+        repoPath: sessionRow?.forgejoRepoPath ?? "",
+        prNumber,
+        action: "opened",
+        title: sessionRow?.title ?? "PR",
+        actionNeeded: true,
+        metadata: { createdByAgent: true, runId: job.runId },
+      });
     },
   };
 

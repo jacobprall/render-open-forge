@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 export interface UserSession {
   forgejoToken: string;
@@ -10,7 +11,7 @@ export interface UserSession {
 
 const SESSION_COOKIE = "forge_session";
 
-export async function getSession(): Promise<UserSession | null> {
+async function readSession(): Promise<UserSession | null> {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(SESSION_COOKIE);
   if (!sessionCookie?.value) return null;
@@ -24,6 +25,9 @@ export async function getSession(): Promise<UserSession | null> {
     return null;
   }
 }
+
+/** Per-request deduplicated session (React.cache). */
+export const getSession = cache(readSession);
 
 export function encodeSession(session: UserSession): string {
   return Buffer.from(JSON.stringify(session)).toString("base64");

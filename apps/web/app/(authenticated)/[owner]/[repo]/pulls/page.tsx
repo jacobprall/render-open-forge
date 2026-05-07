@@ -79,11 +79,12 @@ export default async function PullRequestsPage({
   params: Promise<{ owner: string; repo: string }>;
   searchParams: Promise<{ state?: string }>;
 }) {
-  const session = await getSession();
+  const [session, { owner, repo }, { state }] = await Promise.all([
+    getSession(),
+    params,
+    searchParams,
+  ]);
   if (!session) redirect("/");
-
-  const { owner, repo } = await params;
-  const { state } = await searchParams;
   const activeTab = state === "closed" ? "closed" : "open";
 
   const forge = createForgeProvider(session.forgejoToken);

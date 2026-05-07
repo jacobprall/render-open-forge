@@ -57,27 +57,6 @@ services:
       retries: 10
       start_period: 30s
 
-  runner:
-    image: code.forgejo.org/forgejo/runner:6.0.0
-    environment:
-      - DOCKER_HOST=tcp://docker-in-docker:2376
-      - DOCKER_TLS_VERIFY=0
-    volumes:
-      - runner-data:/data
-    depends_on:
-      forgejo:
-        condition: service_healthy
-      docker-in-docker:
-        condition: service_started
-
-  docker-in-docker:
-    image: docker:dind
-    privileged: true
-    environment:
-      - DOCKER_TLS_CERTDIR=
-    volumes:
-      - dind-data:/var/lib/docker
-
   sandbox:
     build:
       context: .
@@ -103,6 +82,4 @@ services:
 volumes:
   pgdata:
   forgejo-data:
-  runner-data:
-  dind-data:
   sandbox-data:

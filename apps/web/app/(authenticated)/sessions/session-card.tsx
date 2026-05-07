@@ -12,6 +12,28 @@ const statusColors: Record<string, string> = {
   archived: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
 };
 
+const prStatusStyles: Record<string, { bg: string; icon: string; label: string }> = {
+  open: { bg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: "M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z", label: "Open" },
+  merged: { bg: "bg-purple-500/10 text-purple-400 border-purple-500/20", icon: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218Z", label: "Merged" },
+  closed: { bg: "bg-red-500/10 text-red-400 border-red-500/20", icon: "M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", label: "Closed" },
+};
+
+function PrBadge({ prNumber, prStatus, repoPath }: { prNumber: number; prStatus: string | null; repoPath: string }) {
+  const style = prStatusStyles[prStatus ?? "open"] ?? prStatusStyles.open;
+  return (
+    <Link
+      href={`/${repoPath}/pulls/${prNumber}`}
+      onClick={(e) => e.stopPropagation()}
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition hover:brightness-125 ${style.bg}`}
+    >
+      <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 16 16">
+        <path d={style.icon} />
+      </svg>
+      PR #{prNumber}
+    </Link>
+  );
+}
+
 function skillChips(session: Session) {
   const skills = session.activeSkills ?? [];
   if (skills.length === 0) return null;
@@ -90,6 +112,13 @@ export function SessionCard({ session }: { session: Session }) {
             >
               {session.status}
             </span>
+            {session.prNumber != null && (
+              <PrBadge
+                prNumber={session.prNumber}
+                prStatus={session.prStatus}
+                repoPath={session.forgejoRepoPath}
+              />
+            )}
             {skillChips(session)}
           </div>
           <p className="mt-1 truncate font-mono text-xs text-zinc-500">
@@ -100,7 +129,10 @@ export function SessionCard({ session }: { session: Session }) {
         </div>
         <div className="flex items-start gap-3">
           <div className="flex flex-col items-end gap-1 text-xs text-zinc-500">
-            <span suppressHydrationWarning>{formatRelativeTime(session.lastActivityAt ?? session.createdAt)}</span>
+            <span suppressHydrationWarning>
+              {session.status === "running" ? "Active" : "Last activity"}{" "}
+              {formatRelativeTime(session.lastActivityAt ?? session.createdAt)}
+            </span>
             {(session.linesAdded || session.linesRemoved) ? (
               <span className="font-mono">
                 <span className="text-emerald-400">+{session.linesAdded ?? 0}</span>
@@ -132,7 +164,7 @@ export function SessionCard({ session }: { session: Session }) {
                 <button
                   onClick={handleArchive}
                   title="Archive session"
-                  className="rounded p-1 text-zinc-500 transition hover:bg-zinc-700/50 hover:text-zinc-300"
+                  className="rounded p-1 text-zinc-700 transition hover:bg-zinc-700/50 hover:text-zinc-400"
                 >
                   <svg
                     className="h-4 w-4"

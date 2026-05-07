@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useTransition } from "react";
+import useSWR from "swr";
 import { savePreferencesAction } from "./actions";
 
 interface Prefs {
@@ -51,22 +52,22 @@ function ModelSelect({
   );
 }
 
+async function modelsFetcher(url: string): Promise<ModelOption[]> {
+  const r = await fetch(url);
+  const data = (await r.json()) as { models?: ModelOption[] };
+  return data.models ?? [];
+}
+
 export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [models, setModels] = useState<ModelOption[]>([]);
-  const [modelsLoading, setModelsLoading] = useState(true);
+  const { data: models = [], isLoading: modelsLoading } = useSWR("/api/models", modelsFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60_000,
+  });
   const [defaultModelId, setDefaultModelId] = useState(prefs?.defaultModelId || "");
   const [subagentModelId, setSubagentModelId] = useState(prefs?.defaultSubagentModelId || "");
-
-  useEffect(() => {
-    fetch("/api/models")
-      .then((r) => r.json())
-      .then((data: { models: ModelOption[] }) => setModels(data.models ?? []))
-      .catch(() => {})
-      .finally(() => setModelsLoading(false));
-  }, []);
 
   function handleSubmit(formData: FormData) {
     setError(null);

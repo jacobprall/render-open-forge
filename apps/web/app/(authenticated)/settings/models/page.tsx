@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { MODEL_DEFS, DEFAULT_MODEL_ID } from "@render-open-forge/shared";
+import { MODEL_DEFS, DEFAULT_MODEL_ID } from "@render-open-forge/shared/lib/model-catalog";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";

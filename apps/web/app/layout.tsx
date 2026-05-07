@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { RouteProgress } from "@/components/layout/route-progress";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,6 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark ${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-screen bg-zinc-950 font-sans text-zinc-100 antialiased">
+        <RouteProgress />
         {children}
       </body>
     </html>

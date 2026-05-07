@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useEventSource } from "@/hooks/use-event-source";
 
 interface FileChange {
   path: string;
@@ -19,33 +20,41 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
   const [ciStatus, setCiStatus] = useState<"idle" | "running" | "success" | "failure">("idle");
   const [ciEvents, setCiEvents] = useState<Array<{ type: string; status: string | null }>>([]);
 
-  useEffect(() => {
-    const eventSource = new EventSource(`/api/sessions/${sessionId}/stream`);
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "file_changed" && data.path) {
-          setFilesChanged((prev) => {
-            const existing = prev.find((f) => f.path === data.path);
-            if (existing) {
-              return prev.map((f) =>
-                f.path === data.path
-                  ? { ...f, additions: data.additions ?? 0, deletions: data.deletions ?? 0 }
-                  : f,
-              );
-            }
-            return [...prev, { path: data.path, additions: data.additions ?? 0, deletions: data.deletions ?? 0 }];
-          });
-        }
-        if (data.type === "task_start") setCiStatus("running");
-        if (data.type === "task_done") setCiStatus("success");
-        if (data.type === "task_error") setCiStatus("failure");
-      } catch {
-        // ignore
+  const streamUrl = `/api/sessions/${sessionId}/stream`;
+  const streamMessageRef = useRef<(event: MessageEvent) => void>(() => {});
+  streamMessageRef.current = (event: MessageEvent) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === "file_changed" && data.path) {
+        setFilesChanged((prev) => {
+          const existing = prev.find((f) => f.path === data.path);
+          if (existing) {
+            return prev.map((f) =>
+              f.path === data.path
+                ? { ...f, additions: data.additions ?? 0, deletions: data.deletions ?? 0 }
+                : f,
+            );
+          }
+          return [...prev, { path: data.path, additions: data.additions ?? 0, deletions: data.deletions ?? 0 }];
+        });
       }
-    };
-    return () => eventSource.close();
-  }, [sessionId]);
+      if (data.type === "task_start") setCiStatus("running");
+      if (data.type === "task_done") setCiStatus("success");
+      if (data.type === "task_error") setCiStatus("failure");
+    } catch {
+      // ignore
+    }
+  };
+
+  const onStreamMessage = useCallback((e: MessageEvent) => {
+    streamMessageRef.current(e);
+  }, []);
+
+  useEventSource({
+    url: streamUrl,
+    enabled: true,
+    onMessage: onStreamMessage,
+  });
 
   useEffect(() => {
     if (activeTab !== "ci") return;
@@ -74,6 +83,7 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
   if (!isOpen) {
     return (
       <button
+        type="button"
         onClick={() => setIsOpen(true)}
         className="flex h-full w-10 items-center justify-center border-l border-zinc-800 text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-300"
         title="Open side panel"
@@ -94,6 +104,7 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
       <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
         <div className="flex gap-1">
           <button
+            type="button"
             onClick={() => setActiveTab("files")}
             className={`rounded px-2.5 py-1 text-xs font-medium transition ${
               activeTab === "files"
@@ -104,6 +115,7 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
             Files
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("ci")}
             className={`rounded px-2.5 py-1 text-xs font-medium transition ${
               activeTab === "ci"
@@ -115,6 +127,7 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
           </button>
         </div>
         <button
+          type="button"
           onClick={() => setIsOpen(false)}
           className="text-zinc-500 transition hover:text-zinc-300"
         >

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import useSWR from "swr";
 import type { ModelSummary } from "@render-open-forge/shared/client";
 
 interface ModelSelectorProps {
@@ -9,19 +10,19 @@ interface ModelSelectorProps {
   compact?: boolean;
 }
 
-export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) {
-  const [models, setModels] = useState<ModelSummary[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const ref = useRef<HTMLDivElement>(null);
+async function modelsFetcher(url: string): Promise<ModelSummary[]> {
+  const r = await fetch(url);
+  const data = (await r.json()) as { models?: ModelSummary[] };
+  return data.models ?? [];
+}
 
-  useEffect(() => {
-    fetch("/api/models")
-      .then((r) => r.json())
-      .then((data) => setModels(data.models ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const { data: models = [], isLoading } = useSWR("/api/models", modelsFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60_000,
+  });
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -35,13 +36,14 @@ export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) 
 
   const selected = models.find((m) => m.id === value);
 
-  if (loading) {
+  if (isLoading) {
     return <div className="h-8 w-32 animate-pulse rounded bg-zinc-800" />;
   }
 
   return (
     <div ref={ref} className="relative">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-300 transition hover:border-zinc-600"
       >
@@ -51,11 +53,12 @@ export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) 
         </svg>
       </button>
 
-      {isOpen && (
+      {isOpen ? (
         <div className="absolute right-0 top-full z-50 mt-1 max-h-72 w-72 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl">
           {models.map((model) => (
             <button
               key={model.id}
+              type="button"
               onClick={() => {
                 onChange(model.id);
                 setIsOpen(false);
@@ -66,19 +69,19 @@ export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) 
             >
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-zinc-200">{model.label}</span>
-                {model.id === value && (
+                {model.id === value ? (
                   <svg className="h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                )}
+                ) : null}
               </div>
-              {!compact && model.description && (
+              {!compact && model.description ? (
                 <span className="mt-0.5 text-xs text-zinc-500">{model.description}</span>
-              )}
+              ) : null}
             </button>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

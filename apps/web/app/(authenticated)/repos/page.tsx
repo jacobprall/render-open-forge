@@ -186,13 +186,12 @@ export default async function ReposPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const session = await getSession();
+  const [session, { q }] = await Promise.all([getSession(), searchParams]);
   if (!session) redirect("/");
 
   const forge = createForgeProvider(session.forgejoToken);
   const repos = await forge.repos.list().catch(() => [] as ForgeRepo[]);
 
-  const { q } = await searchParams;
   const query = q?.toLowerCase() ?? "";
   const filtered = query
     ? repos.filter(
@@ -210,8 +209,9 @@ export default async function ReposPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Repositories</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            {repos.length} {repos.length === 1 ? "repository" : "repositories"}{" "}
-            total
+            {query
+              ? `Showing ${filtered.length} of ${repos.length} repositories`
+              : `${repos.length} ${repos.length === 1 ? "repository" : "repositories"}`}
           </p>
         </div>
         <Link
@@ -238,7 +238,7 @@ export default async function ReposPage({
       {/* Search */}
       {repos.length > 0 && (
         <div className="mb-6">
-          <Suspense>
+          <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-zinc-800/50" />}>
             <RepoSearch />
           </Suspense>
         </div>

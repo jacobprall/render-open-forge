@@ -7,22 +7,26 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Folder,
   MessageCircle,
+  GitPullRequest,
   Settings,
   ChevronLeft,
   ChevronRight,
   LogOut,
   Code,
 } from "@/components/icons";
+import { useInboxCount } from "./use-inbox-count";
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  badgeKey?: string;
 }
 
 const navItems: NavItem[] = [
   { label: "Repositories", href: "/repos", icon: Folder },
   { label: "Sessions", href: "/sessions", icon: MessageCircle },
+  { label: "Pull Requests", href: "/pulls", icon: GitPullRequest, badgeKey: "inbox" },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -39,6 +43,20 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { count: inboxCount } = useInboxCount();
+
+  useEffect(() => {
+    const stored = localStorage.getItem("sidebar-collapsed");
+    if (stored === "true") setCollapsed(true);
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("sidebar-collapsed", String(next));
+      return next;
+    });
+  }
 
   useEffect(() => {
     onMobileClose?.();
@@ -82,19 +100,30 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
             const isActive =
               pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
+            const badge = item.badgeKey === "inbox" ? inboxCount : 0;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 title={collapsed ? item.label : undefined}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                className={`relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-zinc-800 text-emerald-400"
                     : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
                 } ${collapsed ? "justify-center px-0" : ""}`}
               >
                 <Icon className="h-[18px] w-[18px] shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && <span className="flex-1">{item.label}</span>}
+                {badge > 0 && !collapsed && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500/20 px-1.5 text-[11px] font-semibold tabular-nums text-emerald-400">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
+                {badge > 0 && collapsed && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-white">
+                    {badge > 9 ? "9+" : badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -144,7 +173,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
         {/* Collapse toggle (desktop only) */}
         <div className="hidden border-t border-zinc-800 p-2 md:block">
           <button
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={toggleCollapsed}
             className="flex w-full items-center justify-center rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
           >
             {collapsed ? (

@@ -107,7 +107,7 @@ export default function ImportPage() {
             repo_name: repo.name,
             mirror: true,
             service: activeProvider,
-            auth_token: undefined,
+            sync_connection_id: data[activeProvider]?.connectionId,
           }),
         });
         const json = await res.json();

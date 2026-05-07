@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 
 interface Comment {
   id: number;
@@ -23,6 +24,13 @@ function relTime(iso: string): string {
   return `${days}d ago`;
 }
 
+async function commentsFetcher(url: string): Promise<Comment[]> {
+  const res = await fetch(url, { cache: "no-store" });
+  const j = (await res.json()) as { comments?: unknown[]; error?: string };
+  if (!res.ok) throw new Error(j.error ?? "Load failed");
+  return (j.comments ?? []) as Comment[];
+}
+
 export function PRComments({
   owner,
   repo,
@@ -32,35 +40,27 @@ export function PRComments({
   repo: string;
   number: number;
 }) {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [postError, setPostError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
   const [posting, setPosting] = useState(false);
 
   const base = `/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${number}`;
+  const commentsKey = `${base}/comments`;
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch(`${base}/comments`, { cache: "no-store" });
-      const j = (await res.json()) as { comments?: unknown[]; error?: string };
-      if (!res.ok) throw new Error(j.error ?? "Load failed");
-      setComments((j.comments ?? []) as Comment[]);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [base]);
+  const {
+    data: comments = [],
+    isLoading: loading,
+    error: swrError,
+    mutate,
+  } = useSWR(commentsKey, commentsFetcher, { revalidateOnFocus: true });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const loadError = swrError instanceof Error ? swrError.message : swrError ? String(swrError) : null;
+  const error = postError ?? loadError;
 
   async function post() {
     if (!newComment.trim()) return;
     setPosting(true);
+    setPostError(null);
     try {
       const res = await fetch(`${base}/comments`, {
         method: "POST",
@@ -70,9 +70,9 @@ export function PRComments({
       const j = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(j.error ?? "Post failed");
       setNewComment("");
-      await load();
+      await mutate();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setPostError(e instanceof Error ? e.message : String(e));
     } finally {
       setPosting(false);
     }
@@ -85,7 +85,7 @@ export function PRComments({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ unresolve: currentlyResolved }),
       });
-      await load();
+      await mutate();
     } catch {
       // silently fail, user can retry
     }
@@ -117,7 +117,7 @@ export function PRComments({
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-zinc-200">{c.user.login}</span>
-                <span className="text-xs text-zinc-500">{relTime(c.createdAt)}</span>
+                <span className="text-xs text-zinc-500" suppressHydrationWarning>{relTime(c.createdAt)}</span>
               </div>
             </div>
             <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-300">{c.body}</pre>
@@ -142,7 +142,7 @@ export function PRComments({
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-zinc-200">{c.user.login}</span>
-                    <span className="text-xs text-zinc-500">{relTime(c.createdAt)}</span>
+                    <span className="text-xs text-zinc-500" suppressHydrationWarning>{relTime(c.createdAt)}</span>
                     {c.path && (
                       <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-xs text-zinc-400">
                         {c.path}
@@ -175,7 +175,7 @@ export function PRComments({
           onChange={(e) => setNewComment(e.target.value)}
         />
         <div className="mt-2 flex items-center justify-between">
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error ? <p className="text-xs text-red-400">{error}</p> : null}
           <button
             type="button"
             onClick={() => void post()}

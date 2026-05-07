@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { useParams } from "next/navigation";
 
 interface QuotaItem {
@@ -8,6 +8,17 @@ interface QuotaItem {
   used: number;
   limit: number;
   unit: string;
+}
+
+interface UsagePayload {
+  quotas?: QuotaItem[];
+}
+
+async function usageFetcher(url: string): Promise<QuotaItem[]> {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load usage data");
+  const data = (await res.json()) as UsagePayload;
+  return data.quotas ?? [];
 }
 
 function barColor(pct: number): string {
@@ -26,28 +37,15 @@ export default function OrgUsagePage() {
   const params = useParams<{ org: string }>();
   const org = params.org;
 
-  const [quotas, setQuotas] = useState<QuotaItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: quotas = [],
+    isLoading: loading,
+    error: swrError,
+  } = useSWR(`/api/orgs/${encodeURIComponent(org)}/usage`, usageFetcher, {
+    revalidateOnFocus: true,
+  });
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch(`/api/orgs/${encodeURIComponent(org)}/usage`);
-        if (!res.ok) {
-          setError("Failed to load usage data");
-          return;
-        }
-        const data = await res.json();
-        setQuotas(data.quotas ?? []);
-      } catch {
-        setError("Failed to load usage data");
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [org]);
+  const error = swrError ? "Failed to load usage data" : null;
 
   return (
     <div className="mx-auto max-w-4xl p-6">

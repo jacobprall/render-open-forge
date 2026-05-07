@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition, useMemo } from "react";
+import useSWR from "swr";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ActiveSkillRef } from "@render-open-forge/skills";
 
@@ -19,10 +20,19 @@ function skillKey(s: Pick<ActiveSkillRef, "source" | "slug">): string {
   return `${s.source}:${s.slug}`;
 }
 
-function defaultActiveFromLists(builtins: SkillSummary[], user: SkillSummary[], repo: SkillSummary[]): ActiveSkillRef[] {
+function defaultActiveFromLists(
+  builtins: SkillSummary[],
+  user: SkillSummary[],
+  repo: SkillSummary[],
+): ActiveSkillRef[] {
+  const userDefaultSlugs = new Set(
+    user.filter((s) => s.defaultEnabled).map((s) => s.slug),
+  );
   const refs: ActiveSkillRef[] = [];
   for (const s of builtins) {
-    if (s.defaultEnabled) refs.push({ source: "builtin", slug: s.slug });
+    if (s.defaultEnabled && !userDefaultSlugs.has(s.slug)) {
+      refs.push({ source: "builtin", slug: s.slug });
+    }
   }
   for (const s of user) {
     if (s.defaultEnabled) refs.push({ source: "user", slug: s.slug });
@@ -33,94 +43,106 @@ function defaultActiveFromLists(builtins: SkillSummary[], user: SkillSummary[], 
   return refs;
 }
 
+async function jsonFetcher<T>(url: string): Promise<T> {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(String(r.status));
+  return r.json() as Promise<T>;
+}
+
 export function NewSessionForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialRepo = searchParams.get("repo") ?? "";
   const initialBranch = searchParams.get("branch") ?? "";
 
-  const [repos, setRepos] = useState<Repo[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedRepo, setSelectedRepo] = useState(initialRepo);
   const [selectedBranch, setSelectedBranch] = useState(initialBranch);
   const [isNewBranch, setIsNewBranch] = useState(false);
   const [newBranchName, setNewBranchName] = useState("");
   const [title, setTitle] = useState("");
-  const [loadingRepos, setLoadingRepos] = useState(true);
-  const [loadingBranches, setLoadingBranches] = useState(false);
-  const [skillsPayload, setSkillsPayload] = useState<{
-    builtins: SkillSummary[];
-    user: SkillSummary[];
-    repo: SkillSummary[];
-  } | null>(null);
   const [activeSkillKeys, setActiveSkillKeys] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set(["builtin"]));
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [initialParamsApplied, setInitialParamsApplied] = useState(false);
+
+  const {
+    data: repos = [],
+    isLoading: loadingRepos,
+    error: reposErr,
+  } = useSWR("/api/sessions/repos", (u) =>
+    jsonFetcher<{ repos?: Repo[] }>(u).then((d) => d.repos ?? []),
+  );
+
+  const {
+    data: branches = [],
+    isLoading: loadingBranches,
+    error: branchesErr,
+  } = useSWR(
+    selectedRepo ? `/api/sessions/repos/${encodeURIComponent(selectedRepo)}/branches` : null,
+    (u) => jsonFetcher<{ branches?: Branch[] }>(u).then((d) => d.branches ?? []),
+  );
+
+  const { data: skillsPayload, isLoading: loadingSkills, error: skillsErr } = useSWR(
+    selectedRepo ? `/api/skills?repo=${encodeURIComponent(selectedRepo)}` : null,
+    async (u) => {
+      const d = await jsonFetcher<{
+        builtins?: SkillSummary[];
+        user?: SkillSummary[];
+        repo?: SkillSummary[];
+      }>(u);
+      return {
+        builtins: d.builtins ?? [],
+        user: d.user ?? [],
+        repo: d.repo ?? [],
+      };
+    },
+  );
+
+  useEffect(() => {
+    if (reposErr) setError("Failed to load repositories");
+  }, [reposErr]);
+  useEffect(() => {
+    if (branchesErr) setError("Failed to load branches");
+  }, [branchesErr]);
+  useEffect(() => {
+    if (skillsErr) setError("Failed to load skills");
+  }, [skillsErr]);
+
+  useEffect(() => {
+    if (initialRepo && repos.some((r) => r.fullName === initialRepo)) {
+      setSelectedRepo(initialRepo);
+    }
+  }, [initialRepo, repos]);
+
+  useEffect(() => {
+    if (!selectedRepo || branches.length === 0) return;
+    const def = repos.find((r) => r.fullName === selectedRepo)?.defaultBranch ?? "main";
+    if (!initialParamsApplied) {
+      if (initialBranch && branches.some((b) => b.name === initialBranch)) {
+        setSelectedBranch(initialBranch);
+      } else {
+        setSelectedBranch(def);
+      }
+      setInitialParamsApplied(true);
+    } else {
+      setSelectedBranch((prev) => prev || def);
+    }
+  }, [selectedRepo, branches, repos, initialBranch, initialParamsApplied]);
+
+  useEffect(() => {
+    if (!skillsPayload) {
+      if (!selectedRepo) setActiveSkillKeys(new Set());
+      return;
+    }
+    const refs = defaultActiveFromLists(skillsPayload.builtins, skillsPayload.user, skillsPayload.repo);
+    setActiveSkillKeys(new Set(refs.map(skillKey)));
+  }, [skillsPayload, selectedRepo]);
 
   const allSkills = useMemo(() => {
     if (!skillsPayload) return [];
     return [...skillsPayload.builtins, ...skillsPayload.user, ...skillsPayload.repo];
   }, [skillsPayload]);
-
-  useEffect(() => {
-    fetch("/api/sessions/repos")
-      .then((r) => r.json())
-      .then((data) => {
-        const loaded: Repo[] = data.repos ?? [];
-        setRepos(loaded);
-        if (initialRepo && loaded.some((r) => r.fullName === initialRepo)) {
-          setSelectedRepo(initialRepo);
-        }
-      })
-      .catch(() => setError("Failed to load repositories"))
-      .finally(() => setLoadingRepos(false));
-  }, [initialRepo]);
-
-  useEffect(() => {
-    if (!selectedRepo) {
-      setBranches([]);
-      setSkillsPayload(null);
-      setActiveSkillKeys(new Set());
-      return;
-    }
-    setLoadingBranches(true);
-    fetch(`/api/sessions/repos/${encodeURIComponent(selectedRepo)}/branches`)
-      .then((r) => r.json())
-      .then((data) => {
-        const list: Branch[] = data.branches ?? [];
-        setBranches(list);
-        if (!initialParamsApplied) {
-          const def = repos.find((r) => r.fullName === selectedRepo)?.defaultBranch ?? "main";
-          if (initialBranch && list.some((b) => b.name === initialBranch)) {
-            setSelectedBranch(initialBranch);
-          } else {
-            setSelectedBranch(def);
-          }
-          setInitialParamsApplied(true);
-        } else {
-          const def = repos.find((r) => r.fullName === selectedRepo)?.defaultBranch ?? "main";
-          setSelectedBranch((prev) => prev || def);
-        }
-      })
-      .catch(() => setError("Failed to load branches"))
-      .finally(() => setLoadingBranches(false));
-  }, [selectedRepo, repos, initialBranch, initialParamsApplied]);
-
-  useEffect(() => {
-    if (!selectedRepo) return;
-    fetch(`/api/skills?repo=${encodeURIComponent(selectedRepo)}`)
-      .then((r) => r.json())
-      .then((data: { builtins?: SkillSummary[]; user?: SkillSummary[]; repo?: SkillSummary[] }) => {
-        const builtins = data.builtins ?? [];
-        const user = data.user ?? [];
-        const repo = data.repo ?? [];
-        setSkillsPayload({ builtins, user, repo });
-        const refs = defaultActiveFromLists(builtins, user, repo);
-        setActiveSkillKeys(new Set(refs.map(skillKey)));
-      })
-      .catch(() => setError("Failed to load skills"));
-  }, [selectedRepo]);
 
   const effectiveBranch = isNewBranch ? newBranchName.trim() : selectedBranch;
 
@@ -165,7 +187,7 @@ export function NewSessionForm() {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error ?? "Failed to create session");
+          throw new Error((data as { error?: string }).error ?? "Failed to create session");
         }
         const { sessionId } = await res.json();
         router.push(`/sessions/${sessionId}`);
@@ -191,16 +213,14 @@ export function NewSessionForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
+        {error ? (
           <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {error}
           </div>
-        )}
+        ) : null}
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Repository
-          </label>
+          <label className="mb-2 block text-sm font-medium text-zinc-300">Repository</label>
           {loadingRepos ? (
             <div className="h-10 animate-pulse rounded-lg bg-zinc-800" />
           ) : (
@@ -213,7 +233,9 @@ export function NewSessionForm() {
               className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
               required
             >
-              <option value="" className="bg-zinc-900 text-zinc-400">Select a repository…</option>
+              <option value="" className="bg-zinc-900 text-zinc-400">
+                Select a repository…
+              </option>
               {repos.map((repo) => (
                 <option key={repo.id} value={repo.fullName} className="bg-zinc-900 text-zinc-100">
                   {repo.fullName}
@@ -251,33 +273,40 @@ export function NewSessionForm() {
                 disabled={!selectedRepo}
                 required
               />
-              {!selectedRepo && (
+              {!selectedRepo ? (
+                <p className="mt-1.5 text-xs text-zinc-500">Select a repository first</p>
+              ) : null}
+            </>
+          ) : loadingBranches && selectedRepo ? (
+            <div className="h-10 animate-pulse rounded-lg bg-zinc-800" />
+          ) : (
+            <>
+              <select
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                disabled={!selectedRepo}
+                required
+              >
+                <option value="" className="bg-zinc-900 text-zinc-400">
+                  Select a branch…
+                </option>
+                {branches.map((b) => (
+                  <option key={b.name} value={b.name} className="bg-zinc-900 text-zinc-100">
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+              {!selectedRepo && !loadingBranches && (
                 <p className="mt-1.5 text-xs text-zinc-500">Select a repository first</p>
               )}
             </>
-          ) : loadingBranches ? (
-            <div className="h-10 animate-pulse rounded-lg bg-zinc-800" />
-          ) : (
-            <select
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-              disabled={!selectedRepo}
-              required
-            >
-              <option value="" className="bg-zinc-900 text-zinc-400">Select a branch…</option>
-              {branches.map((b) => (
-                <option key={b.name} value={b.name} className="bg-zinc-900 text-zinc-100">
-                  {b.name}
-                </option>
-              ))}
-            </select>
           )}
-          {isNewBranch && selectedBranch && (
+          {isNewBranch && selectedBranch ? (
             <p className="mt-1.5 text-xs text-zinc-500">
               Will be created from <span className="text-zinc-400">{selectedBranch}</span>
             </p>
-          )}
+          ) : null}
         </div>
 
         <div>
@@ -292,14 +321,13 @@ export function NewSessionForm() {
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
           />
           <p className="mt-1.5 text-xs text-zinc-500">
-            Sessions start as &quot;New session&quot; until you send a message; then we generate a short title with Haiku.
+            Sessions start as &quot;New session&quot; until you send a message; then we generate a short title with
+            Haiku.
           </p>
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Skills for this session
-          </label>
+          <label className="mb-2 block text-sm font-medium text-zinc-300">Skills for this session</label>
           <p className="mb-3 text-xs text-zinc-500">
             Toggle instructions merged into the agent system prompt. Manage personal skills in{" "}
             <a href="/settings/skills" className="text-emerald-400 hover:text-emerald-300">
@@ -309,44 +337,71 @@ export function NewSessionForm() {
           </p>
           {!selectedRepo ? (
             <p className="text-sm text-zinc-500">Select a repository to load skills.</p>
-          ) : !skillsPayload ? (
+          ) : loadingSkills ? (
             <div className="h-24 animate-pulse rounded-lg bg-zinc-800" />
+          ) : skillsPayload == null ? (
+            <p className="text-sm text-zinc-500">Could not load skills.</p>
           ) : allSkills.length === 0 ? (
-            <p className="text-sm text-zinc-500">No skills found. Your forge-skills repo will seed built-ins automatically.</p>
+            <p className="text-sm text-zinc-500">
+              No skills found. Your forge-skills repo will seed built-ins automatically.
+            </p>
           ) : (
             <div className="space-y-4">
               {(["builtin", "user", "repo"] as const).map((source) => {
                 const list = allSkills.filter((s) => s.source === source);
                 if (list.length === 0) return null;
+                const collapsed = collapsedGroups.has(source);
                 return (
                   <div key={source}>
-                    <p className="mb-2 mt-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      {groupLabel(source)}
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      {list.map((s) => {
-                        const k = skillKey({ source: s.source, slug: s.slug });
-                        const on = activeSkillKeys.has(k);
-                        return (
-                          <button
-                            key={k}
-                            type="button"
-                            onClick={() => toggleSkill({ source: s.source, slug: s.slug })}
-                            className={`rounded-lg border px-3 py-2 text-left transition ${
-                              on
-                                ? "border-emerald-500/60 bg-emerald-500/10"
-                                : "border-zinc-700 bg-zinc-900 hover:border-zinc-600"
-                            }`}
-                          >
-                            <div className="text-sm font-medium text-zinc-100">{s.name}</div>
-                            <div className="mt-0.5 text-xs text-zinc-500">{s.description}</div>
-                            <div className="mt-1 font-mono text-[10px] text-zinc-600">
-                              {s.source}/{s.slug}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCollapsedGroups((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(source)) next.delete(source);
+                          else next.add(source);
+                          return next;
+                        })
+                      }
+                      className="mb-2 mt-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-zinc-500 transition hover:text-zinc-400"
+                    >
+                      <svg
+                        className={`h-3 w-3 transition-transform ${collapsed ? "" : "rotate-90"}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                      </svg>
+                      {groupLabel(source)} ({list.length})
+                    </button>
+                    {!collapsed && (
+                      <div className="flex flex-col gap-2">
+                        {list.map((s) => {
+                          const k = skillKey({ source: s.source, slug: s.slug });
+                          const on = activeSkillKeys.has(k);
+                          return (
+                            <button
+                              key={k}
+                              type="button"
+                              onClick={() => toggleSkill({ source: s.source, slug: s.slug })}
+                              className={`rounded-lg border px-3 py-2 text-left transition ${
+                                on
+                                  ? "border-emerald-500/60 bg-emerald-500/10"
+                                  : "border-zinc-700 bg-zinc-900 hover:border-zinc-600"
+                              }`}
+                            >
+                              <div className="text-sm font-medium text-zinc-100">{s.name}</div>
+                              <div className="mt-0.5 text-xs text-zinc-500">{s.description}</div>
+                              <div className="mt-1 font-mono text-[10px] text-zinc-600">
+                                {s.source}/{s.slug}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}

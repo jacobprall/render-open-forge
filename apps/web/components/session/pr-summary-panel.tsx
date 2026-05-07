@@ -1,0 +1,106 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import Link from "next/link";
+
+interface PrSummaryProps {
+  sessionId: string;
+  repoPath: string;
+  prNumber: number;
+  prStatus: string | null;
+  branch: string | null;
+}
+
+const statusConfig: Record<string, { color: string; label: string; dotColor: string }> = {
+  open: { color: "text-emerald-400", label: "Open", dotColor: "bg-emerald-400" },
+  merged: { color: "text-purple-400", label: "Merged", dotColor: "bg-purple-400" },
+  closed: { color: "text-red-400", label: "Closed", dotColor: "bg-red-400" },
+};
+
+export function PrSummaryPanel({ sessionId, repoPath, prNumber, prStatus, branch }: PrSummaryProps) {
+  const [isPending, startTransition] = useTransition();
+  const [reviewRequested, setReviewRequested] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const status = statusConfig[prStatus ?? "open"] ?? statusConfig.open;
+  const prUrl = `/${repoPath}/pulls/${prNumber}`;
+
+  async function handleRequestReview() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/sessions/${sessionId}/review`, {
+          method: "POST",
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setError(data.error ?? "Failed to request review");
+          return;
+        }
+        setReviewRequested(true);
+      } catch {
+        setError("Network error");
+      }
+    });
+  }
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <svg className="h-4 w-4 shrink-0 text-zinc-400" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z" />
+          </svg>
+          <Link
+            href={prUrl}
+            className="truncate text-sm font-medium text-zinc-200 hover:text-emerald-400 transition"
+          >
+            PR #{prNumber}
+          </Link>
+          <span className="flex items-center gap-1.5 text-xs">
+            <span className={`h-1.5 w-1.5 rounded-full ${status.dotColor}`} />
+            <span className={status.color}>{status.label}</span>
+          </span>
+        </div>
+
+        {prStatus === "open" && (
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href={prUrl}
+              className="rounded px-2 py-1 text-xs font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200"
+            >
+              View Diff
+            </Link>
+            {reviewRequested ? (
+              <span className="text-xs text-emerald-400">Review started</span>
+            ) : (
+              <button
+                onClick={handleRequestReview}
+                disabled={isPending}
+                className="rounded bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-200 transition hover:bg-zinc-700 disabled:opacity-50"
+              >
+                {isPending ? "Starting..." : "Agent Review"}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {branch && (
+        <div className="mt-1.5 flex items-center gap-1 text-[11px] text-zinc-500">
+          <span className="font-mono">{branch}</span>
+          <svg className="h-3 w-3 text-zinc-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+          <span className="font-mono">main</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-2 rounded border border-red-500/20 bg-red-500/10 px-2 py-1 text-xs text-red-400">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -11,13 +11,16 @@ import {
   type ResolvedSkill,
 } from "@render-open-forge/skills";
 
-type SessionRow = typeof sessions.$inferSelect;
+type SessionSkillsInput = Pick<
+  typeof sessions.$inferSelect,
+  "forgejoRepoPath" | "branch" | "activeSkills"
+>;
 
 /**
  * Load ordered skill bodies for an agent job (user OAuth or agent token).
  */
 export async function resolveSkillsForSessionRow(
-  sessionRow: SessionRow,
+  sessionRow: SessionSkillsInput,
   forge: ForgeProvider,
   forgeUsername: string,
 ): Promise<ResolvedSkill[]> {

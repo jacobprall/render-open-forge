@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
+import useSWR from "swr";
 import { useRouter } from "next/navigation";
 import { mergePullRequestAction } from "../actions";
 
@@ -37,19 +38,21 @@ export function MergeControls({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [branchProtected, setBranchProtected] = useState<boolean | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    fetch(`/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branch-protection`, {
-      cache: "no-store",
-    })
-      .then((r) => r.json())
-      .then((j: { protections?: unknown[] }) => {
-        setBranchProtected(Array.isArray(j.protections) && j.protections.length > 0);
-      })
-      .catch(() => setBranchProtected(null));
-  }, [owner, repo]);
+  const protectionUrl = `/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branch-protection`;
+  const { data: protectionData } = useSWR(
+    protectionUrl,
+    async (url) => {
+      const r = await fetch(url, { cache: "no-store" });
+      return r.json() as Promise<{ protections?: unknown[] }>;
+    },
+    { revalidateOnFocus: true },
+  );
+  const branchProtected =
+    protectionData !== undefined
+      ? Array.isArray(protectionData.protections) && protectionData.protections.length > 0
+      : null;
 
   function handleMerge() {
     setError(null);

@@ -18,6 +18,8 @@ export const DEFAULT_ACTIVE_SKILL_REFS: ActiveSkillRef[] = [
   { source: "builtin", slug: "verification" },
   { source: "builtin", slug: "pr-delivery" },
   { source: "builtin", slug: "code-quality" },
+  { source: "builtin", slug: "react-best-practices" },
+  { source: "builtin", slug: "next-best-practices" },
 ];
 
 function splitRepoPath(full: string): { owner: string; repo: string } | null {

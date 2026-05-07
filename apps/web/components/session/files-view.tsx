@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { LiveFileChange } from "./chat-panel";
 
 interface FilesViewProps {
@@ -14,6 +14,11 @@ export function FilesView({ sessionId, fileChanges }: FilesViewProps) {
 
   const totalAdded = fileChanges.reduce((s, f) => s + f.additions, 0);
   const totalRemoved = fileChanges.reduce((s, f) => s + f.deletions, 0);
+
+  const selectedMeta = useMemo(
+    () => (selectedFile ? fileChanges.find((x) => x.path === selectedFile) : undefined),
+    [fileChanges, selectedFile],
+  );
 
   if (fileChanges.length === 0) {
     return (
@@ -35,7 +40,6 @@ export function FilesView({ sessionId, fileChanges }: FilesViewProps) {
 
   return (
     <div className="flex h-full">
-      {/* File tree */}
       <div className="w-64 shrink-0 border-r border-zinc-800 overflow-y-auto">
         <div className="flex items-center justify-between px-3 py-2.5 border-b border-zinc-800/50">
           <span className="text-[11px] font-medium text-zinc-400">
@@ -58,6 +62,7 @@ export function FilesView({ sessionId, fileChanges }: FilesViewProps) {
             return (
               <button
                 key={file.path}
+                type="button"
                 onClick={() => setSelectedFile(isSelected ? null : file.path)}
                 className={`flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors ${
                   isSelected
@@ -70,9 +75,9 @@ export function FilesView({ sessionId, fileChanges }: FilesViewProps) {
                 </svg>
                 <div className="flex-1 min-w-0">
                   <span className="block text-xs font-mono truncate">{filename}</span>
-                  {dir && (
+                  {dir ? (
                     <span className="block text-[10px] text-zinc-600 font-mono truncate">{dir}</span>
-                  )}
+                  ) : null}
                 </div>
                 <span className="shrink-0 text-[10px] font-mono tabular-nums">
                   <span className="text-emerald-400/60">+{file.additions}</span>
@@ -85,31 +90,26 @@ export function FilesView({ sessionId, fileChanges }: FilesViewProps) {
         </div>
       </div>
 
-      {/* File detail / diff area */}
       <div className="flex-1 overflow-y-auto">
         {selectedFile ? (
           <div className="p-4">
             <div className="mb-3 flex items-center gap-2">
               <span className="text-xs font-mono text-zinc-400">{selectedFile}</span>
-              {(() => {
-                const f = fileChanges.find((x) => x.path === selectedFile);
-                if (!f) return null;
-                return (
-                  <span className="text-[11px] font-mono tabular-nums">
-                    <span className="text-emerald-400/70">+{f.additions}</span>
-                    <span className="text-zinc-700 mx-0.5">/</span>
-                    <span className="text-red-400/70">-{f.deletions}</span>
-                  </span>
-                );
-              })()}
+              {selectedMeta ? (
+                <span className="text-[11px] font-mono tabular-nums">
+                  <span className="text-emerald-400/70">+{selectedMeta.additions}</span>
+                  <span className="text-zinc-700 mx-0.5">/</span>
+                  <span className="text-red-400/70">-{selectedMeta.deletions}</span>
+                </span>
+              ) : null}
             </div>
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6 text-center">
               <p className="text-xs text-zinc-500">
                 Diff view coming soon. File was modified with{" "}
-                {(() => {
-                  const f = fileChanges.find((x) => x.path === selectedFile);
-                  return f ? `${f.additions} additions and ${f.deletions} deletions` : "changes";
-                })()}.
+                {selectedMeta
+                  ? `${selectedMeta.additions} additions and ${selectedMeta.deletions} deletions`
+                  : "changes"}
+                .
               </p>
             </div>
           </div>

@@ -1,11 +1,29 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import type { AssistantPart } from "@render-open-forge/shared/client";
-import { ChatPanel } from "./chat-panel";
-import { FilesView } from "./files-view";
 import { ModelSelector } from "@/components/model-selector";
+import { PrSummaryPanel } from "./pr-summary-panel";
 import type { Message, LiveFileChange } from "./chat-panel";
+
+const ChatPanel = dynamic(
+  () => import("./chat-panel").then((m) => ({ default: m.ChatPanel })),
+  {
+    loading: () => (
+      <div className="flex h-full items-center justify-center text-sm text-zinc-500">Loading chat…</div>
+    ),
+  },
+);
+
+const FilesView = dynamic(
+  () => import("./files-view").then((m) => ({ default: m.FilesView })),
+  {
+    loading: () => (
+      <div className="flex h-full items-center justify-center text-sm text-zinc-500">Loading files…</div>
+    ),
+  },
+);
 
 type ViewTab = "chat" | "files";
 
@@ -17,6 +35,7 @@ interface SessionInfo {
   activeSkills: Array<{ source: string; slug: string }>;
   status: string;
   prNumber: number | null;
+  prStatus: string | null;
   linesAdded: number | null;
   linesRemoved: number | null;
 }
@@ -63,22 +82,22 @@ export function SessionWorkspace({
   }, []);
 
   const fileCount = liveFileChanges.length;
+  const hasLineStats =
+    session.linesAdded != null || session.linesRemoved != null;
 
   return (
     <div className="flex h-full flex-col">
-      {/* Workspace header: metadata row + tab bar */}
       <header className="shrink-0 border-b border-zinc-800">
-        {/* Metadata row */}
         <div className="flex items-center justify-between px-4 pt-2 pb-1">
           <div className="flex items-center gap-2 min-w-0 text-[11px]">
-            {session.repoPath && (
+            {session.repoPath ? (
               <span className="font-mono text-zinc-500 truncate">
                 {session.repoPath}
-                {session.branch && (
+                {session.branch ? (
                   <span className="text-zinc-600"> : {session.branch}</span>
-                )}
+                ) : null}
               </span>
-            )}
+            ) : null}
             <span className="flex items-center gap-1.5 text-zinc-500">
               <span className={`h-1.5 w-1.5 rounded-full ${statusDot[session.status] ?? "bg-zinc-600"}`} />
               {session.status}
@@ -100,15 +119,15 @@ export function SessionWorkspace({
             ) : (
               <span className="text-[10px] text-zinc-600">default skills</span>
             )}
-            {session.prNumber && (
+            {session.prNumber != null ? (
               <a
                 href={`/${session.repoPath}/pulls/${session.prNumber}`}
                 className="text-blue-400 hover:text-blue-300 font-mono"
               >
                 PR #{session.prNumber}
               </a>
-            )}
-            {(session.linesAdded || session.linesRemoved) ? (
+            ) : null}
+            {hasLineStats ? (
               <span className="font-mono tabular-nums">
                 <span className="text-emerald-400/70">+{session.linesAdded ?? 0}</span>
                 <span className="text-zinc-700 mx-0.5">/</span>
@@ -121,7 +140,6 @@ export function SessionWorkspace({
           </div>
         </div>
 
-        {/* Tab bar */}
         <div className="flex items-center gap-0.5 px-4 -mb-px">
           <TabButton
             active={activeView === "chat"}
@@ -139,7 +157,18 @@ export function SessionWorkspace({
         </div>
       </header>
 
-      {/* View content */}
+      {session.prNumber != null && session.repoPath && (
+        <div className="shrink-0 border-b border-zinc-800 px-4 py-2">
+          <PrSummaryPanel
+            sessionId={session.id}
+            repoPath={session.repoPath}
+            prNumber={session.prNumber}
+            prStatus={session.prStatus ?? null}
+            branch={session.branch}
+          />
+        </div>
+      )}
+
       <div className="flex-1 overflow-hidden">
         <div className={activeView === "chat" ? "h-full" : "hidden"}>
           <ChatPanel
@@ -176,22 +205,20 @@ function TabButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`relative flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
+      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
         active
-          ? "text-zinc-100"
-          : "text-zinc-500 hover:text-zinc-300"
+          ? "border-b-2 border-emerald-500 text-zinc-100"
+          : "border-b-2 border-transparent text-zinc-500 hover:text-zinc-300"
       }`}
     >
       {children}
-      {badge !== undefined && (
+      {badge !== undefined ? (
         <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-zinc-700 px-1 text-[10px] tabular-nums text-zinc-300">
           {badge}
         </span>
-      )}
-      {active && (
-        <span className="absolute bottom-0 left-3 right-3 h-px bg-emerald-500" />
-      )}
+      ) : null}
     </button>
   );
 }

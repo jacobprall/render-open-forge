@@ -31,6 +31,14 @@ services:
         generateValue: true
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: RENDER_API_KEY
+        sync: false
+      - key: RENDER_CI_WORKFLOW_SLUG
+        value: forge-ci
+      - key: CI_RUNNER_SECRET
+        generateValue: true # forge-ci reads the same value via fromService.envVarKey
+      - key: CI_CALLBACK_URL
+        sync: false
       - key: NODE_ENV
         value: production
 
@@ -126,18 +134,26 @@ services:
       - key: GOOGLE_OAUTH_CLIENT_SECRET
         sync: false
 
-  # Forgejo Actions Runner
+  # CI Runner (Render Workflows)
+  # Note: Render Workflows doesn't yet support Blueprint definitions.
+  # Deploy this as a worker that registers tasks with the Render SDK.
+  # Once Workflows supports Blueprints, switch to type: workflow.
   - type: worker
-    name: forge-runner
-    runtime: docker
+    name: forge-ci
+    runtime: node
     plan: starter
-    dockerfilePath: infrastructure/runner/Dockerfile
-    dockerContext: infrastructure/runner
+    buildCommand: bun install && npx turbo build --filter=ci-runner
+    startCommand: cd packages/ci-runner && bun run start
     envVars:
-      - key: FORGEJO_URL
+      - key: FORGEJO_INTERNAL_URL
         value: http://forge-forgejo:3000
-      - key: RUNNER_TOKEN
+      - key: FORGEJO_AGENT_TOKEN
         sync: false
+      - key: CI_RUNNER_SECRET
+        fromService:
+          name: forge-web
+          type: web
+          envVarKey: CI_RUNNER_SECRET
 
   # Redis (job queue + streaming)
   - type: keyvalue

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import Image from "next/image";
 
 interface Member {
@@ -10,38 +11,31 @@ interface Member {
   full_name?: string;
 }
 
+async function membersFetcher(url: string): Promise<Member[]> {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error((j as { error?: string }).error ?? "Failed to load members");
+  }
+  return res.json() as Promise<Member[]>;
+}
+
 export function MembersList({ org }: { org: string }) {
   const base = `/api/orgs/${encodeURIComponent(org)}/members`;
+  const {
+    data: members = [],
+    isLoading: loading,
+    error: swrError,
+    mutate,
+  } = useSWR<Member[]>(base, membersFetcher, { revalidateOnFocus: true });
 
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
   const [username, setUsername] = useState("");
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(base, { cache: "no-store" });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error ?? "Failed to load members");
-      }
-      setMembers(await res.json());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [base]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const loadError = swrError instanceof Error ? swrError.message : swrError ? String(swrError) : null;
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -53,15 +47,15 @@ export function MembersList({ org }: { org: string }) {
     setMessage(null);
     try {
       const res = await fetch(base, {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: trimmed }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error ?? "Failed to add member");
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? "Failed to add member");
       setMessage(`Added ${trimmed} to ${org}.`);
       setUsername("");
-      await refresh();
+      await mutate();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -74,13 +68,15 @@ export function MembersList({ org }: { org: string }) {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch(`${base}/${encodeURIComponent(login)}`, {
+      const res = await fetch(base, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: login }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error ?? "Failed to remove member");
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? "Failed to remove member");
       setMessage(`Removed ${login} from ${org}.`);
-      await refresh();
+      await mutate();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -90,7 +86,6 @@ export function MembersList({ org }: { org: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Add member form */}
       <form
         onSubmit={(e) => void handleAdd(e)}
         className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6"
@@ -114,21 +109,19 @@ export function MembersList({ org }: { org: string }) {
         </div>
       </form>
 
-      {/* Members list */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
         <h2 className="text-base font-semibold text-zinc-100">Current Members</h2>
 
         {loading ? (
           <p className="mt-4 text-sm text-zinc-500">Loading…</p>
+        ) : loadError ? (
+          <p className="mt-4 text-sm text-red-400">{loadError}</p>
         ) : members.length === 0 ? (
           <p className="mt-4 text-sm text-zinc-500">No members found.</p>
         ) : (
           <ul className="mt-4 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
             {members.map((member) => (
-              <li
-                key={member.id}
-                className="flex items-center justify-between gap-4 px-4 py-3"
-              >
+              <li key={member.id} className="flex items-center justify-between gap-4 px-4 py-3">
                 <div className="flex items-center gap-3">
                   <Image
                     src={member.avatar_url}
@@ -138,14 +131,10 @@ export function MembersList({ org }: { org: string }) {
                     className="h-8 w-8 rounded-full bg-zinc-700"
                   />
                   <div>
-                    <span className="text-sm font-medium text-zinc-200">
-                      {member.full_name || member.login}
-                    </span>
-                    {member.full_name && (
-                      <span className="ml-2 text-xs text-zinc-500">
-                        @{member.login}
-                      </span>
-                    )}
+                    <span className="text-sm font-medium text-zinc-200">{member.full_name || member.login}</span>
+                    {member.full_name ? (
+                      <span className="ml-2 text-xs text-zinc-500">@{member.login}</span>
+                    ) : null}
                   </div>
                 </div>
                 <button
@@ -162,16 +151,16 @@ export function MembersList({ org }: { org: string }) {
         )}
       </div>
 
-      {message && (
+      {message ? (
         <p className="text-sm text-emerald-400" role="status">
           {message}
         </p>
-      )}
-      {error && (
+      ) : null}
+      {error ? (
         <p className="text-sm text-red-400" role="alert">
           {error}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

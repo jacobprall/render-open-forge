@@ -1,10 +1,28 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  startTransition,
+} from "react";
+import dynamic from "next/dynamic";
+import { useEventSource } from "@/hooks/use-event-source";
 import type { StreamEvent, AssistantPart } from "@render-open-forge/shared/client";
 import { appendStreamEvent } from "@render-open-forge/shared/client";
-import { Markdown } from "@/components/markdown";
-import { ToolCall } from "@/components/tool-call";
+
+const Markdown = dynamic(
+  () => import("@/components/markdown").then((m) => ({ default: m.Markdown })),
+  { ssr: false, loading: () => <span className="text-xs text-zinc-500">…</span> },
+);
+
+const ToolCallLazy = dynamic(
+  () => import("@/components/tool-call").then((m) => ({ default: m.ToolCall })),
+  { ssr: false, loading: () => <span className="text-xs text-zinc-500">…</span> },
+);
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -28,8 +46,17 @@ interface ChatPanelProps {
   onFileChanges?: (files: LiveFileChange[]) => void;
 }
 
-export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMessages, modelId, onModelChange, onFileChanges }: ChatPanelProps) {
+export function ChatPanel({
+  sessionId,
+  chatId: _chatId,
+  activeRunId,
+  initialMessages,
+  modelId,
+  onModelChange,
+  onFileChanges,
+}: ChatPanelProps) {
   void _chatId;
+  void onModelChange;
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -43,12 +70,26 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
   const [liveFileChanges, setLiveFileChanges] = useState<LiveFileChange[]>([]);
   const [filesPanelOpen, setFilesPanelOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [streamGeneration, setStreamGeneration] = useState(0);
+  const streamUrl = useMemo(
+    () => `/api/sessions/${sessionId}/stream?sg=${streamGeneration}`,
+    [sessionId, streamGeneration],
+  );
+  const onFileChangesRef = useRef(onFileChanges);
+  onFileChangesRef.current = onFileChanges;
 
-  useEffect(() => {
-    onFileChanges?.(liveFileChanges);
-  }, [liveFileChanges, onFileChanges]);
+  const pushLiveFileChange = useCallback((fp: string, additions: number, deletions: number) => {
+    if (!fp) return;
+    setLiveFileChanges((prev) => {
+      const rest = prev.filter((x) => x.path !== fp);
+      const next = [...rest, { path: fp, additions, deletions }].sort((a, b) =>
+        a.path.localeCompare(b.path),
+      );
+      onFileChangesRef.current?.(next);
+      return next;
+    });
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -57,6 +98,94 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
   useEffect(() => {
     scrollToBottom();
   }, [messages, streamingParts, scrollToBottom]);
+
+  const finishStreaming = useCallback(() => {
+    setIsStreaming(false);
+    setStreamingParts((parts) => {
+      if (parts.length > 0) {
+        const snapshot = parts;
+        queueMicrotask(() => {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              role: "assistant",
+              parts: snapshot,
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+        });
+      }
+      return [];
+    });
+    setLiveFileChanges([]);
+    onFileChangesRef.current?.([]);
+  }, []);
+
+  const streamMessageRef = useRef<(event: MessageEvent) => void>(() => {});
+  streamMessageRef.current = (event: MessageEvent) => {
+    try {
+      const raw = JSON.parse(event.data) as Record<string, unknown>;
+      const type = raw.type as string;
+
+      if (type === "connected" || type === "no_active_run") return;
+
+      if (type === "ask_user") {
+        setAskUserPrompt({
+          question: (raw.question as string) ?? "",
+          options: (raw.options as string[]) ?? [],
+          toolCallId: raw.toolCallId as string | undefined,
+        });
+        return;
+      }
+
+      if (type === "file_changed") {
+        startTransition(() => {
+          setStreamingParts((prev) => appendStreamEvent(prev, raw as unknown as StreamEvent));
+        });
+        const fp = (raw.path as string) ?? "";
+        pushLiveFileChange(fp, (raw.additions as number) ?? 0, (raw.deletions as number) ?? 0);
+        return;
+      }
+
+      if (type === "done" || type === "aborted") {
+        finishStreaming();
+        return;
+      }
+
+      if (type === "error") {
+        setError((raw.message as string) ?? "An error occurred");
+        finishStreaming();
+        return;
+      }
+
+      startTransition(() => {
+        setStreamingParts((prev) => appendStreamEvent(prev, raw as unknown as StreamEvent));
+      });
+    } catch {
+      // ignore parse errors
+    }
+  };
+
+  const onStreamMessage = useCallback((e: MessageEvent) => {
+    streamMessageRef.current(e);
+  }, []);
+
+  const streamErrorRef = useRef<() => void>(() => {});
+  streamErrorRef.current = () => {
+    finishStreaming();
+  };
+  const onStreamError = useCallback(() => {
+    streamErrorRef.current();
+  }, []);
+
+  useEventSource({
+    url: streamUrl,
+    enabled: isStreaming,
+    onMessage: onStreamMessage,
+    onError: onStreamError,
+    maxReconnectAttempts: 0,
+  });
 
   const pendingAsk = useMemo(() => {
     if (!activeRunId && !isStreaming) return null;
@@ -75,100 +204,12 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
     return null;
   }, [activeRunId, isStreaming, streamingParts, messages]);
 
-  function connectToStream() {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    setIsStreaming(true);
-    setStreamingParts([]);
-    setError(null);
-
-    const es = new EventSource(`/api/sessions/${sessionId}/stream`);
-    eventSourceRef.current = es;
-
-    es.onmessage = (event) => {
-      try {
-        const raw = JSON.parse(event.data) as Record<string, unknown>;
-        const type = raw.type as string;
-
-        if (type === "connected" || type === "no_active_run") return;
-
-        if (type === "ask_user") {
-          setAskUserPrompt({
-            question: (raw.question as string) ?? "",
-            options: (raw.options as string[]) ?? [],
-            toolCallId: raw.toolCallId as string | undefined,
-          });
-          return;
-        }
-
-        if (type === "file_changed") {
-          setStreamingParts((prev) => appendStreamEvent(prev, raw as unknown as StreamEvent));
-          const fp = (raw.path as string) ?? "";
-          if (fp) {
-            setLiveFileChanges((prev) => {
-              const rest = prev.filter((x) => x.path !== fp);
-              return [
-                ...rest,
-                { path: fp, additions: (raw.additions as number) ?? 0, deletions: (raw.deletions as number) ?? 0 },
-              ].sort((a, b) => a.path.localeCompare(b.path));
-            });
-          }
-          return;
-        }
-
-        if (type === "done" || type === "aborted") {
-          finishStreaming();
-          es.close();
-          return;
-        }
-
-        if (type === "error") {
-          setError((raw.message as string) ?? "An error occurred");
-          finishStreaming();
-          es.close();
-          return;
-        }
-
-        setStreamingParts((prev) => appendStreamEvent(prev, raw as unknown as StreamEvent));
-      } catch {
-        // ignore parse errors
-      }
-    };
-
-    es.onerror = () => {
-      finishStreaming();
-      es.close();
-    };
-  }
-
-  function finishStreaming() {
-    setIsStreaming(false);
-    setStreamingParts((parts) => {
-      if (parts.length > 0) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            parts,
-            createdAt: new Date().toISOString(),
-          },
-        ]);
-      }
-      return [];
-    });
-    setLiveFileChanges([]);
-  }
-
   async function stopStreaming() {
     try {
       await fetch(`/api/sessions/${sessionId}/stop`, { method: "POST" });
     } catch {
       // best effort
     }
-    eventSourceRef.current?.close();
     finishStreaming();
   }
 
@@ -201,7 +242,10 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
         return;
       }
 
-      connectToStream();
+      setStreamingParts([]);
+      setError(null);
+      setStreamGeneration((g) => g + 1);
+      setIsStreaming(true);
     } catch {
       setError("Network error — failed to send message");
     }
@@ -249,12 +293,12 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
     sendMessage(answer);
   }
 
+  const askResolved = askUserPrompt ?? pendingAsk;
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="mx-auto max-w-2xl flex flex-col gap-4">
-          {/* Inline files changed panel */}
           {liveFileChanges.length > 0 && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 overflow-hidden">
               <button
@@ -262,9 +306,7 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
                 className="w-full flex items-center justify-between px-3 py-2 text-left text-xs font-medium text-zinc-300"
                 onClick={() => setFilesPanelOpen((o) => !o)}
               >
-                <span>
-                  Files changed — {liveFileChanges.length}
-                </span>
+                <span>Files changed — {liveFileChanges.length}</span>
                 <svg
                   className={`h-3.5 w-3.5 text-zinc-500 transition-transform ${filesPanelOpen ? "rotate-180" : ""}`}
                   fill="none"
@@ -274,8 +316,8 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              {filesPanelOpen && (
-                <ul className="divide-y divide-zinc-800/50 border-t border-zinc-800 max-h-48 overflow-y-auto text-xs font-mono px-3 py-1">
+              {filesPanelOpen ? (
+                <ul className="divide-y divide-zinc-800/50 border-t border-zinc-800 max-h-48 overflow-y-auto text-xs font-mono px-3 py-1 contain-content">
                   {liveFileChanges.map((f) => (
                     <li key={f.path} className="py-1.5 flex justify-between gap-2">
                       <span className="truncate text-zinc-400">{f.path}</span>
@@ -287,109 +329,70 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
                     </li>
                   ))}
                 </ul>
-              )}
+              ) : null}
             </div>
           )}
 
           {messages.length === 0 && !isStreaming ? (
             <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-                <svg className="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+                <svg
+                  className="h-6 w-6 text-emerald-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"
+                  />
                 </svg>
               </div>
               <p className="font-medium text-zinc-200">Start a conversation</p>
-              <p className="text-sm text-zinc-500">
-                Ask the agent to help with your codebase.
-              </p>
+              <p className="text-sm text-zinc-500">Ask the agent to help with your codebase.</p>
             </div>
           ) : (
-            messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
-            ))
+            messages.map((msg) => <MessageBubble key={msg.id} message={msg} />)
           )}
 
-          {/* Streaming assistant message */}
-          {isStreaming && streamingParts.length > 0 && (
-            <div className="flex justify-start">
+          {isStreaming && streamingParts.length > 0 ? (
+            <div className="flex justify-start [content-visibility:auto]">
               <div className="max-w-[95%] sm:max-w-[85%]">
                 <AssistantParts parts={streamingParts} streaming />
               </div>
             </div>
-          )}
+          ) : null}
 
-          {/* Thinking indicator */}
-          {isStreaming && streamingParts.length === 0 && (
+          {isStreaming && streamingParts.length === 0 ? (
             <div className="flex items-center gap-2 text-xs text-zinc-500">
               <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
               </svg>
               Thinking…
             </div>
-          )}
+          ) : null}
 
-          {/* Ask user prompt */}
-          {(askUserPrompt || pendingAsk) && (() => {
-            const ask = askUserPrompt ?? pendingAsk;
-            if (!ask) return null;
-            const question = "question" in ask ? (ask as { question: string }).question : "";
-            const options = "options" in ask ? ((ask as { options?: string[] }).options ?? []) : [];
-            return (
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                <p className="mb-1 text-xs font-medium text-amber-400/70">Agent needs your input</p>
-                <p className="mb-3 text-sm text-amber-200">{question}</p>
-                {options.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {options.map((opt: string) => (
-                      <button
-                        key={opt}
-                        onClick={() => handleAskUserResponse(opt)}
-                        className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300 transition hover:bg-amber-500/20"
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(e.currentTarget);
-                      const answer = formData.get("answer") as string;
-                      if (answer?.trim()) handleAskUserResponse(answer);
-                    }}
-                    className="flex gap-2"
-                  >
-                    <input
-                      name="answer"
-                      className="flex-1 rounded-lg border border-amber-500/30 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 outline-none focus:border-amber-500"
-                      placeholder="Type your answer…"
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-500"
-                    >
-                      Reply
-                    </button>
-                  </form>
-                )}
-              </div>
-            );
-          })()}
+          {askResolved ? (
+            <AskUserCard ask={askResolved} onRespond={handleAskUserResponse} />
+          ) : null}
 
-          {/* Error */}
-          {error && (
+          {error ? (
             <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
               <p className="text-sm text-red-400">{error}</p>
             </div>
-          )}
+          ) : null}
 
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Input area */}
       <div className="border-t border-zinc-800 px-4 py-3">
         <form onSubmit={handleSubmit} className="mx-auto max-w-2xl">
           <div className="flex items-end gap-2 rounded-xl border border-zinc-700 bg-zinc-900 p-2 transition focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/25">
@@ -421,7 +424,11 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
                 className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                  />
                 </svg>
                 Send
               </button>
@@ -433,17 +440,73 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
   );
 }
 
+function AskUserCard({
+  ask,
+  onRespond,
+}: {
+  ask: { question?: string; options?: string[] };
+  onRespond: (answer: string) => void;
+}) {
+  const question = "question" in ask ? (ask as { question: string }).question : "";
+  const options = "options" in ask ? ((ask as { options?: string[] }).options ?? []) : [];
+
+  return (
+    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+      <p className="mb-1 text-xs font-medium text-amber-400/70">Agent needs your input</p>
+      <p className="mb-3 text-sm text-amber-200">{question}</p>
+      {options.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {options.map((opt: string) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onRespond(opt)}
+              className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300 transition hover:bg-amber-500/20"
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const answer = formData.get("answer") as string;
+            if (answer?.trim()) onRespond(answer);
+          }}
+          className="flex gap-2"
+        >
+          <input
+            name="answer"
+            className="flex-1 rounded-lg border border-amber-500/30 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 outline-none focus:border-amber-500"
+            placeholder="Type your answer…"
+          />
+          <button
+            type="submit"
+            className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-500"
+          >
+            Reply
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
 
   if (isUser) {
     return (
-      <div className="flex justify-end">
+      <div className="flex justify-end [content-visibility:auto]">
         <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-emerald-600 px-3.5 py-2 text-[13px] leading-relaxed text-white shadow-sm">
           {message.parts
             .filter((p) => p.type === "text")
             .map((p, i) => (
-              <p key={i} className="whitespace-pre-wrap">{p.text}</p>
+              <p key={i} className="whitespace-pre-wrap">
+                {p.text}
+              </p>
             ))}
         </div>
       </div>
@@ -451,7 +514,7 @@ function MessageBubble({ message }: { message: Message }) {
   }
 
   return (
-    <div className="flex justify-start">
+    <div className="flex justify-start [content-visibility:auto]">
       <div className="max-w-[95%] sm:max-w-[88%]">
         <AssistantParts parts={message.parts} />
       </div>
@@ -469,7 +532,7 @@ function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streamin
 
           case "tool_call":
             return (
-              <ToolCall
+              <ToolCallLazy
                 key={i}
                 toolName={part.toolName ?? "tool"}
                 args={part.args as Record<string, unknown> | undefined}
@@ -480,7 +543,10 @@ function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streamin
 
           case "file_changed":
             return (
-              <div key={i} className="inline-flex items-center gap-1.5 text-[11px] border border-zinc-800/60 rounded-md px-2 py-1 bg-zinc-900/40">
+              <div
+                key={i}
+                className="inline-flex items-center gap-1.5 text-[11px] border border-zinc-800/60 rounded-md px-2 py-1 bg-zinc-900/40"
+              >
                 <span className="text-emerald-400/80 tabular-nums font-mono">+{part.additions}</span>
                 <span className="text-zinc-700">/</span>
                 <span className="text-red-400/80 tabular-nums font-mono">-{part.deletions}</span>
@@ -490,26 +556,33 @@ function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streamin
 
           case "task":
             return (
-              <div key={i} className="flex items-center gap-1.5 text-[11px] border border-zinc-800/60 rounded-md px-2.5 py-1.5 bg-zinc-900/40">
-                {part.status === "running" && (
+              <div
+                key={i}
+                className="flex items-center gap-1.5 text-[11px] border border-zinc-800/60 rounded-md px-2.5 py-1.5 bg-zinc-900/40"
+              >
+                {part.status === "running" ? (
                   <svg className="h-3 w-3 animate-spin text-amber-400/80" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                )}
-                {part.status === "done" && (
+                ) : null}
+                {part.status === "done" ? (
                   <svg className="h-3 w-3 text-emerald-400/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                )}
-                {part.status === "error" && (
+                ) : null}
+                {part.status === "error" ? (
                   <svg className="h-3 w-3 text-red-400/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                )}
+                ) : null}
                 <span className="text-zinc-400">{part.task}</span>
-                {part.result && <span className="ml-auto text-zinc-600">{part.result}</span>}
-                {part.error && <span className="ml-auto text-red-400/80">{part.error}</span>}
+                {part.result != null && String(part.result).length > 0 ? (
+                  <span className="ml-auto text-zinc-600">{String(part.result)}</span>
+                ) : null}
+                {part.error != null && String(part.error).length > 0 ? (
+                  <span className="ml-auto text-red-400/80">{String(part.error)}</span>
+                ) : null}
               </div>
             );
 
@@ -520,9 +593,9 @@ function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streamin
             return null;
         }
       })}
-      {streaming && (
+      {streaming ? (
         <span className="inline-block w-1 h-3.5 bg-emerald-400/50 animate-pulse rounded-sm" />
-      )}
+      ) : null}
     </div>
   );
 }

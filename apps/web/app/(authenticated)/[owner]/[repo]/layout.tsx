@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { getForgeRepoCached } from "@/lib/forgejo/cached-repo";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { RepoTabNav } from "@/components/repo/repo-tab-nav";
@@ -11,15 +11,12 @@ export default async function RepoLayout({
   children: React.ReactNode;
   params: Promise<{ owner: string; repo: string }>;
 }) {
-  const session = await getSession();
+  const [session, { owner, repo }] = await Promise.all([getSession(), params]);
   if (!session) redirect("/");
 
-  const { owner, repo } = await params;
-
-  const forge = createForgeProvider(session.forgejoToken);
   let repoData;
   try {
-    repoData = await forge.repos.get(owner, repo);
+    repoData = await getForgeRepoCached(session.forgejoToken, owner, repo);
   } catch {
     notFound();
   }

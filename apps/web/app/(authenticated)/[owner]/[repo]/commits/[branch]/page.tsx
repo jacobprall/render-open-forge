@@ -73,8 +73,12 @@ export default async function CommitsPage({
             </div>
           ))}
           {commits.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-zinc-500">
-              No commits found on this branch
+            <div className="px-4 py-12 text-center">
+              <svg className="mx-auto mb-3 h-8 w-8 text-zinc-700" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              <p className="text-sm text-zinc-500">No commits found on this branch</p>
+              <p className="mt-1 text-xs text-zinc-600">Push commits to this branch or try switching to a different branch above.</p>
             </div>
           )}
         </div>

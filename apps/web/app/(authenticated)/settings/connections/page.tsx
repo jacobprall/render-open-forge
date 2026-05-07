@@ -139,7 +139,8 @@ export default async function ConnectionsPage() {
       </div>
 
       <p className="mt-6 text-xs text-zinc-600">
-        External forge OAuth: GitHub connect is wired; GitLab OAuth is queued. Tokens are stored in Postgres (sync_connections).
+        External forge tokens are stored securely in the database. Manage your active mirrors in{" "}
+        <a href="/settings/mirrors" className="text-emerald-500 hover:underline">Mirror Settings</a>.
       </p>
     </div>
   );

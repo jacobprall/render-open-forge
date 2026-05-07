@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import Image from "next/image";
 
 interface Org {
@@ -11,26 +12,21 @@ interface Org {
   description: string;
 }
 
+async function orgsFetcher(url: string): Promise<Org[]> {
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  return res.json() as Promise<Org[]>;
+}
+
 export default function OrgsPage() {
-  const [orgs, setOrgs] = useState<Org[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: orgs = [], isLoading: loading, mutate } = useSWR("/api/orgs", orgsFetcher, {
+    revalidateOnFocus: true,
+  });
   const [login, setLogin] = useState("");
   const [fullName, setFullName] = useState("");
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  async function fetchOrgs() {
-    const res = await fetch("/api/orgs");
-    if (res.ok) {
-      setOrgs(await res.json());
-    }
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    fetchOrgs();
-  }, []);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -52,10 +48,10 @@ export default function OrgsPage() {
       setLogin("");
       setFullName("");
       setDescription("");
-      await fetchOrgs();
+      await mutate();
     } else {
       const data = await res.json().catch(() => ({}));
-      setError(data.error || "Failed to create organization");
+      setError((data as { error?: string }).error || "Failed to create organization");
     }
     setCreating(false);
   }
@@ -64,19 +60,14 @@ export default function OrgsPage() {
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="mb-6 text-2xl font-bold text-zinc-100">Organizations</h1>
 
-      {/* Create form */}
       <form
         onSubmit={handleCreate}
         className="mb-8 rounded-lg border border-zinc-800 bg-zinc-900 p-4"
       >
-        <h2 className="mb-4 text-lg font-medium text-zinc-200">
-          Create Organization
-        </h2>
+        <h2 className="mb-4 text-lg font-medium text-zinc-200">Create Organization</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm text-zinc-400">
-              Login (required)
-            </label>
+            <label className="mb-1 block text-sm text-zinc-400">Login (required)</label>
             <input
               type="text"
               value={login}
@@ -86,9 +77,7 @@ export default function OrgsPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-zinc-400">
-              Full Name
-            </label>
+            <label className="mb-1 block text-sm text-zinc-400">Full Name</label>
             <input
               type="text"
               value={fullName}
@@ -98,9 +87,7 @@ export default function OrgsPage() {
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="mb-1 block text-sm text-zinc-400">
-              Description
-            </label>
+            <label className="mb-1 block text-sm text-zinc-400">Description</label>
             <input
               type="text"
               value={description}
@@ -110,7 +97,7 @@ export default function OrgsPage() {
             />
           </div>
         </div>
-        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+        {error ? <p className="mt-2 text-sm text-red-400">{error}</p> : null}
         <button
           type="submit"
           disabled={creating || !login.trim()}
@@ -120,13 +107,10 @@ export default function OrgsPage() {
         </button>
       </form>
 
-      {/* Org list */}
       {loading ? (
         <p className="text-sm text-zinc-400">Loading organizations...</p>
       ) : orgs.length === 0 ? (
-        <p className="text-sm text-zinc-400">
-          No organizations yet. Create one above.
-        </p>
+        <p className="text-sm text-zinc-400">No organizations yet. Create one above.</p>
       ) : (
         <div className="space-y-3">
           {orgs.map((org) => (
@@ -142,15 +126,11 @@ export default function OrgsPage() {
                 className="h-10 w-10 rounded-full bg-zinc-700"
               />
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-zinc-100">
-                  {org.full_name || org.username}
-                </h3>
+                <h3 className="text-sm font-medium text-zinc-100">{org.full_name || org.username}</h3>
                 <p className="text-xs text-zinc-400">@{org.username}</p>
-                {org.description && (
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {org.description}
-                  </p>
-                )}
+                {org.description ? (
+                  <p className="mt-1 text-xs text-zinc-500">{org.description}</p>
+                ) : null}
               </div>
             </div>
           ))}

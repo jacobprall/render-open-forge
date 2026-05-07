@@ -60,7 +60,7 @@ export function InstallSkillForm() {
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://github.com/user/repo/blob/main/skills/my-skill.md"
+          placeholder="https://github.com/user/repo/blob/main/SKILL.md"
           required
           className="flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 outline-none transition focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30"
         />

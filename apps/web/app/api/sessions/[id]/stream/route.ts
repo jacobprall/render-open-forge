@@ -33,29 +33,32 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
-  const userSession = await getSession();
+  const [{ id }, userSession] = await Promise.all([params, getSession()]);
   if (!userSession) {
     return new Response("Unauthorized", { status: 401 });
   }
 
   const db = getDb();
-  const [sessionRow] = await db
-    .select()
-    .from(sessions)
-    .where(and(eq(sessions.id, id), eq(sessions.userId, String(userSession.userId))))
-    .limit(1);
+  const uid = String(userSession.userId);
+  const [sessionRow, chatRow] = await Promise.all([
+    db
+      .select({ id: sessions.id })
+      .from(sessions)
+      .where(and(eq(sessions.id, id), eq(sessions.userId, uid)))
+      .limit(1)
+      .then((r) => r[0]),
+    db
+      .select({ activeRunId: chats.activeRunId })
+      .from(chats)
+      .where(eq(chats.sessionId, id))
+      .orderBy(desc(chats.createdAt))
+      .limit(1)
+      .then((r) => r[0]),
+  ]);
 
   if (!sessionRow) {
     return new Response("Not found", { status: 404 });
   }
-
-  const [chatRow] = await db
-    .select()
-    .from(chats)
-    .where(eq(chats.sessionId, id))
-    .orderBy(desc(chats.createdAt))
-    .limit(1);
 
   const runId = chatRow?.activeRunId;
 
@@ -96,7 +99,6 @@ export async function GET(
     );
   }
 
-  // One cmd connection per SSE for history reads; pub/sub is shared globally
   const cmd = createRedisClient(`sse-cmd-${id}`);
 
   let history: string[];
@@ -119,47 +121,42 @@ export async function GET(
     );
   }
 
-  let subscription: Awaited<ReturnType<typeof subscribeToRun>> | null = null;
   let gap: string[] = [];
-  try {
-    subscription = await subscribeToRun(runId, () => {});
-    if (lastStreamId) {
+  if (lastStreamId) {
+    try {
       gap = await readRunEventPayloadsAfterId(cmd, runId, lastStreamId);
-    }
-  } catch {
-    await subscription?.unsubscribe().catch(() => {});
-    cmd.disconnect();
-    return new Response(
-      sseData({ type: "error", code: "SUBSCRIBE_FAILED", message: "Could not subscribe to stream", retryable: true }),
-      {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache, no-transform",
-          Connection: "keep-alive",
+    } catch {
+      cmd.disconnect();
+      return new Response(
+        sseData({ type: "error", code: "REPLAY_FAILED", message: "Could not read event gap", retryable: true }),
+        {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache, no-transform",
+            Connection: "keep-alive",
+          },
         },
-      },
-    );
+      );
+    }
   }
 
-  // If the run already finished but the terminal event was pruned from the
-  // stream (MAXLEN), synthesize a terminal event so the client doesn't hang.
   const allPayloads = [...history, ...gap];
   const hasTerminal = allPayloads.some((p) => {
     try {
       const parsed = JSON.parse(p) as { type?: string };
       return parsed.type ? isTerminalEvent(parsed.type) : false;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   });
   if (!hasTerminal) {
     const runStatus = await cmd.get(`run:${runId}:status`).catch(() => null);
     if (runStatus === "completed" || runStatus === "failed" || runStatus === "aborted") {
-      const syntheticType = runStatus === "completed" ? "done" : runStatus === "aborted" ? "aborted" : "error";
+      const syntheticType =
+        runStatus === "completed" ? "done" : runStatus === "aborted" ? "aborted" : "error";
       gap.push(JSON.stringify({ type: syntheticType, message: "Run already finished", synthetic: true }));
     }
   }
-
-  // Tear down the placeholder subscription — we'll re-subscribe with the real handler below
-  await subscription.unsubscribe().catch(() => {});
 
   let keepAlive: ReturnType<typeof setInterval> | undefined;
   const connId = registerConnection(String(userSession.userId), id, runId);
@@ -210,20 +207,24 @@ export async function GET(
 
       subscribeToRun(runId, (message: string) => {
         send(message);
-      }).then((sub) => {
-        activeSub = sub;
-      }).catch((err: Error) => {
-        console.error(`[sse] Shared subscription error:`, err);
-        void cleanupAll();
-        try {
-          controller.enqueue(new TextEncoder().encode(
-            `data: ${JSON.stringify({ type: "error", code: "STREAM_INTERRUPTED", message: "Connection interrupted", retryable: true })}\n\n`,
-          ));
-        } catch {
-          // ignore
-        }
-        controller.close();
-      });
+      })
+        .then((sub) => {
+          activeSub = sub;
+        })
+        .catch((err: Error) => {
+          console.error(`[sse] Shared subscription error:`, err);
+          void cleanupAll();
+          try {
+            controller.enqueue(
+              new TextEncoder().encode(
+                `data: ${JSON.stringify({ type: "error", code: "STREAM_INTERRUPTED", message: "Connection interrupted", retryable: true })}\n\n`,
+              ),
+            );
+          } catch {
+            // ignore
+          }
+          controller.close();
+        });
     },
     cancel() {
       void cleanupAll();

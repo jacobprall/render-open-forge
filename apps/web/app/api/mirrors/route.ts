@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     forgejoRepoPath: string;
     remoteRepoUrl: string;
     direction: "pull" | "push" | "bidirectional";
-    remoteToken: string;
+    remoteToken?: string;
     sessionId?: string;
   };
 
@@ -38,6 +38,14 @@ export async function POST(req: Request) {
   if (!body.syncConnectionId || !body.forgejoRepoPath || !body.remoteRepoUrl || !body.direction) {
     return NextResponse.json(
       { error: "Missing required fields: syncConnectionId, forgejoRepoPath, remoteRepoUrl, direction" },
+      { status: 400 },
+    );
+  }
+
+  const validDirections = ["pull", "push", "bidirectional"] as const;
+  if (!validDirections.includes(body.direction)) {
+    return NextResponse.json(
+      { error: `Invalid direction. Must be one of: ${validDirections.join(", ")}` },
       { status: 400 },
     );
   }

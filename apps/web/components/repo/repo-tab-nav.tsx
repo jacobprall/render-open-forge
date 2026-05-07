@@ -43,14 +43,14 @@ export function RepoTabNav({ basePath, tabs }: { basePath: string; tabs: RepoTab
   const pathname = usePathname();
 
   return (
-    <nav className="-mb-px flex gap-0">
+    <nav className="-mb-px flex min-w-0 gap-0 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       {tabs.map((tab) => {
         const active = isActive(pathname, tab, basePath);
         return (
           <Link
             key={tab.id}
             href={tab.href}
-            className={`border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+            className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition ${
               active
                 ? "border-emerald-500 text-emerald-400"
                 : "border-transparent text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"

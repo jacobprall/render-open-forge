@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { DynamicShell } from "@/components/layout";
+import { DynamicShell } from "@/components/layout/dynamic-shell";
 
 export default async function AuthenticatedLayout({
   children,
