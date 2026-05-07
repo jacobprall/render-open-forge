@@ -70,6 +70,7 @@ export function ChatPanel({
   const [liveFileChanges, setLiveFileChanges] = useState<LiveFileChange[]>([]);
   const [filesPanelOpen, setFilesPanelOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [streamGeneration, setStreamGeneration] = useState(0);
   const streamUrl = useMemo(
@@ -92,7 +93,9 @@ export function ChatPanel({
   }, []);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, []);
 
   useEffect(() => {
@@ -296,8 +299,8 @@ export function ChatPanel({
   const askResolved = askUserPrompt ?? pendingAsk;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+    <div className="flex h-full flex-col overflow-hidden">
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
         <div className="mx-auto max-w-2xl flex flex-col gap-4">
           {liveFileChanges.length > 0 && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 overflow-hidden">
@@ -393,7 +396,7 @@ export function ChatPanel({
         </div>
       </div>
 
-      <div className="border-t border-zinc-800 px-4 py-3">
+      <div className="shrink-0 border-t border-zinc-800 px-4 py-3">
         <form onSubmit={handleSubmit} className="mx-auto max-w-2xl">
           <div className="flex items-end gap-2 rounded-xl border border-zinc-700 bg-zinc-900 p-2 transition focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/25">
             <textarea
