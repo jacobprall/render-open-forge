@@ -10,6 +10,7 @@ import {
   type ValidatedAgentJob,
 } from "@render-open-forge/shared";
 import { runAgentTurn } from "./agent";
+import { fetchAvailableModels } from "./models";
 import { getDb } from "./db";
 
 const REDIS_URL = process.env.REDIS_URL;
@@ -120,6 +121,8 @@ async function processJob(redis: Redis, streamId: string, job: ValidatedAgentJob
 }
 
 async function main() {
+  await fetchAvailableModels();
+
   const redis = createRedis("main");
   const heartbeatRedis = createRedis("heartbeat");
 

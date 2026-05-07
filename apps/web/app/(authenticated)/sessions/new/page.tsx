@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type Repo = { id: number; full_name: string; default_branch: string };
+type Repo = { id: number | string; fullName: string; defaultBranch: string; name: string };
 type Branch = { name: string };
 
 const workflowModes = [
@@ -23,6 +23,8 @@ export default function NewSessionPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedRepo, setSelectedRepo] = useState(initialRepo);
   const [selectedBranch, setSelectedBranch] = useState(initialBranch);
+  const [isNewBranch, setIsNewBranch] = useState(false);
+  const [newBranchName, setNewBranchName] = useState("");
   const [title, setTitle] = useState("");
   const [workflowMode, setWorkflowMode] = useState<string>("standard");
   const [loadingRepos, setLoadingRepos] = useState(true);
@@ -34,10 +36,16 @@ export default function NewSessionPage() {
   useEffect(() => {
     fetch("/api/sessions/repos")
       .then((r) => r.json())
-      .then((data) => setRepos(data.repos ?? []))
+      .then((data) => {
+        const loaded: Repo[] = data.repos ?? [];
+        setRepos(loaded);
+        if (initialRepo && loaded.some((r) => r.fullName === initialRepo)) {
+          setSelectedRepo(initialRepo);
+        }
+      })
       .catch(() => setError("Failed to load repositories"))
       .finally(() => setLoadingRepos(false));
-  }, []);
+  }, [initialRepo]);
 
   useEffect(() => {
     if (!selectedRepo) {
@@ -53,11 +61,11 @@ export default function NewSessionPage() {
           setSelectedBranch(initialBranch);
           setInitialParamsApplied(true);
         } else if (!initialParamsApplied) {
-          const defaultBranch = repos.find((r) => r.full_name === selectedRepo)?.default_branch ?? "main";
+          const defaultBranch = repos.find((r) => r.fullName === selectedRepo)?.defaultBranch ?? "main";
           setSelectedBranch(defaultBranch);
           setInitialParamsApplied(true);
         } else {
-          const defaultBranch = repos.find((r) => r.full_name === selectedRepo)?.default_branch ?? "main";
+          const defaultBranch = repos.find((r) => r.fullName === selectedRepo)?.defaultBranch ?? "main";
           setSelectedBranch(defaultBranch);
         }
         setTitle(`${selectedRepo.split("/").pop()}/${selectedBranch || initialBranch || "main"}`);
@@ -67,14 +75,17 @@ export default function NewSessionPage() {
   }, [selectedRepo, repos, initialBranch, initialParamsApplied]);
 
   useEffect(() => {
-    if (selectedRepo && selectedBranch) {
-      setTitle(`${selectedRepo.split("/").pop()}/${selectedBranch}`);
+    const branch = isNewBranch ? newBranchName.trim() : selectedBranch;
+    if (selectedRepo && branch) {
+      setTitle(`${selectedRepo.split("/").pop()}/${branch}`);
     }
-  }, [selectedBranch, selectedRepo]);
+  }, [selectedBranch, selectedRepo, isNewBranch, newBranchName]);
+
+  const effectiveBranch = isNewBranch ? newBranchName.trim() : selectedBranch;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedRepo || !selectedBranch) return;
+    if (!selectedRepo || !effectiveBranch) return;
     setError(null);
 
     startTransition(async () => {
@@ -84,7 +95,7 @@ export default function NewSessionPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             repoPath: selectedRepo,
-            branch: selectedBranch,
+            branch: effectiveBranch,
             title,
             workflowMode,
           }),
@@ -127,13 +138,13 @@ export default function NewSessionPage() {
             <select
               value={selectedRepo}
               onChange={(e) => setSelectedRepo(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
               required
             >
-              <option value="">Select a repository…</option>
+              <option value="" className="bg-zinc-900 text-zinc-400">Select a repository…</option>
               {repos.map((repo) => (
-                <option key={repo.id} value={repo.full_name}>
-                  {repo.full_name}
+                <option key={repo.id} value={repo.fullName} className="bg-zinc-900 text-zinc-100">
+                  {repo.fullName}
                 </option>
               ))}
             </select>
@@ -141,26 +152,59 @@ export default function NewSessionPage() {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Branch
-          </label>
-          {loadingBranches ? (
+          <div className="mb-2 flex items-center justify-between">
+            <label className="text-sm font-medium text-zinc-300">Branch</label>
+            <button
+              type="button"
+              onClick={() => {
+                setIsNewBranch((v) => !v);
+                setNewBranchName("");
+              }}
+              className="text-xs text-emerald-400 transition hover:text-emerald-300"
+            >
+              {isNewBranch ? "Use existing branch" : "+ New branch"}
+            </button>
+          </div>
+          {isNewBranch ? (
+            <>
+              <input
+                key="new-branch-input"
+                type="text"
+                value={newBranchName}
+                onChange={(e) => setNewBranchName(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                placeholder="e.g. feature/my-branch"
+                autoFocus
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
+                disabled={!selectedRepo}
+                required
+              />
+              {!selectedRepo && (
+                <p className="mt-1.5 text-xs text-zinc-500">Select a repository first</p>
+              )}
+            </>
+          ) : loadingBranches ? (
             <div className="h-10 animate-pulse rounded-lg bg-zinc-800" />
           ) : (
             <select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
               disabled={!selectedRepo}
               required
             >
-              <option value="">Select a branch…</option>
+              <option value="" className="bg-zinc-900 text-zinc-400">Select a branch…</option>
               {branches.map((b) => (
-                <option key={b.name} value={b.name}>
+                <option key={b.name} value={b.name} className="bg-zinc-900 text-zinc-100">
                   {b.name}
                 </option>
               ))}
             </select>
+          )}
+          {isNewBranch && selectedBranch && (
+            <p className="mt-1.5 text-xs text-zinc-500">
+              Will be created from <span className="text-zinc-400">{selectedBranch}</span>
+            </p>
           )}
         </div>
 
@@ -211,7 +255,7 @@ export default function NewSessionPage() {
           </button>
           <button
             type="submit"
-            disabled={isPending || !selectedRepo || !selectedBranch}
+            disabled={isPending || !selectedRepo || !effectiveBranch}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPending ? "Creating…" : "Create Session"}

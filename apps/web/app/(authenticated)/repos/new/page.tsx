@@ -22,6 +22,7 @@ async function createRepository(formData: FormData) {
 
   const forge = createForgeProvider(session.forgejoToken);
 
+  let repoFullName: string;
   try {
     const repo = await forge.repos.create({
       name,
@@ -30,10 +31,13 @@ async function createRepository(formData: FormData) {
       autoInit,
       defaultBranch,
     });
-    redirect(`/${repo.fullName}`);
-  } catch {
+    repoFullName = repo.fullName;
+  } catch (err) {
+    console.error("[repos/new] create failed:", err);
     redirect("/repos/new?error=create_failed");
   }
+
+  redirect(`/${repoFullName}`);
 }
 
 export default async function NewRepoPage({

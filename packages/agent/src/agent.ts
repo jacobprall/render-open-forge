@@ -45,7 +45,7 @@ import {
   submitSpecTool,
   type SubmitSpecInput,
 } from "./tools";
-import { getModel, getModelDef, DEFAULT_MODEL_ID } from "./models";
+import { getModel, getModelDef, getDefaultModelId } from "./models";
 import { getDb } from "./db";
 import type { AgentJob, StreamEvent, SessionPhase } from "./types";
 import { nextPhase, shouldAutoTransition } from "./lib/phase-transitions";
@@ -395,7 +395,7 @@ async function enqueueFixRun(job: AgentJob, redis: Redis, failure: string): Prom
     chatId: job.chatId,
     sessionId: job.sessionId,
     userId: job.userId,
-    modelId: job.modelId ?? DEFAULT_MODEL_ID,
+    modelId: job.modelId ?? getDefaultModelId(),
     phase: "execute",
     status: "queued",
     createdAt: new Date(),
@@ -521,7 +521,7 @@ async function handleAutoPhaseTransition(
         chatId: job.chatId,
         sessionId: job.sessionId,
         userId: job.userId,
-        modelId: job.modelId ?? DEFAULT_MODEL_ID,
+        modelId: job.modelId ?? getDefaultModelId(),
         phase: next,
         status: "queued",
         createdAt: new Date(),

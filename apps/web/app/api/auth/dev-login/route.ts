@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     avatarUrl: user.avatar_url,
   });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:4100";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:4000";
   const response = NextResponse.json({ ok: true, redirect: `${appUrl}/repos` });
 
   response.cookies.set(getSessionCookieName(), session, {
