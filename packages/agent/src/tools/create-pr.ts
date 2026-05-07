@@ -1,9 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
-import { sessions } from "@render-open-forge/db";
-import { getAdapter, getSessionId, isForgeAgentContext } from "../context/agent-context";
-import { getDb } from "../db";
+import { withForgeContext } from "./tool-helpers";
 
 const MAX_PR_TITLE_LENGTH = 500;
 
@@ -24,14 +21,8 @@ export function createPullRequestTool() {
     description:
       "Create a pull request on the internal forge from the current branch. Push your branch with the git tool first. Returns the PR URL and number on success.",
     inputSchema: createPrInputSchema,
-    execute: async ({ title, body, base: baseOpt }, { experimental_context }) => {
-      const ctx = isForgeAgentContext(experimental_context) ? experimental_context : null;
-      if (!ctx) {
-        return { success: false as const, error: "Agent context not available" };
-      }
-
-      const { forgejoClient, repoOwner, repoName, sessionId, baseBranch } = ctx;
-      const adapter = getAdapter(experimental_context);
+    execute: withForgeContext(async ({ title, body, base: baseOpt }, ctx) => {
+      const { forge, repoOwner, repoName, sessionId, baseBranch, adapter } = ctx;
 
       const branchOut = await adapter.git(sessionId, ["branch", "--show-current"]);
       const head = branchOut.stdout.trim();
@@ -48,34 +39,25 @@ export function createPullRequestTool() {
       }
 
       const prTitle = sanitizePrTitle(title, "Update");
-      try {
-        const pr = await forgejoClient.createPullRequest({
-          owner: repoOwner,
-          repo: repoName,
-          head,
-          base,
-          title: prTitle,
-          body: body?.trim() ?? "",
-        });
+      const pr = await forge.pulls.create({
+        owner: repoOwner,
+        repo: repoName,
+        head,
+        base,
+        title: prTitle,
+        body: body?.trim() ?? "",
+      });
 
-        const db = getDb();
-        await db
-          .update(sessions)
-          .set({ prNumber: pr.number, prStatus: "open", updatedAt: new Date() })
-          .where(eq(sessions.id, sessionId));
+      await ctx.onPrCreated?.({ prNumber: pr.number, prStatus: "open" });
 
-        return {
-          success: true as const,
-          number: pr.number,
-          url: pr.html_url,
-          head,
-          base,
-          title: prTitle,
-        };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        return { success: false as const, error: msg };
-      }
-    },
+      return {
+        success: true as const,
+        number: pr.number,
+        url: pr.htmlUrl,
+        head,
+        base,
+        title: prTitle,
+      };
+    }),
   });
 }

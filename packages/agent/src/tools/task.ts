@@ -1,16 +1,9 @@
-import { generateText, stepCountIs, tool } from "ai";
+import { generateText, stepCountIs, tool, type ToolSet } from "ai";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { getAdapter, getSessionId, isForgeAgentContext, type ForgeAgentContext } from "../context/agent-context";
-import { bashTool } from "./bash";
-import { readFileTool } from "./read-file";
-import { writeFileTool } from "./write-file";
-import { globTool } from "./glob";
-import { grepTool } from "./grep";
-import { gitTool } from "./git";
-import { createPullRequestTool } from "./create-pr";
-import { editFileTool } from "./edit-file";
-import { webFetchTool } from "./web-fetch";
+import { getSandboxContext, isForgeAgentContext, type ForgeAgentContext } from "../context/agent-context";
+
+const MAX_SUBAGENT_STEPS = 20;
 
 const taskInputSchema = z.object({
   task: z.string().describe("Description of the task for the subagent"),
@@ -19,46 +12,41 @@ const taskInputSchema = z.object({
 
 export function taskTool(
   publishFn: (event: Record<string, unknown>) => Promise<void>,
+  buildSubTools: () => ToolSet,
 ) {
   return tool({
     description: "Delegate a self-contained subtask to a focused subagent. Use for parallelizable or isolated work.",
     inputSchema: taskInputSchema,
     execute: async ({ task, context }, { experimental_context }) => {
-      const adapter = getAdapter(experimental_context);
-      const sessionId = getSessionId(experimental_context);
+      const { adapter, sessionId } = getSandboxContext(experimental_context);
       const ctx = experimental_context as { model?: import("ai").LanguageModel };
 
       if (!ctx.model) {
         return { success: false, error: "No model in context" };
       }
 
+      if (!isForgeAgentContext(experimental_context)) {
+        return { success: false, error: "Forge context required for task delegation" };
+      }
+      const parentCtx = experimental_context;
+
       const taskId = nanoid();
       await publishFn({ type: "task_start", task, taskId });
 
       try {
-        const subTools = {
-          bash: bashTool(),
-          read_file: readFileTool(),
-          write_file: writeFileTool(),
-          glob: globTool(),
-          grep: grepTool(),
-          git: gitTool(),
-          create_pull_request: createPullRequestTool(),
-          edit: editFileTool(),
-          web_fetch: webFetchTool,
-        };
+        const subTools = buildSubTools();
 
-        const parentCtx = isForgeAgentContext(experimental_context) ? experimental_context : null;
         const subCtx: ForgeAgentContext = {
           __brand: "ForgeAgentContext",
           sessionId,
           adapter,
-          forgejoClient: parentCtx!.forgejoClient,
-          repoOwner: parentCtx!.repoOwner,
-          repoName: parentCtx!.repoName,
-          branch: parentCtx!.branch,
-          baseBranch: parentCtx!.baseBranch,
-          ...(parentCtx?.onFileChanged ? { onFileChanged: parentCtx.onFileChanged } : {}),
+          forge: parentCtx.forge,
+          repoOwner: parentCtx.repoOwner,
+          repoName: parentCtx.repoName,
+          branch: parentCtx.branch,
+          baseBranch: parentCtx.baseBranch,
+          ...(parentCtx.onFileChanged ? { onFileChanged: parentCtx.onFileChanged } : {}),
+          ...(parentCtx.onPrCreated ? { onPrCreated: parentCtx.onPrCreated } : {}),
         };
 
         const result = await generateText({
@@ -66,7 +54,7 @@ export function taskTool(
           system: `You are a focused subagent completing a specific task. ${context ?? ""}`,
           messages: [{ role: "user" as const, content: task }],
           tools: subTools,
-          stopWhen: stepCountIs(20),
+          stopWhen: stepCountIs(MAX_SUBAGENT_STEPS),
           experimental_context: subCtx,
         });
 

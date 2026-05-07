@@ -1,11 +1,11 @@
 /**
  * Context passed to agent tools via AI SDK's experimental_context.
  *
- * Unlike render-open-agents (which carried githubToken), this context
- * always has a valid Forgejo service token — no OAuth dance required.
+ * Uses the forge-agnostic ForgeProvider interface so the agent is
+ * decoupled from any specific forge implementation.
  */
 
-import type { ForgejoClient } from "@render-open-forge/shared/lib/forgejo/client";
+import type { ForgeProvider } from "@render-open-forge/shared/lib/forge";
 import type { SandboxAdapter } from "@render-open-forge/sandbox";
 
 export type { SandboxAdapter };
@@ -13,13 +13,15 @@ export type { SandboxAdapter };
 export interface ForgeAgentContext {
   __brand: "ForgeAgentContext";
   sessionId: string;
-  forgejoClient: ForgejoClient;
+  forge: ForgeProvider;
   repoOwner: string;
   repoName: string;
   branch: string;
   baseBranch: string;
   adapter: SandboxAdapter;
   onFileChanged?: (event: FileChangedEvent) => void | Promise<void>;
+  /** Called after a PR is successfully created (e.g. to persist session state). */
+  onPrCreated?: (event: { prNumber: number; prStatus: string }) => void | Promise<void>;
 }
 
 export interface FileChangedEvent {
@@ -38,12 +40,16 @@ export function isForgeAgentContext(ctx: unknown): ctx is ForgeAgentContext {
   );
 }
 
-export function getAdapter(ctx: unknown): SandboxAdapter {
+function getAdapter(ctx: unknown): SandboxAdapter {
   if (isForgeAgentContext(ctx)) return ctx.adapter;
   throw new Error("Agent context not available — cannot access sandbox adapter");
 }
 
-export function getSessionId(ctx: unknown): string {
+function getSessionId(ctx: unknown): string {
   if (isForgeAgentContext(ctx)) return ctx.sessionId;
   throw new Error("Agent context not available — cannot determine session ID");
+}
+
+export function getSandboxContext(ctx: unknown): { adapter: SandboxAdapter; sessionId: string } {
+  return { adapter: getAdapter(ctx), sessionId: getSessionId(ctx) };
 }

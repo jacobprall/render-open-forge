@@ -1,6 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { getAdapter, getSessionId } from "../context/agent-context";
+import { getSandboxContext } from "../context/agent-context";
 import { MAX_GREP_MATCHES, MAX_GREP_MATCH_LINE_CHARS } from "./truncation";
 
 const grepInputSchema = z.object({
@@ -13,8 +13,7 @@ export function grepTool() {
     description: "Search for a pattern in files using ripgrep.",
     inputSchema: grepInputSchema,
     execute: async ({ pattern, path }, { experimental_context }) => {
-      const adapter = getAdapter(experimental_context);
-      const sessionId = getSessionId(experimental_context);
+      const { adapter, sessionId } = getSandboxContext(experimental_context);
       const command = path
         ? `rg --json ${JSON.stringify(pattern)} ${JSON.stringify(path)}`
         : `rg --json ${JSON.stringify(pattern)}`;
@@ -31,9 +30,10 @@ export function grepTool() {
             matches.push({
               file: parsed.data?.path?.text ?? "",
               line: parsed.data?.line_number ?? 0,
-              content: content.length > MAX_GREP_MATCH_LINE_CHARS
-                ? `${content.slice(0, MAX_GREP_MATCH_LINE_CHARS)}…`
-                : content,
+              content:
+                content.length > MAX_GREP_MATCH_LINE_CHARS
+                  ? `${content.slice(0, MAX_GREP_MATCH_LINE_CHARS)}…`
+                  : content,
             });
           }
         } catch {}

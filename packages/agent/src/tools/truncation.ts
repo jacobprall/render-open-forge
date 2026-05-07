@@ -1,5 +1,3 @@
-import { isForgeAgentContext } from "../context/agent-context";
-
 export const MAX_BASH_STREAM_CHARS = 16_000;
 export const MAX_READ_FILE_CHARS = 80_000;
 export const MAX_GREP_MATCHES = 150;
@@ -11,34 +9,41 @@ export interface TruncatedString {
   originalLength: number;
 }
 
-export function truncateLargeString(input: string, max: number): TruncatedString {
+export type TruncationMode = "head-and-tail" | "head" | "tail";
+
+export function truncateLargeString(
+  input: string,
+  max: number,
+  mode: TruncationMode = "head-and-tail",
+): TruncatedString {
   if (input.length <= max) {
     return { value: input, truncated: false, originalLength: input.length };
   }
-  const headLen = Math.floor(max * 0.7);
-  const tailLen = Math.max(0, max - headLen - 80);
-  const head = input.slice(0, headLen);
-  const tail = tailLen > 0 ? input.slice(-tailLen) : "";
-  const omitted = input.length - head.length - tail.length;
-  const marker = `\n…[truncated ${omitted} characters of ${input.length} total]…\n`;
-  return {
-    value: tail ? `${head}${marker}${tail}` : `${head}${marker}`,
-    truncated: true,
-    originalLength: input.length,
-  };
-}
 
-export async function notifyFileChanged(
-  experimental_context: unknown,
-  path: string,
-  before: string,
-  after: string,
-): Promise<void> {
-  if (!isForgeAgentContext(experimental_context)) return;
-  const cb = experimental_context.onFileChanged;
-  if (!cb) return;
+  const omitted = input.length - max;
 
-  const additions = after.split("\n").length - before.split("\n").length;
-  const deletions = additions < 0 ? Math.abs(additions) : 0;
-  await cb({ path, additions: Math.max(0, additions), deletions });
+  switch (mode) {
+    case "head": {
+      const marker = `\n…[truncated ${omitted} characters of ${input.length} total]…\n`;
+      return { value: `${input.slice(0, max)}${marker}`, truncated: true, originalLength: input.length };
+    }
+    case "tail": {
+      const marker = `\n…[truncated ${omitted} characters of ${input.length} total]…\n`;
+      return { value: `${marker}${input.slice(-max)}`, truncated: true, originalLength: input.length };
+    }
+    case "head-and-tail":
+    default: {
+      const headLen = Math.floor(max * 0.7);
+      const tailLen = Math.max(0, max - headLen - 80);
+      const head = input.slice(0, headLen);
+      const tail = tailLen > 0 ? input.slice(-tailLen) : "";
+      const actualOmitted = input.length - head.length - tail.length;
+      const marker = `\n…[truncated ${actualOmitted} characters of ${input.length} total]…\n`;
+      return {
+        value: tail ? `${head}${marker}${tail}` : `${head}${marker}`,
+        truncated: true,
+        originalLength: input.length,
+      };
+    }
+  }
 }

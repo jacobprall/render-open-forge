@@ -3,6 +3,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { askUserReplyQueueKey } from "@render-open-forge/shared";
+import { abortableBlpop } from "../lib/abortable-blpop";
 
 const askUserInputSchema = z.object({
   question: z.string().describe("The question to ask the user"),
@@ -30,29 +31,7 @@ export function askUserQuestionTool(
       const blocker = duplicateRedis();
 
       try {
-        const abortSignal = execOptions.abortSignal;
-
-        const waitForAnswer = (): Promise<[string, string] | null> => {
-          if (!abortSignal) return blocker.blpop(key, timeoutSec);
-
-          return new Promise((resolve, reject) => {
-            const onAbort = () => {
-              cleanup();
-              void blocker.quit().catch(() => {});
-              resolve(null);
-            };
-            const cleanup = () => abortSignal.removeEventListener("abort", onAbort);
-
-            if (abortSignal.aborted) { onAbort(); return; }
-            abortSignal.addEventListener("abort", onAbort);
-
-            blocker.blpop(key, timeoutSec)
-              .then((r) => { cleanup(); resolve(r); })
-              .catch((e) => { cleanup(); reject(e); });
-          });
-        };
-
-        const popped = await waitForAnswer();
+        const popped = await abortableBlpop(blocker, key, timeoutSec, execOptions.abortSignal);
         if (!popped?.[1]) {
           return { timedOut: true as const, answer: "No answer received within the allowed time." };
         }

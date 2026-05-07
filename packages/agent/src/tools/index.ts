@@ -7,7 +7,7 @@ export { grepTool } from "./grep";
 export { gitTool } from "./git";
 export { createPullRequestTool } from "./create-pr";
 export { webFetchTool } from "./web-fetch";
-export { todoWriteTool } from "./todo-write";
+export { todoWriteTool, TodoStore } from "./todo-write";
 export { askUserQuestionTool } from "./ask-user";
 export { taskTool } from "./task";
 export {
@@ -20,6 +20,7 @@ export {
   readBuildLogTool,
   pullRequestDiffTool,
   reviewPrTool,
-} from "./forge-pr";
-export { submitSpecTool } from "./submit-spec";
+} from "./forge";
+export { submitSpecTool, submitSpecInputSchema } from "./submit-spec";
+export type { SubmitSpecInput } from "./submit-spec";
 export { resolveCommentTool } from "./resolve-comment";

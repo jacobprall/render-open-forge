@@ -1,6 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { getAdapter, getSessionId } from "../context/agent-context";
+import { getSandboxContext } from "../context/agent-context";
 import { truncateLargeString, MAX_READ_FILE_CHARS } from "./truncation";
 
 const readFileInputSchema = z.object({
@@ -12,8 +12,7 @@ export function readFileTool() {
     description: "Read the contents of a file in the session workspace.",
     inputSchema: readFileInputSchema,
     execute: async ({ path }, { experimental_context }) => {
-      const adapter = getAdapter(experimental_context);
-      const sessionId = getSessionId(experimental_context);
+      const { adapter, sessionId } = getSandboxContext(experimental_context);
       try {
         const file = await adapter.readFile(sessionId, path);
         if (!file.exists) {

@@ -1,6 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { getAdapter, getSessionId, isForgeAgentContext } from "../context/agent-context";
+import { getSandboxContext, isForgeAgentContext } from "../context/agent-context";
 
 const gitInputSchema = z.object({
   args: z.array(z.string()).describe("Git command arguments (e.g. ['status'] or ['add', '-A'])"),
@@ -14,16 +14,15 @@ export function gitTool() {
       "Run a git command in the session workspace. For push/fetch/pull, authentication is handled automatically via the internal forge. Use this instead of bash for git operations.",
     inputSchema: gitInputSchema,
     execute: async ({ args }, { experimental_context }) => {
-      const adapter = getAdapter(experimental_context);
-      const sessionId = getSessionId(experimental_context);
-      const ctx = isForgeAgentContext(experimental_context) ? experimental_context : null;
+      const { adapter, sessionId } = getSandboxContext(experimental_context);
 
       const subcommand = args[0]?.toLowerCase();
       const needsAuth = subcommand && GIT_COMMANDS_NEEDING_AUTH.has(subcommand);
 
-      if (needsAuth && ctx) {
-        const authUrl = ctx.forgejoClient.authenticatedCloneUrl(ctx.repoOwner, ctx.repoName);
-        const plainUrl = ctx.forgejoClient.plainCloneUrl(ctx.repoOwner, ctx.repoName);
+      if (needsAuth && isForgeAgentContext(experimental_context)) {
+        const { forge, repoOwner, repoName } = experimental_context;
+        const authUrl = forge.git.authenticatedCloneUrl(repoOwner, repoName);
+        const plainUrl = forge.git.plainCloneUrl(repoOwner, repoName);
 
         await adapter.git(sessionId, ["remote", "set-url", "origin", authUrl]);
         try {

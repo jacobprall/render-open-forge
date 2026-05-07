@@ -9,7 +9,7 @@ import {
   ensureConsumerGroup,
   publishRunEvent,
 } from "@render-open-forge/shared";
-import { ForgejoClient } from "@render-open-forge/shared/lib/forgejo/client";
+import { getDefaultForgeProvider, type ForgeProvider } from "@render-open-forge/shared/lib/forge";
 import {
   SharedHttpSandboxProvider,
   type SandboxAdapter,
@@ -43,6 +43,7 @@ import {
   reviewPrTool,
   resolveCommentTool,
   submitSpecTool,
+  type SubmitSpecInput,
 } from "./tools";
 import { getModel, getModelDef, DEFAULT_MODEL_ID } from "./models";
 import { getDb } from "./db";
@@ -72,11 +73,10 @@ async function publishEvent(redis: Redis, runId: string, event: StreamEvent, req
   await publishRunEvent(redis, runId, payload);
 }
 
-function getForgejoClient(): ForgejoClient {
-  const url = process.env.FORGEJO_INTERNAL_URL || "http://localhost:3000";
+function getForgeProvider(): ForgeProvider {
   const token = process.env.FORGEJO_AGENT_TOKEN;
   if (!token) throw new Error("FORGEJO_AGENT_TOKEN not configured");
-  return new ForgejoClient(url, token);
+  return getDefaultForgeProvider(token);
 }
 
 let _sandboxProvider: SharedHttpSandboxProvider | null = null;
@@ -131,8 +131,7 @@ function collectModelMessages(
 
 // ─── Tool registry ───────────────────────────────────────────────────────────
 
-function buildToolSet(redis: Redis, job: AgentJob): ToolSet {
-  const reqId = job.requestId;
+function buildSubagentToolSet(): ToolSet {
   return {
     bash: bashTool(),
     read_file: readFileTool(),
@@ -142,10 +141,20 @@ function buildToolSet(redis: Redis, job: AgentJob): ToolSet {
     grep: grepTool(),
     git: gitTool(),
     create_pull_request: createPullRequestTool(),
-    web_fetch: webFetchTool,
-    task: taskTool(async (event) => {
-      await publishEvent(redis, job.runId, event as unknown as StreamEvent, reqId);
-    }),
+    web_fetch: webFetchTool(),
+  };
+}
+
+function buildToolSet(redis: Redis, job: AgentJob): ToolSet {
+  const reqId = job.requestId;
+  return {
+    ...buildSubagentToolSet(),
+    task: taskTool(
+      async (event) => {
+        await publishEvent(redis, job.runId, event as unknown as StreamEvent, reqId);
+      },
+      buildSubagentToolSet,
+    ),
     todo_write: todoWriteTool(),
     ask_user_question: askUserQuestionTool(job.runId, () => redis.duplicate(), async (event) => {
       await publishEvent(redis, job.runId, event as unknown as StreamEvent, reqId);
@@ -164,9 +173,37 @@ function buildToolSet(redis: Redis, job: AgentJob): ToolSet {
       async (event) => {
         await publishEvent(redis, job.runId, event, reqId);
       },
-      job.sessionId,
+      async (spec) => {
+        await persistSubmittedSpec(job.sessionId, spec);
+      },
     ),
   };
+}
+
+async function persistSubmittedSpec(sessionId: string, spec: SubmitSpecInput): Promise<void> {
+  const db = getDb();
+  const [latest] = await db
+    .select()
+    .from(specs)
+    .where(eq(specs.sessionId, sessionId))
+    .orderBy(desc(specs.version))
+    .limit(1);
+
+  await db.insert(specs).values({
+    id: nanoid(),
+    sessionId,
+    version: (latest?.version ?? 0) + 1,
+    status: "draft",
+    goal: spec.goal,
+    approach: spec.approach,
+    filesToModify: spec.filesToModify ?? [],
+    filesToCreate: spec.filesToCreate ?? [],
+    risks: spec.risks ?? [],
+    outOfScope: spec.outOfScope ?? [],
+    verificationPlan: spec.verificationPlan,
+    estimatedComplexity: spec.estimatedComplexity ?? "small",
+    createdAt: new Date(),
+  });
 }
 
 // ─── Core turn execution ─────────────────────────────────────────────────────
@@ -203,7 +240,7 @@ async function runTurn(params: {
     .where(eq(sessions.id, job.sessionId))
     .limit(1);
 
-  const forgejoClient = getForgejoClient();
+  const forge = getForgeProvider();
   const repoPath = sessionRow?.forgejoRepoPath ?? "";
   const [repoOwner, repoName] = repoPath.split("/");
 
@@ -215,7 +252,7 @@ async function runTurn(params: {
     __brand: "ForgeAgentContext",
     sessionId: job.sessionId,
     adapter,
-    forgejoClient,
+    forge,
     repoOwner: repoOwner ?? "",
     repoName: repoName ?? "",
     branch: sessionRow?.branch ?? "main",
@@ -224,6 +261,12 @@ async function runTurn(params: {
       const ev: StreamEvent = { type: "file_changed", path: p.path, additions: p.additions, deletions: p.deletions };
       await publishEvent(redis, job.runId, ev, reqId);
       assistantParts.push({ type: "file_changed", ...p });
+    },
+    onPrCreated: async ({ prNumber }) => {
+      await getDb()
+        .update(sessions)
+        .set({ prNumber, prStatus: "open", updatedAt: new Date() })
+        .where(eq(sessions.id, job.sessionId));
     },
   };
 
@@ -392,12 +435,12 @@ async function ensureRepoCloned(job: AgentJob, adapter: SandboxAdapter): Promise
   const files = await adapter.glob(job.sessionId, "*").catch(() => [] as string[]);
   if (files.length > 0) return;
 
-  const forgejoClient = getForgejoClient();
+  const forge = getForgeProvider();
   const [owner, repo] = session.forgejoRepoPath.split("/");
   if (!owner || !repo) return;
 
-  const authenticatedUrl = forgejoClient.authenticatedCloneUrl(owner, repo);
-  const plainUrl = forgejoClient.plainCloneUrl(owner, repo);
+  const authenticatedUrl = forge.git.authenticatedCloneUrl(owner, repo);
+  const plainUrl = forge.git.plainCloneUrl(owner, repo);
 
   const cloneArgs = ["clone", "--depth", "1"];
   if (session.branch) cloneArgs.push("--branch", session.branch);

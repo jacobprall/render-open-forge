@@ -1,6 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { getAdapter, getSessionId } from "../context/agent-context";
+import { getSandboxContext } from "../context/agent-context";
 import { truncateLargeString, MAX_BASH_STREAM_CHARS } from "./truncation";
 
 const bashInputSchema = z.object({
@@ -27,8 +27,7 @@ export function bashTool() {
           timedOut: false,
         };
       }
-      const adapter = getAdapter(experimental_context);
-      const sessionId = getSessionId(experimental_context);
+      const { adapter, sessionId } = getSandboxContext(experimental_context);
       const result = await adapter.exec(sessionId, command, timeoutMs);
       const stdout = truncateLargeString(result.stdout, MAX_BASH_STREAM_CHARS);
       const stderr = truncateLargeString(result.stderr, MAX_BASH_STREAM_CHARS);

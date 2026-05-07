@@ -12,26 +12,40 @@ const todoWriteInputSchema = z.object({
 
 type Todo = { id: string; content: string; status: "pending" | "in_progress" | "completed" };
 
-export function todoWriteTool() {
-  let todos: Todo[] = [];
+export class TodoStore {
+  private items: Todo[] = [];
 
+  merge(incoming: Todo[]): void {
+    for (const todo of incoming) {
+      const idx = this.items.findIndex((t) => t.id === todo.id);
+      if (idx >= 0) {
+        this.items[idx] = { ...this.items[idx]!, ...todo };
+      } else {
+        this.items.push(todo);
+      }
+    }
+  }
+
+  replace(incoming: Todo[]): void {
+    this.items = [...incoming];
+  }
+
+  getAll(): Todo[] {
+    return [...this.items];
+  }
+}
+
+export function todoWriteTool(store = new TodoStore()) {
   return tool({
     description: "Manage a structured task list for the current session.",
     inputSchema: todoWriteInputSchema,
     execute: async ({ todos: incoming, merge }) => {
       if (merge) {
-        for (const todo of incoming) {
-          const idx = todos.findIndex((t) => t.id === todo.id);
-          if (idx >= 0) {
-            todos[idx] = { ...todos[idx]!, ...todo };
-          } else {
-            todos.push(todo);
-          }
-        }
+        store.merge(incoming);
       } else {
-        todos = incoming;
+        store.replace(incoming);
       }
-      return { todos };
+      return { todos: store.getAll() };
     },
   });
 }

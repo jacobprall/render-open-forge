@@ -1,7 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { getAdapter, getSessionId } from "../context/agent-context";
-import { notifyFileChanged } from "./truncation";
+import { getSandboxContext } from "../context/agent-context";
+import { notifyFileChanged } from "./file-events";
 
 const writeFileInputSchema = z.object({
   path: z.string().describe("The file path relative to the workspace root"),
@@ -13,8 +13,7 @@ export function writeFileTool() {
     description: "Write content to a file in the session workspace.",
     inputSchema: writeFileInputSchema,
     execute: async ({ path, content }, { experimental_context }) => {
-      const adapter = getAdapter(experimental_context);
-      const sessionId = getSessionId(experimental_context);
+      const { adapter, sessionId } = getSandboxContext(experimental_context);
       let before = "";
       try {
         const file = await adapter.readFile(sessionId, path);
