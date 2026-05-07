@@ -1,6 +1,7 @@
 import type Redis from "ioredis";
 import { nanoid } from "nanoid";
 import { eq } from "drizzle-orm";
+import type { ResolvedSkill } from "@render-open-forge/skills";
 import { sessions, agentRuns, chats } from "@render-open-forge/db";
 import { enqueueJob, ensureConsumerGroup, publishRunEvent } from "@render-open-forge/shared";
 
@@ -66,6 +67,8 @@ export interface HandoffParams {
   projectConfig?: unknown;
   projectContext?: string | null;
   requestId?: string;
+  /** Skills snapshot for the handoff run (required for the job queue). */
+  resolvedSkills: ResolvedSkill[];
 }
 
 export interface HandoffResult {
@@ -97,11 +100,9 @@ export async function handoffToNextAgent(
     return { handed: false, nextRole: null, newRunId: null, reason: "Pipeline complete — no next step" };
   }
 
-  const nextPhase = roleToPhase(next.role);
   const newRunId = nanoid();
 
   await db.update(sessions).set({
-    phase: nextPhase as "spec" | "execute" | "verify" | "deliver" | "complete",
     updatedAt: new Date(),
   }).where(eq(sessions.id, params.sessionId));
 
@@ -111,7 +112,6 @@ export async function handoffToNextAgent(
     sessionId: params.sessionId,
     userId: params.userId,
     modelId: next.model ?? "default",
-    phase: nextPhase as "spec" | "execute" | "verify" | "deliver" | "complete",
     status: "queued",
     createdAt: new Date(),
   });
@@ -128,8 +128,7 @@ export async function handoffToNextAgent(
     userId: params.userId,
     messages: params.messages,
     modelMessages: params.modelMessages,
-    phase: nextPhase,
-    workflowMode: "autonomous",
+    resolvedSkills: params.resolvedSkills,
     projectConfig: params.projectConfig,
     projectContext: params.projectContext,
     modelId: next.model,

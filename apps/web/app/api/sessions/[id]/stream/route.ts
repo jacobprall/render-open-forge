@@ -8,6 +8,7 @@ import {
   readRunEventPayloadsAfterId,
 } from "@render-open-forge/shared";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
+import { subscribeToRun } from "@/lib/sse/shared-subscriber";
 import {
   canAcceptConnection,
   registerConnection,
@@ -95,8 +96,8 @@ export async function GET(
     );
   }
 
+  // One cmd connection per SSE for history reads; pub/sub is shared globally
   const cmd = createRedisClient(`sse-cmd-${id}`);
-  const sub = createRedisClient(`sse-sub-${id}`);
 
   let history: string[];
   let lastStreamId: string | null;
@@ -104,9 +105,8 @@ export async function GET(
     const detailed = await readRunEventHistoryDetailed(cmd, runId);
     history = detailed.payloads;
     lastStreamId = detailed.lastStreamId;
-  } catch (err) {
+  } catch {
     cmd.disconnect();
-    sub.disconnect();
     return new Response(
       sseData({ type: "error", code: "REPLAY_FAILED", message: "Could not read event history", retryable: true }),
       {
@@ -119,14 +119,16 @@ export async function GET(
     );
   }
 
+  let subscription: Awaited<ReturnType<typeof subscribeToRun>> | null = null;
   let gap: string[] = [];
   try {
-    await sub.subscribe(`run:${runId}`);
+    subscription = await subscribeToRun(runId, () => {});
     if (lastStreamId) {
       gap = await readRunEventPayloadsAfterId(cmd, runId, lastStreamId);
     }
   } catch {
-    cleanup(sub, cmd, runId);
+    await subscription?.unsubscribe().catch(() => {});
+    cmd.disconnect();
     return new Response(
       sseData({ type: "error", code: "SUBSCRIBE_FAILED", message: "Could not subscribe to stream", retryable: true }),
       {
@@ -139,8 +141,38 @@ export async function GET(
     );
   }
 
+  // If the run already finished but the terminal event was pruned from the
+  // stream (MAXLEN), synthesize a terminal event so the client doesn't hang.
+  const allPayloads = [...history, ...gap];
+  const hasTerminal = allPayloads.some((p) => {
+    try {
+      const parsed = JSON.parse(p) as { type?: string };
+      return parsed.type ? isTerminalEvent(parsed.type) : false;
+    } catch { return false; }
+  });
+  if (!hasTerminal) {
+    const runStatus = await cmd.get(`run:${runId}:status`).catch(() => null);
+    if (runStatus === "completed" || runStatus === "failed" || runStatus === "aborted") {
+      const syntheticType = runStatus === "completed" ? "done" : runStatus === "aborted" ? "aborted" : "error";
+      gap.push(JSON.stringify({ type: syntheticType, message: "Run already finished", synthetic: true }));
+    }
+  }
+
+  // Tear down the placeholder subscription — we'll re-subscribe with the real handler below
+  await subscription.unsubscribe().catch(() => {});
+
   let keepAlive: ReturnType<typeof setInterval> | undefined;
   const connId = registerConnection(String(userSession.userId), id, runId);
+  let activeSub: Awaited<ReturnType<typeof subscribeToRun>> | null = null;
+
+  const cleanupAll = async () => {
+    if (keepAlive) clearInterval(keepAlive);
+    keepAlive = undefined;
+    unregisterConnection(connId);
+    await activeSub?.unsubscribe().catch(() => {});
+    activeSub = null;
+    cmd.disconnect();
+  };
 
   const stream = new ReadableStream({
     start(controller) {
@@ -150,8 +182,7 @@ export async function GET(
           touchConnection(connId);
           const parsed = JSON.parse(payload) as { type?: string };
           if (parsed.type && isTerminalEvent(parsed.type)) {
-            unregisterConnection(connId);
-            cleanup(sub, cmd, runId, keepAlive);
+            void cleanupAll();
             controller.close();
             return true;
           }
@@ -177,17 +208,16 @@ export async function GET(
         }
       }, KEEPALIVE_MS);
 
-      sub.on("message", (_channel: string, message: string) => {
+      subscribeToRun(runId, (message: string) => {
         send(message);
-      });
-
-      sub.on("error", (err: Error) => {
-        console.error(`[sse] Redis subscription error:`, err);
-        unregisterConnection(connId);
-        cleanup(sub, cmd, runId, keepAlive);
+      }).then((sub) => {
+        activeSub = sub;
+      }).catch((err: Error) => {
+        console.error(`[sse] Shared subscription error:`, err);
+        void cleanupAll();
         try {
           controller.enqueue(new TextEncoder().encode(
-            sseData({ type: "error", code: "STREAM_INTERRUPTED", message: "Connection interrupted", retryable: true }),
+            `data: ${JSON.stringify({ type: "error", code: "STREAM_INTERRUPTED", message: "Connection interrupted", retryable: true })}\n\n`,
           ));
         } catch {
           // ignore
@@ -196,14 +226,12 @@ export async function GET(
       });
     },
     cancel() {
-      unregisterConnection(connId);
-      cleanup(sub, cmd, runId, keepAlive);
+      void cleanupAll();
     },
   });
 
   req.signal.addEventListener("abort", () => {
-    unregisterConnection(connId);
-    cleanup(sub, cmd, runId, keepAlive);
+    void cleanupAll();
   });
 
   return new Response(stream, {
@@ -213,20 +241,5 @@ export async function GET(
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
     },
-  });
-}
-
-function cleanup(
-  sub: ReturnType<typeof createRedisClient>,
-  cmd: ReturnType<typeof createRedisClient>,
-  runId: string,
-  keepAlive?: ReturnType<typeof setInterval>,
-) {
-  if (keepAlive) clearInterval(keepAlive);
-  sub.removeAllListeners("message");
-  sub.removeAllListeners("error");
-  void sub.unsubscribe(`run:${runId}`).catch(() => {}).finally(() => {
-    sub.disconnect();
-    cmd.disconnect();
   });
 }

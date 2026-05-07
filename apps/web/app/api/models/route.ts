@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 
-interface AnthropicModel {
+interface AnthropicModelInfo {
   id: string;
+  display_name?: string;
+  capabilities?: {
+    thinking?: {
+      supported?: boolean;
+      types?: {
+        adaptive?: { supported?: boolean };
+        enabled?: { supported?: boolean };
+      };
+    };
+  };
 }
 
 interface ModelSummary {
@@ -9,15 +19,7 @@ interface ModelSummary {
   provider: string;
   label: string;
   nativeId: string;
-}
-
-function toDisplayName(modelId: string): string {
-  return modelId
-    .replace(/^claude-/, "Claude ")
-    .replace(/-(\d{8})$/, "")
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+  supportsThinking?: boolean;
 }
 
 function toCanonicalId(provider: string, modelId: string): string {
@@ -35,38 +37,51 @@ async function fetchModels(): Promise<ModelSummary[]> {
 
   const models: ModelSummary[] = [];
 
-  if (process.env.ANTHROPIC_API_KEY) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (apiKey) {
     try {
-      const res = await fetch("https://api.anthropic.com/v1/models", {
+      const res = await fetch("https://api.anthropic.com/v1/models?limit=100", {
         headers: {
-          "x-api-key": process.env.ANTHROPIC_API_KEY,
+          "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
         },
         signal: AbortSignal.timeout(10_000),
       });
 
       if (res.ok) {
-        const body = (await res.json()) as { data?: AnthropicModel[] };
+        const body = (await res.json()) as { data?: AnthropicModelInfo[] };
         const seen = new Set<string>();
         for (const m of body.data ?? []) {
           const canonId = toCanonicalId("anthropic", m.id);
           if (seen.has(canonId)) continue;
           seen.add(canonId);
+
+          const thinking = m.capabilities?.thinking;
+          const supportsAdaptive = thinking?.types?.adaptive?.supported === true;
+          const supportsEnabled = thinking?.types?.enabled?.supported === true;
+
           models.push({
             id: canonId,
             provider: "anthropic",
-            label: toDisplayName(m.id),
+            label: m.display_name ?? m.id,
             nativeId: m.id,
+            supportsThinking: supportsAdaptive || supportsEnabled,
           });
         }
+      } else {
+        console.warn(`[models] Anthropic API returned ${res.status}`);
       }
-    } catch {
-      // fall through to empty
+    } catch (err) {
+      console.warn("[models] Failed to fetch from Anthropic:", err instanceof Error ? err.message : err);
     }
+  } else {
+    console.warn("[models] ANTHROPIC_API_KEY not set");
   }
 
-  cachedModels = models;
-  cachedAt = Date.now();
+  if (models.length > 0) {
+    cachedModels = models;
+    cachedAt = Date.now();
+  }
   return models;
 }
 

@@ -96,7 +96,6 @@ async function handleCommentEvent(
         userId: session.userId,
         trigger: "review_comment",
         fixContext: ctx,
-        phase: "execute",
       }).catch((err) =>
         logger.errorWithCause(err, "enqueue github webhook job failed", {
           sessionId: session.id,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 interface Org {
   id: number;
@@ -133,10 +134,11 @@ export default function OrgsPage() {
               key={org.id}
               className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={org.avatar_url}
                 alt={org.username}
+                width={40}
+                height={40}
                 className="h-10 w-10 rounded-full bg-zinc-700"
               />
               <div className="flex-1">

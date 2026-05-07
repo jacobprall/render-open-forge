@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { createForgeProvider } from "@/lib/forgejo/client";
@@ -5,6 +6,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { RepoSearch } from "./search";
 import type { ForgeRepo } from "@render-open-forge/shared/lib/forge/types";
+
+export const metadata: Metadata = { title: "Repositories" };
 
 function VisibilityBadge({ isPrivate }: { isPrivate: boolean }) {
   if (isPrivate) {

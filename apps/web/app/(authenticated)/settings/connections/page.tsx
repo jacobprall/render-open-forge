@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { syncConnections } from "@render-open-forge/db/schema";
 import { eq } from "drizzle-orm";
+
+export const metadata: Metadata = { title: "Connections" };
 
 const forgejoIcon = (
   <svg className="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">

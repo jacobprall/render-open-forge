@@ -1,5 +1,22 @@
 import { isForgeAgentContext } from "../context/agent-context";
 
+function countDiff(before: string, after: string): { additions: number; deletions: number } {
+  const oldLines = before ? before.split("\n") : [];
+  const newLines = after ? after.split("\n") : [];
+  const oldSet = new Set(oldLines);
+  const newSet = new Set(newLines);
+
+  let additions = 0;
+  let deletions = 0;
+  for (const line of newLines) {
+    if (!oldSet.has(line)) additions++;
+  }
+  for (const line of oldLines) {
+    if (!newSet.has(line)) deletions++;
+  }
+  return { additions, deletions };
+}
+
 export async function notifyFileChanged(
   experimental_context: unknown,
   path: string,
@@ -10,7 +27,6 @@ export async function notifyFileChanged(
   const cb = experimental_context.onFileChanged;
   if (!cb) return;
 
-  const additions = after.split("\n").length - before.split("\n").length;
-  const deletions = additions < 0 ? Math.abs(additions) : 0;
-  await cb({ path, additions: Math.max(0, additions), deletions });
+  const { additions, deletions } = countDiff(before, after);
+  await cb({ path, additions, deletions });
 }

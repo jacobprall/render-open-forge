@@ -113,8 +113,9 @@ async function processJob(redis: Redis, streamId: string, job: ValidatedAgentJob
     await runAgentTurn(job, jobRedis);
     await ackJob(redis, streamId);
   } catch (err) {
-    console.error(`Job ${job.runId} failed`, err);
-    await ackJob(redis, streamId);
+    console.error(`Job ${job.runId} failed — leaving in PEL for reclaim/retry`, err);
+    // Do NOT ack: leave the entry in the Pending Entry List so
+    // reclaimStalePending() can re-enqueue it (up to maxRetries).
   } finally {
     jobRedis.disconnect();
   }
@@ -160,7 +161,7 @@ async function main() {
     if (!entry) continue;
 
     const { streamId, job } = entry;
-    console.info(`[worker] Processing job: runId=${job.runId} sessionId=${job.sessionId} phase=${job.phase}`);
+    console.info(`[worker] Processing job: runId=${job.runId} sessionId=${job.sessionId} skills=${job.resolvedSkills.length}`);
 
     active++;
     void processJob(redis, streamId, job).finally(() => {

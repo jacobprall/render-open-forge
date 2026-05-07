@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Folder,
@@ -70,7 +71,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
           <Code className="h-5 w-5 shrink-0 text-emerald-500" />
           {!collapsed && (
             <span className="truncate text-sm font-semibold tracking-tight">
-              render-open-forge
+              OpenForge
             </span>
           )}
         </div>
@@ -106,10 +107,11 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
               collapsed ? "justify-center px-0" : ""
             }`}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={user.avatarUrl}
               alt={user.username}
+              width={28}
+              height={28}
               className="h-7 w-7 shrink-0 rounded-full bg-zinc-700"
             />
             {!collapsed && (

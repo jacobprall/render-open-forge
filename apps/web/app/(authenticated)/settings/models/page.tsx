@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { MODEL_DEFS, DEFAULT_MODEL_ID } from "@render-open-forge/shared";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { userPreferences } from "@render-open-forge/db/schema";
 import { eq } from "drizzle-orm";
+
+export const metadata: Metadata = { title: "Models" };
 
 const providerIcons: Record<string, React.ReactNode> = {
   anthropic: (

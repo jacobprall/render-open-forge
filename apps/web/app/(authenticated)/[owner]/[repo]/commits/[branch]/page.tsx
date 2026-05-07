@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { createForgeProvider } from "@/lib/forgejo/client";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { relativeTime } from "@/lib/utils";
 import { BranchSelector } from "@/components/repo/branch-selector";
@@ -17,16 +17,11 @@ export default async function CommitsPage({
   const branch = decodeURIComponent(rawBranch);
   const forge = createForgeProvider(session.forgejoToken);
 
-  let commits;
-  let branches;
-  try {
-    [commits, branches] = await Promise.all([
-      forge.commits.list(owner, repo, { sha: branch, limit: 50 }),
-      forge.branches.list(owner, repo).catch(() => []),
-    ]);
-  } catch {
-    notFound();
-  }
+  // Forgejo returns 404 for empty repos or refs with no commits; treat as [] like Code tab does.
+  const [commits, branches] = await Promise.all([
+    forge.commits.list(owner, repo, { sha: branch, limit: 50 }).catch(() => []),
+    forge.branches.list(owner, repo).catch(() => []),
+  ]);
 
   return (
     <div className="space-y-4">

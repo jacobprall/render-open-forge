@@ -8,6 +8,13 @@ const gitInputSchema = z.object({
 
 const GIT_COMMANDS_NEEDING_AUTH = new Set(["push", "fetch", "pull"]);
 
+function rewriteForSandbox(url: string): string {
+  const sandboxUrl = process.env.FORGEJO_SANDBOX_URL;
+  if (!sandboxUrl) return url;
+  const internalUrl = process.env.FORGEJO_INTERNAL_URL ?? process.env.FORGEJO_URL ?? "http://localhost:3000";
+  return url.replace(new URL(internalUrl).host, new URL(sandboxUrl).host);
+}
+
 export function gitTool() {
   return tool({
     description:
@@ -21,8 +28,8 @@ export function gitTool() {
 
       if (needsAuth && isForgeAgentContext(experimental_context)) {
         const { forge, repoOwner, repoName } = experimental_context;
-        const authUrl = forge.git.authenticatedCloneUrl(repoOwner, repoName);
-        const plainUrl = forge.git.plainCloneUrl(repoOwner, repoName);
+        const authUrl = rewriteForSandbox(forge.git.authenticatedCloneUrl(repoOwner, repoName));
+        const plainUrl = rewriteForSandbox(forge.git.plainCloneUrl(repoOwner, repoName));
 
         await adapter.git(sessionId, ["remote", "set-url", "origin", authUrl]);
         try {

@@ -15,6 +15,7 @@
     "@render-open-forge/db": "workspace:*",
     "@render-open-forge/sandbox": "workspace:*",
     "@render-open-forge/shared": "workspace:*",
+    "@render-open-forge/skills": "workspace:*",
     "ai": "catalog:",
     "drizzle-orm": "^0.45.1",
     "ioredis": "^5.9.2",

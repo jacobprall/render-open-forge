@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { createForgeProvider } from "@/lib/forgejo/client";
 import Link from "next/link";
+
+export const metadata: Metadata = { title: "New Repository" };
 
 async function createRepository(formData: FormData) {
   "use server";

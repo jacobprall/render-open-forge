@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 
 interface Member {
@@ -119,10 +120,11 @@ export default function OrgMembersPage() {
               key={m.id}
               className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={m.avatar_url}
                 alt={m.login}
+                width={32}
+                height={32}
                 className="h-8 w-8 rounded-full bg-zinc-700"
               />
               <span className="flex-1 text-sm font-medium text-zinc-100">

@@ -1,8 +1,7 @@
-import type { SessionPhase, WorkflowMode } from "@render-open-forge/db";
 import type { StreamEvent } from "@render-open-forge/shared";
+import type { ResolvedSkill } from "@render-open-forge/skills";
 
-export type { SessionPhase, WorkflowMode };
-export type { StreamEvent };
+export type { StreamEvent, ResolvedSkill };
 
 export interface AgentJob {
   runId: string;
@@ -11,8 +10,7 @@ export interface AgentJob {
   userId: string;
   messages: Array<{ role: "user" | "assistant"; content: unknown }>;
   modelMessages?: unknown[];
-  phase: SessionPhase;
-  workflowMode: WorkflowMode;
+  resolvedSkills: ResolvedSkill[];
   projectConfig?: unknown;
   projectContext?: string | null;
   modelId?: string;

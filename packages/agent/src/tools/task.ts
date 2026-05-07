@@ -1,4 +1,4 @@
-import { generateText, stepCountIs, tool, type ToolSet } from "ai";
+import { generateText, stepCountIs, tool, type LanguageModel, type ToolSet } from "ai";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { getSandboxContext, isForgeAgentContext, type ForgeAgentContext } from "../context/agent-context";
@@ -13,17 +13,14 @@ const taskInputSchema = z.object({
 export function taskTool(
   publishFn: (event: Record<string, unknown>) => Promise<void>,
   buildSubTools: () => ToolSet,
+  model: LanguageModel,
+  parentSystemPromptSuffix?: string,
 ) {
   return tool({
     description: "Delegate a self-contained subtask to a focused subagent. Use for parallelizable or isolated work.",
     inputSchema: taskInputSchema,
     execute: async ({ task, context }, { experimental_context }) => {
       const { adapter, sessionId } = getSandboxContext(experimental_context);
-      const ctx = experimental_context as { model?: import("ai").LanguageModel };
-
-      if (!ctx.model) {
-        return { success: false, error: "No model in context" };
-      }
 
       if (!isForgeAgentContext(experimental_context)) {
         return { success: false, error: "Forge context required for task delegation" };
@@ -49,9 +46,15 @@ export function taskTool(
           ...(parentCtx.onPrCreated ? { onPrCreated: parentCtx.onPrCreated } : {}),
         };
 
+        const subSystem = [
+          `You are a focused subagent completing a specific task.`,
+          parentSystemPromptSuffix ?? "",
+          context ?? "",
+        ].filter(Boolean).join("\n\n");
+
         const result = await generateText({
-          model: ctx.model,
-          system: `You are a focused subagent completing a specific task. ${context ?? ""}`,
+          model,
+          system: subSystem,
           messages: [{ role: "user" as const, content: task }],
           tools: subTools,
           stopWhen: stepCountIs(MAX_SUBAGENT_STEPS),

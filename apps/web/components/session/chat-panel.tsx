@@ -5,16 +5,14 @@ import type { StreamEvent, AssistantPart } from "@render-open-forge/shared/clien
 import { appendStreamEvent } from "@render-open-forge/shared/client";
 import { Markdown } from "@/components/markdown";
 import { ToolCall } from "@/components/tool-call";
-import { ModelSelector } from "@/components/model-selector";
-
-interface Message {
+export interface Message {
   id: string;
   role: "user" | "assistant";
   parts: AssistantPart[];
   createdAt: string;
 }
 
-interface LiveFileChange {
+export interface LiveFileChange {
   path: string;
   additions: number;
   deletions: number;
@@ -25,13 +23,15 @@ interface ChatPanelProps {
   chatId: string | null;
   activeRunId: string | null;
   initialMessages: Message[];
+  modelId: string;
+  onModelChange: (id: string) => void;
+  onFileChanges?: (files: LiveFileChange[]) => void;
 }
 
-export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMessages }: ChatPanelProps) {
+export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMessages, modelId, onModelChange, onFileChanges }: ChatPanelProps) {
   void _chatId;
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
-  const [modelId, setModelId] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingParts, setStreamingParts] = useState<AssistantPart[]>([]);
   const [askUserPrompt, setAskUserPrompt] = useState<{
@@ -45,6 +45,10 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    onFileChanges?.(liveFileChanges);
+  }, [liveFileChanges, onFileChanges]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -247,26 +251,9 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Chat toolbar */}
-      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2">
-        <div className="flex items-center gap-2 text-xs text-zinc-500">
-          {isStreaming && (
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Agent working
-            </span>
-          )}
-        </div>
-        <ModelSelector
-          value={modelId}
-          onChange={setModelId}
-          compact
-        />
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="mx-auto max-w-2xl flex flex-col gap-5">
+        <div className="mx-auto max-w-2xl flex flex-col gap-4">
           {/* Inline files changed panel */}
           {liveFileChanges.length > 0 && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 overflow-hidden">
@@ -333,8 +320,8 @@ export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMess
 
           {/* Thinking indicator */}
           {isStreaming && streamingParts.length === 0 && (
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
-              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <div className="flex items-center gap-2 text-xs text-zinc-500">
+              <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
@@ -452,7 +439,7 @@ function MessageBubble({ message }: { message: Message }) {
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-emerald-600 px-4 py-2.5 text-sm text-white">
+        <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-emerald-600 px-3.5 py-2 text-[13px] leading-relaxed text-white shadow-sm">
           {message.parts
             .filter((p) => p.type === "text")
             .map((p, i) => (
@@ -465,7 +452,7 @@ function MessageBubble({ message }: { message: Message }) {
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[95%] sm:max-w-[85%]">
+      <div className="max-w-[95%] sm:max-w-[88%]">
         <AssistantParts parts={message.parts} />
       </div>
     </div>
@@ -474,7 +461,7 @@ function MessageBubble({ message }: { message: Message }) {
 
 function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streaming?: boolean }) {
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="flex flex-col gap-1.5 w-full">
       {parts.map((part, i) => {
         switch (part.type) {
           case "text":
@@ -493,36 +480,36 @@ function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streamin
 
           case "file_changed":
             return (
-              <div key={i} className="text-xs border border-zinc-800 rounded-lg px-2.5 py-1.5 bg-zinc-900/50">
-                <span className="text-emerald-400 tabular-nums">+{part.additions}</span>
-                <span className="text-zinc-600 mx-1">/</span>
-                <span className="text-red-400 tabular-nums">-{part.deletions}</span>
-                <span className="ml-2 font-mono text-zinc-400 break-all">{part.path}</span>
+              <div key={i} className="inline-flex items-center gap-1.5 text-[11px] border border-zinc-800/60 rounded-md px-2 py-1 bg-zinc-900/40">
+                <span className="text-emerald-400/80 tabular-nums font-mono">+{part.additions}</span>
+                <span className="text-zinc-700">/</span>
+                <span className="text-red-400/80 tabular-nums font-mono">-{part.deletions}</span>
+                <span className="ml-1 font-mono text-zinc-500 break-all">{part.path}</span>
               </div>
             );
 
           case "task":
             return (
-              <div key={i} className="flex items-center gap-2 text-xs border border-zinc-800 rounded-lg px-3 py-2 bg-zinc-900/50">
+              <div key={i} className="flex items-center gap-1.5 text-[11px] border border-zinc-800/60 rounded-md px-2.5 py-1.5 bg-zinc-900/40">
                 {part.status === "running" && (
-                  <svg className="h-3.5 w-3.5 animate-spin text-amber-400" fill="none" viewBox="0 0 24 24">
+                  <svg className="h-3 w-3 animate-spin text-amber-400/80" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                 )}
                 {part.status === "done" && (
-                  <svg className="h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-3 w-3 text-emerald-400/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 )}
                 {part.status === "error" && (
-                  <svg className="h-3.5 w-3.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-3 w-3 text-red-400/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 )}
-                <span className="text-zinc-300">{part.task}</span>
-                {part.result && <span className="ml-auto text-zinc-500">{part.result}</span>}
-                {part.error && <span className="ml-auto text-red-400">{part.error}</span>}
+                <span className="text-zinc-400">{part.task}</span>
+                {part.result && <span className="ml-auto text-zinc-600">{part.result}</span>}
+                {part.error && <span className="ml-auto text-red-400/80">{part.error}</span>}
               </div>
             );
 
@@ -534,7 +521,7 @@ function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streamin
         }
       })}
       {streaming && (
-        <span className="inline-block w-1.5 h-4 bg-emerald-400/70 animate-pulse rounded-sm" />
+        <span className="inline-block w-1 h-3.5 bg-emerald-400/50 animate-pulse rounded-sm" />
       )}
     </div>
   );

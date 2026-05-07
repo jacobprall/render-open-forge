@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth/session";
 import { createForgeProvider } from "@/lib/forgejo/client";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import { RepoTabNav } from "@/components/repo/repo-tab-nav";
 
 export default async function RepoLayout({
   children,
@@ -25,11 +26,16 @@ export default async function RepoLayout({
 
   const basePath = `/${owner}/${repo}`;
   const tabs = [
-    { label: "Code", href: basePath },
-    { label: "Commits", href: `${basePath}/commits/${repoData.defaultBranch}` },
-    { label: "Pull Requests", href: `${basePath}/pulls` },
-    { label: "CI", href: `${basePath}/actions` },
-    { label: "Settings", href: `${basePath}/settings` },
+    { id: "code" as const, label: "Code", href: basePath },
+    { id: "sessions" as const, label: "Sessions", href: `${basePath}/sessions` },
+    {
+      id: "commits" as const,
+      label: "Commits",
+      href: `${basePath}/commits/${encodeURIComponent(repoData.defaultBranch)}`,
+    },
+    { id: "pulls" as const, label: "Pull Requests", href: `${basePath}/pulls` },
+    { id: "ci" as const, label: "CI", href: `${basePath}/actions` },
+    { id: "settings" as const, label: "Settings", href: `${basePath}/settings` },
   ];
 
   return (
@@ -76,17 +82,7 @@ export default async function RepoLayout({
             )}
           </div>
 
-          <nav className="-mb-px flex gap-0">
-            {tabs.map((tab) => (
-              <Link
-                key={tab.label}
-                href={tab.href}
-                className="border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </nav>
+          <RepoTabNav basePath={basePath} tabs={tabs} />
         </div>
       </div>
 

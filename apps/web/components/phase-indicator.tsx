@@ -1,5 +1,3 @@
-"use client";
-
 const phases = ["understand", "spec", "execute", "verify", "deliver", "complete"] as const;
 type Phase = (typeof phases)[number];
 

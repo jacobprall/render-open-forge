@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 
 interface Member {
   id: number;
@@ -129,10 +130,11 @@ export function MembersList({ org }: { org: string }) {
                 className="flex items-center justify-between gap-4 px-4 py-3"
               >
                 <div className="flex items-center gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={member.avatar_url}
                     alt={member.login}
+                    width={32}
+                    height={32}
                     className="h-8 w-8 rounded-full bg-zinc-700"
                   />
                   <div>

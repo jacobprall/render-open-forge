@@ -9,13 +9,14 @@ import {
   specs,
 } from "@render-open-forge/db";
 import { and, asc, desc, eq } from "drizzle-orm";
-import type { SessionPhase } from "@render-open-forge/db";
 import {
   enqueueJob,
   ensureConsumerGroup,
   logger,
 } from "@render-open-forge/shared";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
+import { createForgeProvider } from "@/lib/forgejo/client";
+import { resolveSkillsForSessionRow } from "@/lib/skills/resolve-for-session";
 
 function collectModelMessages(
   rows: Array<{ role: string; parts: unknown; modelMessages: unknown }>,
@@ -60,11 +61,12 @@ async function startAgentJob(params: {
   sessionRow: typeof sessions.$inferSelect;
   chatId: string;
   authUserId: string;
-  phase: SessionPhase;
+  authUsername: string;
+  forgeToken: string;
   projectConfigPatch?: Record<string, unknown>;
   fixContext?: string;
 }) {
-  const { db, redis, sessionRow, chatId, authUserId, phase, projectConfigPatch, fixContext } =
+  const { db, redis, sessionRow, chatId, authUserId, authUsername, forgeToken, projectConfigPatch, fixContext } =
     params;
 
   const rows = await db
@@ -88,13 +90,19 @@ async function startAgentJob(params: {
       : {};
   Object.assign(baseConfig, projectConfigPatch ?? {});
 
+  const sessionForResolve = {
+    ...sessionRow,
+    projectConfig: Object.keys(baseConfig).length ? baseConfig : sessionRow.projectConfig,
+  };
+  const forge = createForgeProvider(forgeToken);
+  const resolvedSkills = await resolveSkillsForSessionRow(sessionForResolve, forge, authUsername);
+
   await db.insert(agentRuns).values({
     id: runId,
     chatId,
     sessionId: sessionRow.id,
     userId: authUserId,
     modelId: "anthropic/claude-sonnet-4-5",
-    phase,
     status: "queued",
     trigger: "user_message",
     createdAt: new Date(),
@@ -113,8 +121,7 @@ async function startAgentJob(params: {
     userId: authUserId,
     messages,
     modelMessages,
-    phase,
-    workflowMode: sessionRow.workflowMode ?? "standard",
+    resolvedSkills,
     projectConfig: Object.keys(baseConfig).length ? baseConfig : undefined,
     projectContext: sessionRow.projectContext,
     modelId: "anthropic/claude-sonnet-4-5",
@@ -186,14 +193,6 @@ export async function POST(
         })
         .where(eq(specs.id, specId));
 
-      await db
-        .update(sessions)
-        .set({
-          phase: "execute",
-          updatedAt: new Date(),
-        })
-        .where(eq(sessions.id, sessionId));
-
       await db.insert(chatMessages).values({
         id: crypto.randomUUID(),
         chatId,
@@ -212,7 +211,8 @@ export async function POST(
         sessionRow,
         chatId,
         authUserId,
-        phase: "execute",
+        authUsername: auth.username,
+        forgeToken: auth.forgejoToken,
         projectConfigPatch: { lastApprovedSpecId: specId },
       });
 
@@ -230,14 +230,6 @@ export async function POST(
         rejectionNote,
       })
       .where(eq(specs.id, specId));
-
-    await db
-      .update(sessions)
-      .set({
-        phase: "spec",
-        updatedAt: new Date(),
-      })
-      .where(eq(sessions.id, sessionId));
 
     await db.insert(chatMessages).values({
       id: crypto.randomUUID(),
@@ -257,7 +249,8 @@ export async function POST(
       sessionRow,
       chatId,
       authUserId,
-      phase: "spec",
+      authUsername: auth.username,
+      forgeToken: auth.forgejoToken,
       fixContext: `Revise specification per feedback:\n${rejectionNote.trim()}`,
     });
 

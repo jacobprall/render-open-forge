@@ -1,6 +1,5 @@
 import type Redis from "ioredis";
 import { asc, desc, eq } from "drizzle-orm";
-import type { SessionPhase, WorkflowMode } from "@render-open-forge/db";
 import {
   agentRuns,
   chatMessages,
@@ -9,6 +8,8 @@ import {
 } from "@render-open-forge/db";
 import { enqueueJob, ensureConsumerGroup } from "@render-open-forge/shared";
 import type { ForgeDb } from "@/lib/db";
+import { getAgentForgeProvider } from "@/lib/forgejo/client";
+import { resolveSkillsForSessionRow } from "@/lib/skills/resolve-for-session";
 
 type Db = ForgeDb;
 
@@ -72,7 +73,6 @@ export async function enqueueSessionTriggerJob(
     chatTitle?: string;
     trigger: Exclude<AgentTrigger, "user_message">;
     fixContext: string;
-    phase?: SessionPhase;
     modelId?: string;
   },
 ): Promise<{ runId: string; chatId: string } | null> {
@@ -118,8 +118,13 @@ export async function enqueueSessionTriggerJob(
   const modelMessages = collectModelMessages(rows);
 
   const runId = crypto.randomUUID();
-  const phase = params.phase ?? sessionRow.phase ?? "execute";
-  const workflowMode = (sessionRow.workflowMode ?? "standard") as WorkflowMode;
+
+  const forge = getAgentForgeProvider();
+  const resolvedSkills = await resolveSkillsForSessionRow(
+    sessionRow,
+    forge,
+    sessionRow.forgeUsername ?? "",
+  );
 
   await db.insert(agentRuns).values({
     id: runId,
@@ -127,7 +132,6 @@ export async function enqueueSessionTriggerJob(
     sessionId: params.sessionId,
     userId: params.userId,
     modelId: params.modelId ?? "anthropic/claude-sonnet-4-5",
-    phase: phase ?? undefined,
     status: "queued",
     trigger: params.trigger,
     createdAt: new Date(),
@@ -151,8 +155,7 @@ export async function enqueueSessionTriggerJob(
     userId: params.userId,
     messages,
     modelMessages,
-    phase,
-    workflowMode,
+    resolvedSkills,
     projectConfig: sessionRow.projectConfig,
     projectContext: sessionRow.projectContext,
     modelId: params.modelId ?? "anthropic/claude-sonnet-4-5",

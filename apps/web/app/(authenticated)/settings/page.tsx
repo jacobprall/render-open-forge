@@ -1,9 +1,13 @@
+import type { Metadata } from "next";
+import Image from "next/image";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { userPreferences } from "@render-open-forge/db/schema";
 import { eq } from "drizzle-orm";
 import { PreferencesForm } from "./preferences-form";
+
+export const metadata: Metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -30,9 +34,11 @@ export default async function SettingsPage() {
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
           <div className="flex items-center gap-4">
             {session.avatarUrl ? (
-              <img
+              <Image
                 src={session.avatarUrl}
                 alt={session.username}
+                width={64}
+                height={64}
                 className="h-16 w-16 rounded-full border-2 border-zinc-700"
               />
             ) : (

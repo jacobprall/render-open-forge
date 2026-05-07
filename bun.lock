@@ -14,6 +14,7 @@
       "dependencies": {
         "@render-open-forge/db": "workspace:*",
         "@render-open-forge/shared": "workspace:*",
+        "@render-open-forge/skills": "workspace:*",
         "drizzle-orm": "^0.45.1",
         "ioredis": "^5.9.2",
         "lucide-react": "^1.14.0",
@@ -45,6 +46,7 @@
         "@render-open-forge/db": "workspace:*",
         "@render-open-forge/sandbox": "workspace:*",
         "@render-open-forge/shared": "workspace:*",
+        "@render-open-forge/skills": "workspace:*",
         "ai": "catalog:",
         "drizzle-orm": "^0.45.1",
         "ioredis": "^5.9.2",
@@ -94,6 +96,17 @@
       },
       "peerDependencies": {
         "react": "^18 || ^19",
+      },
+    },
+    "packages/skills": {
+      "name": "@render-open-forge/skills",
+      "version": "0.0.0",
+      "dependencies": {
+        "@render-open-forge/shared": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "^22",
+        "typescript": "^5",
       },
     },
   },
@@ -269,6 +282,8 @@
     "@render-open-forge/sandbox": ["@render-open-forge/sandbox@workspace:packages/sandbox"],
 
     "@render-open-forge/shared": ["@render-open-forge/shared@workspace:packages/shared"],
+
+    "@render-open-forge/skills": ["@render-open-forge/skills@workspace:packages/skills"],
 
     "@render-open-forge/web": ["@render-open-forge/web@workspace:apps/web"],
 

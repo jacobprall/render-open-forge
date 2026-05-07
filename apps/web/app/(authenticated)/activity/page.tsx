@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
@@ -5,6 +6,8 @@ import { ciEvents, agentRuns, sessions } from "@render-open-forge/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { relativeTime } from "@/lib/utils";
 import Link from "next/link";
+
+export const metadata: Metadata = { title: "Activity" };
 
 interface ActivityItem {
   id: string;

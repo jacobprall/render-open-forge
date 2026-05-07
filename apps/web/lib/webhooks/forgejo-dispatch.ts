@@ -168,7 +168,6 @@ async function handleWorkflowRun(db: ForgeDb, redis: Redis | null, payload: unkn
         userId: s.userId,
         trigger: "ci_failure",
         fixContext: ctx,
-        phase: s.phase === "verify" || s.phase === "deliver" ? s.phase : "execute",
       }).catch((err) => logger.errorWithCause(err, "enqueue ci_failure job failed", { sessionId: s.id }));
     }
   }
@@ -213,7 +212,6 @@ async function handlePullRequest(db: ForgeDb, redis: Redis | null, payload: unkn
           userId: s.userId,
           trigger: "pr_opened",
           fixContext: ctx,
-          phase: "execute",
         }).catch((err) => logger.errorWithCause(err, "enqueue pr_opened job failed", { sessionId: s.id }));
       }
     }
@@ -246,7 +244,6 @@ async function handlePullRequest(db: ForgeDb, redis: Redis | null, payload: unkn
           userId: s.userId,
           trigger: "pr_merged",
           fixContext: ctx,
-          phase: "complete",
         }).catch((err) => logger.errorWithCause(err, "enqueue pr_merged job failed", { sessionId: s.id }));
       }
     }
@@ -261,30 +258,37 @@ async function handlePush(db: ForgeDb, payload: unknown) {
   const branch = branchFromPushRef(ref);
   if (!branch) return;
 
+  // Only update the most recently active session for this repo+branch
   const rows = await findSessionsForRepoBranch(db, repo, branch);
-  for (const s of rows) {
-    let added = 0;
-    let removed = 0;
-    const commits = p.commits as unknown[] | undefined;
-    if (Array.isArray(commits)) {
-      for (const c of commits) {
-        if (!c || typeof c !== "object") continue;
-        const co = c as Record<string, unknown>;
-        added += Array.isArray(co.added) ? co.added.length : typeof co.added === "number" ? co.added : 0;
-        removed += Array.isArray(co.removed) ? co.removed.length : typeof co.removed === "number" ? co.removed : 0;
-      }
-    }
+  const s = rows[0]; // already sorted by updatedAt desc
+  if (!s) return;
 
-    await db
-      .update(sessions)
-      .set({
-        linesAdded: sql`${sessions.linesAdded} + ${added}`,
-        linesRemoved: sql`${sessions.linesRemoved} + ${removed}`,
-        lastActivityAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(sessions.id, s.id));
+  // Forgejo push payloads list filenames in added/removed/modified arrays;
+  // count modified files as both an add and a remove for rough approximation.
+  let filesAdded = 0;
+  let filesRemoved = 0;
+  const commits = p.commits as unknown[] | undefined;
+  if (Array.isArray(commits)) {
+    for (const c of commits) {
+      if (!c || typeof c !== "object") continue;
+      const co = c as Record<string, unknown>;
+      filesAdded += Array.isArray(co.added) ? co.added.length : 0;
+      filesRemoved += Array.isArray(co.removed) ? co.removed.length : 0;
+      const modified = Array.isArray(co.modified) ? co.modified.length : 0;
+      filesAdded += modified;
+      filesRemoved += modified;
+    }
   }
+
+  await db
+    .update(sessions)
+    .set({
+      linesAdded: sql`${sessions.linesAdded} + ${filesAdded}`,
+      linesRemoved: sql`${sessions.linesRemoved} + ${filesRemoved}`,
+      lastActivityAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(sessions.id, s.id));
 }
 
 async function handlePrComment(
@@ -312,32 +316,32 @@ async function handlePrComment(
   if (!repo || !Number.isFinite(prNum)) return;
   if (!redis) return;
 
+  // Only trigger the most recently active session for this PR
   const rows = await findSessionsForPr(db, repo, prNum);
+  const s = rows[0]; // already sorted by updatedAt desc
+  if (!s) return;
 
   const path =
     event === "pull_request_review_comment"
       ? String((p.comment as Record<string, unknown>)?.path ?? "")
       : "";
 
-  for (const s of rows) {
-    const ctx = [
-      `New review activity on PR #${prNum} (${event}).`,
-      path ? `File: ${path}` : "",
-      body ? `Comment:\n${body}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+  const ctx = [
+    `New review activity on PR #${prNum} (${event}).`,
+    path ? `File: ${path}` : "",
+    body ? `Comment:\n${body}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
-    await enqueueSessionTriggerJob(db, redis, {
-      sessionId: s.id,
-      userId: s.userId,
-      trigger: "review_comment",
-      fixContext: ctx,
-      phase: "execute",
-    }).catch((err) =>
-      logger.errorWithCause(err, "enqueue review_comment job failed", { sessionId: s.id }),
-    );
-  }
+  await enqueueSessionTriggerJob(db, redis, {
+    sessionId: s.id,
+    userId: s.userId,
+    trigger: "review_comment",
+    fixContext: ctx,
+  }).catch((err) =>
+    logger.errorWithCause(err, "enqueue review_comment job failed", { sessionId: s.id }),
+  );
 }
 
 async function handleStatus(db: ForgeDb, payload: unknown) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { savePreferencesAction } from "./actions";
 
 interface Prefs {
@@ -12,10 +12,61 @@ interface Prefs {
   autoCreatePr: boolean;
 }
 
+interface ModelOption {
+  id: string;
+  label: string;
+  supportsThinking?: boolean;
+}
+
+function ModelSelect({
+  name,
+  value,
+  onChange,
+  models,
+  loading,
+  placeholder,
+}: {
+  name: string;
+  value: string;
+  onChange: (v: string) => void;
+  models: ModelOption[];
+  loading: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <select
+      name={name}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+    >
+      {placeholder && <option value="">{placeholder}</option>}
+      {loading && <option disabled>Loading models…</option>}
+      {models.map((m) => (
+        <option key={m.id} value={m.id}>
+          {m.label}{m.supportsThinking ? " (thinking)" : ""}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [models, setModels] = useState<ModelOption[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
+  const [defaultModelId, setDefaultModelId] = useState(prefs?.defaultModelId || "");
+  const [subagentModelId, setSubagentModelId] = useState(prefs?.defaultSubagentModelId || "");
+
+  useEffect(() => {
+    fetch("/api/models")
+      .then((r) => r.json())
+      .then((data: { models: ModelOption[] }) => setModels(data.models ?? []))
+      .catch(() => {})
+      .finally(() => setModelsLoading(false));
+  }, []);
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -50,11 +101,12 @@ export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
           <label className="mb-1.5 block text-sm font-medium text-zinc-300">
             Default Model
           </label>
-          <input
-            type="text"
+          <ModelSelect
             name="defaultModelId"
-            defaultValue={prefs?.defaultModelId || "anthropic/claude-sonnet-4-5"}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            value={defaultModelId}
+            onChange={setDefaultModelId}
+            models={models}
+            loading={modelsLoading}
           />
           <p className="mt-1 text-xs text-zinc-500">Model used for main agent sessions</p>
         </div>
@@ -64,12 +116,13 @@ export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
           <label className="mb-1.5 block text-sm font-medium text-zinc-300">
             Default Subagent Model
           </label>
-          <input
-            type="text"
+          <ModelSelect
             name="defaultSubagentModelId"
-            defaultValue={prefs?.defaultSubagentModelId || ""}
+            value={subagentModelId}
+            onChange={setSubagentModelId}
+            models={models}
+            loading={modelsLoading}
             placeholder="Same as main model"
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
           <p className="mt-1 text-xs text-zinc-500">Model used for subagent tasks (optional)</p>
         </div>

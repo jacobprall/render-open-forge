@@ -28,6 +28,15 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    label: "Skills",
+    href: "/settings/skills",
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.4-.49.01-1.21-.6-1.21H9.5m2.922 4.242L6.75 21m.75-5.25V9.75m0 6 6-6h-6m6 6v6" />
+      </svg>
+    ),
+  },
 ];
 
 export default function SettingsLayout({

@@ -89,7 +89,12 @@ export default async function SharedSessionPage({
             <span className="text-zinc-600">·</span>
             <span>{session.branch}</span>
             <span className="text-zinc-600">·</span>
-            <span>Phase: {session.phase}</span>
+            <span>
+              Skills:{" "}
+              {(session.activeSkills?.length
+                ? session.activeSkills.map((x) => x.slug).join(", ")
+                : "default")}
+            </span>
           </div>
         </div>
       </header>

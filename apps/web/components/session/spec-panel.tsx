@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/primitives/button";
 import { Badge } from "@/components/primitives/badge";
 import type { Spec } from "@render-open-forge/db/schema";
+import type { ActiveSkillRef } from "@render-open-forge/skills";
 
 interface Props {
   sessionId: string;
@@ -169,10 +170,15 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
               onClick={async () => {
                 setLoading(true);
                 try {
-                  await fetch(`/api/sessions/${sessionId}/phase`, {
-                    method: "POST",
+                  const cur = await fetch(`/api/sessions/${sessionId}/skills`);
+                  const data = (await cur.json()) as { activeSkills?: ActiveSkillRef[] };
+                  const next = (data.activeSkills ?? []).filter(
+                    (s) => !(s.slug === "spec-first" && s.source === "builtin"),
+                  );
+                  await fetch(`/api/sessions/${sessionId}/skills`, {
+                    method: "PATCH",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ phase: "execute" }),
+                    body: JSON.stringify({ activeSkills: next }),
                   });
                   onAction();
                 } finally {

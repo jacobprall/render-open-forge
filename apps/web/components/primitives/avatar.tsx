@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 
 function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
+
+const sizePx = { sm: 24, md: 32, lg: 40 } as const;
 
 const sizeStyles = {
   sm: "h-6 w-6 text-[10px]",
@@ -50,11 +53,14 @@ export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
         {...props}
       >
         {showImage ? (
-          <img
+          <Image
             src={src}
             alt={alt ?? ""}
+            width={sizePx[size]}
+            height={sizePx[size]}
             className="h-full w-full object-cover"
             onError={() => setImgError(true)}
+            unoptimized={src.startsWith("data:")}
           />
         ) : (
           <span>{initials}</span>

@@ -22,13 +22,15 @@ export type SessionPhase =
   | "complete"
   | "failed";
 
-export type WorkflowMode = "full" | "standard" | "fast" | "yolo";
+export type WorkflowMode = "full" | "standard" | "fast" | "yolo" | "autonomous";
 
 export const sessions = pgTable(
   "sessions",
   {
     id: text("id").primaryKey(),
     userId: text("user_id").notNull(),
+    /** Forgejo login — for resolving user-scoped skills when OAuth token is unavailable (webhooks). */
+    forgeUsername: text("forge_username"),
     title: text("title").notNull(),
     status: text("status", {
       enum: ["running", "completed", "failed", "archived"],
@@ -52,13 +54,18 @@ export const sessions = pgTable(
     upstreamRepoUrl: text("upstream_repo_url"),
     upstreamPrUrl: text("upstream_pr_url"),
 
-    // Workflow
+    // Workflow (legacy columns — prefer activeSkills for new sessions)
     phase: text("phase", {
       enum: ["understand", "spec", "execute", "verify", "deliver", "complete", "failed"],
     }).notNull().default("execute"),
     workflowMode: text("workflow_mode", {
-      enum: ["full", "standard", "fast", "yolo"],
+      enum: ["full", "standard", "fast", "yolo", "autonomous"],
     }).notNull().default("standard"),
+
+    /** Json array of { source: "builtin"|"user"|"repo", slug: string } */
+    activeSkills: jsonb("active_skills").$type<
+      Array<{ source: "builtin" | "user" | "repo"; slug: string }>
+    >(),
 
     // Project context
     projectConfig: jsonb("project_config"),
@@ -78,6 +85,33 @@ export const sessions = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [index("sessions_user_id_idx").on(table.userId)],
+);
+
+// ---------------------------------------------------------------------------
+// Skill cache (optional mirror of git-backed skill files)
+// ---------------------------------------------------------------------------
+
+export const skillCache = pgTable(
+  "skill_cache",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id"),
+    repoPath: text("repo_path"),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    source: text("source", {
+      enum: ["builtin", "user", "repo"],
+    }).notNull(),
+    content: text("content").notNull(),
+    filePath: text("file_path").notNull(),
+    contentHash: text("content_hash").notNull(),
+    syncedAt: timestamp("synced_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("skill_cache_user_slug_idx").on(table.userId, table.slug),
+    index("skill_cache_repo_slug_idx").on(table.repoPath, table.slug),
+  ],
 );
 
 // ---------------------------------------------------------------------------
@@ -142,6 +176,8 @@ export const agentRuns = pgTable(
     startedAt: timestamp("started_at"),
     finishedAt: timestamp("finished_at"),
     totalDurationMs: integer("total_duration_ms"),
+    promptTokens: integer("prompt_tokens"),
+    completionTokens: integer("completion_tokens"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -333,3 +369,5 @@ export type VerificationResult = typeof verificationResults.$inferSelect;
 export type NewVerificationResult = typeof verificationResults.$inferInsert;
 export type UserPreferences = typeof userPreferences.$inferSelect;
 export type NewUserPreferences = typeof userPreferences.$inferInsert;
+export type SkillCacheRow = typeof skillCache.$inferSelect;
+export type NewSkillCacheRow = typeof skillCache.$inferInsert;

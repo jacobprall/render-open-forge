@@ -20,32 +20,22 @@ const MODEL_PREFERENCE = [
   "claude-haiku-4-5",
 ];
 
-const ADAPTIVE_THINKING_MODELS = new Set([
-  "claude-sonnet-4-6",
-  "claude-opus-4-7",
-  "claude-opus-4-6",
-  "claude-opus-4-5",
-  "claude-opus-4-1",
-  "claude-opus-4",
-  "claude-sonnet-4",
-]);
+interface AnthropicModelInfo {
+  id: string;
+  display_name?: string;
+  capabilities?: {
+    thinking?: {
+      supported?: boolean;
+      types?: {
+        adaptive?: { supported?: boolean };
+        enabled?: { supported?: boolean };
+      };
+    };
+  };
+}
 
 let _availableModels: ModelDef[] | null = null;
 let _defaultModelId: string | null = null;
-
-function supportsAdaptiveThinking(modelId: string): boolean {
-  const base = modelId.replace(/-\d{8}$/, "");
-  return ADAPTIVE_THINKING_MODELS.has(base);
-}
-
-function toDisplayName(modelId: string): string {
-  return modelId
-    .replace(/^claude-/, "Claude ")
-    .replace(/-(\d{8})$/, "")
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
 
 function toCanonicalId(provider: string, modelId: string): string {
   return `${provider}/${modelId.replace(/-\d{8}$/, "")}`;
@@ -56,7 +46,7 @@ export async function fetchAvailableModels(): Promise<ModelDef[]> {
 
   if (process.env.ANTHROPIC_API_KEY) {
     try {
-      const res = await fetch("https://api.anthropic.com/v1/models", {
+      const res = await fetch("https://api.anthropic.com/v1/models?limit=100", {
         headers: {
           "x-api-key": process.env.ANTHROPIC_API_KEY,
           "anthropic-version": "2023-06-01",
@@ -65,14 +55,18 @@ export async function fetchAvailableModels(): Promise<ModelDef[]> {
       });
 
       if (res.ok) {
-        const body = (await res.json()) as { data?: Array<{ id: string }> };
+        const body = (await res.json()) as { data?: AnthropicModelInfo[] };
         for (const m of body.data ?? []) {
+          const thinking = m.capabilities?.thinking;
+          const supportsAdaptive = thinking?.types?.adaptive?.supported === true;
+          const supportsEnabled = thinking?.types?.enabled?.supported === true;
+
           models.push({
             id: toCanonicalId("anthropic", m.id),
             provider: "anthropic",
             modelId: m.id,
-            displayName: toDisplayName(m.id),
-            supportsThinking: supportsAdaptiveThinking(m.id),
+            displayName: m.display_name ?? m.id,
+            supportsThinking: supportsAdaptive || supportsEnabled,
           });
         }
       }
@@ -87,7 +81,7 @@ export async function fetchAvailableModels(): Promise<ModelDef[]> {
       provider: "anthropic",
       modelId: "claude-sonnet-4-20250514",
       displayName: "Claude Sonnet 4",
-      supportsThinking: true,
+      supportsThinking: false,
     });
   }
 

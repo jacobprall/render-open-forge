@@ -12,17 +12,12 @@ export const AGENT_JOBS_STREAM = "agent:jobs:stream";
 export const AGENT_JOBS_GROUP = "agent-workers";
 const PAYLOAD_FIELD = "payload";
 
-const SessionPhaseSchema = z.enum([
-  "understand",
-  "spec",
-  "execute",
-  "verify",
-  "deliver",
-  "complete",
-  "failed",
-]);
-
-const WorkflowModeSchema = z.enum(["full", "standard", "fast", "yolo"]);
+export const ResolvedSkillSchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+  source: z.enum(["builtin", "user", "repo"]),
+  content: z.string(),
+});
 
 export const AgentJobSchema = z.object({
   runId: z.string().min(1),
@@ -36,8 +31,7 @@ export const AgentJobSchema = z.object({
     }),
   ),
   modelMessages: z.array(z.unknown()).optional(),
-  phase: SessionPhaseSchema,
-  workflowMode: WorkflowModeSchema,
+  resolvedSkills: z.array(ResolvedSkillSchema).min(1),
   projectConfig: z.unknown().optional(),
   projectContext: z.string().nullish(),
   modelId: z.string().optional(),
@@ -51,6 +45,7 @@ export const AgentJobSchema = z.object({
 });
 
 export type ValidatedAgentJob = z.infer<typeof AgentJobSchema>;
+export type ValidatedResolvedSkill = z.infer<typeof ResolvedSkillSchema>;
 
 export async function ensureConsumerGroup(redis: Redis): Promise<void> {
   try {
