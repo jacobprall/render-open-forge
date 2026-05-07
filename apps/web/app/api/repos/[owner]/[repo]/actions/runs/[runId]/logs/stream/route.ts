@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth/session"
-import { createForgejoClient } from "@/lib/forgejo/client"
+import { createForgeProvider } from "@/lib/forgejo/client"
 
 const POLL_INTERVAL_MS = 3000
 
@@ -17,7 +17,7 @@ export async function GET(
     return NextResponse.json({ error: "Missing jobId query parameter" }, { status: 400 })
   }
 
-  const client = createForgejoClient(session.forgejoToken)
+  const forge = createForgeProvider(session.forgejoToken)
   const resolvedJobId = jobId
 
   let sentLength = 0
@@ -34,7 +34,7 @@ export async function GET(
 
       async function poll() {
         try {
-          const logs = await client.getActionJobLogs(owner, repo, resolvedJobId)
+          const logs = await forge.ci.getJobLogs(owner, repo, resolvedJobId)
           consecutiveErrors = 0
 
           if (logs.length > sentLength) {

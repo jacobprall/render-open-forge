@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
-import {
-  forgeDeleteBranchProtection,
-  forgeGetBranchProtection,
-} from "@render-open-forge/shared/lib/forgejo/repo-service";
+import { createForgeProvider } from "@/lib/forgejo/client";
 
 export async function GET(
   _req: Request,
@@ -15,10 +11,10 @@ export async function GET(
 
   const { owner, repo, branch } = await params;
   const decoded = decodeURIComponent(branch);
-  const client = createForgejoClient(auth.forgejoToken);
+  const forge = createForgeProvider(auth.forgejoToken);
 
   try {
-    const protection = await forgeGetBranchProtection(client, owner, repo, decoded);
+    const protection = await forge.branches.getProtectionRule(owner, repo, decoded);
     if (!protection) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -40,10 +36,10 @@ export async function DELETE(
 
   const { owner, repo, branch } = await params;
   const decoded = decodeURIComponent(branch);
-  const client = createForgejoClient(auth.forgejoToken);
+  const forge = createForgeProvider(auth.forgejoToken);
 
   try {
-    await forgeDeleteBranchProtection(client, owner, repo, decoded);
+    await forge.branches.deleteProtectionRule(owner, repo, decoded);
     return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json(

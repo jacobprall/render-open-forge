@@ -1,8 +1,6 @@
 import { getSession } from "@/lib/auth/session";
-import {
-  createForgejoClient,
-  type ForgejoFileContent,
-} from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
+import type { ForgeFileContent } from "@render-open-forge/shared/lib/forge/types";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { formatBytes } from "@/lib/utils";
@@ -19,14 +17,14 @@ export default async function TreePage({
   const { owner, repo, branch: rawBranch, path: pathSegments } = await params;
   const branch = decodeURIComponent(rawBranch);
   const currentPath = pathSegments.join("/");
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
 
-  let contents: ForgejoFileContent[];
+  let contents: ForgeFileContent[];
   let branches;
   try {
     const [contentsResult, branchesResult] = await Promise.all([
-      client.getContents(owner, repo, currentPath, branch),
-      client.listBranches(owner, repo).catch(() => []),
+      forge.files.getContents(owner, repo, currentPath, branch),
+      forge.branches.list(owner, repo).catch(() => []),
     ]);
     branches = branchesResult;
     const raw = contentsResult;

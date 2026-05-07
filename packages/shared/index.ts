@@ -98,25 +98,44 @@ export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from "./lib/ap
 export { isApiError } from "./lib/api-types";
 export { logger } from "./lib/logger";
 
-// Forgejo client
-export { ForgejoClient } from "./lib/forgejo/client";
-export { getBranchProtection, setBranchProtection, normalizeBranchProtectionList } from "./lib/forgejo/branch-protection";
+// Forge provider abstraction
+export { ForgejoProvider, createForgeProvider, getDefaultForgeProvider } from "./lib/forge";
+export type {
+  ForgeProvider,
+  ForgeProviderType,
+  ForgeProviderConfig,
+  ForgeRepo,
+  ForgeBranch,
+  ForgePullRequest,
+  ForgeFileContent,
+  ForgeCommit,
+  ForgeReview,
+  ForgeComment,
+  ForgeUser,
+  ForgeOrg,
+  ForgeOrgMember,
+  ForgeArtifact,
+  ForgeCommitStatus,
+  ForgeCombinedStatus,
+  ForgeWebhookEvent,
+  ForgePushEvent,
+  ForgePREvent,
+  ForgeWorkflowRunEvent,
+  ForgeStatusEvent,
+  MirrorConfig,
+  MirrorSyncResult,
+  MirrorConflictResult,
+  BranchProtectionRule,
+  CreateRepoParams,
+  CreatePRParams,
+  MirrorDirection,
+  ConflictStrategy,
+  ReviewEvent,
+  MergeMethod,
+} from "./lib/forge";
 export {
-  addInlineComment,
-  listPRComments,
-  listPRReviews,
-  resolveComment,
-  submitReview,
-  unresolveComment,
-  type PRComment,
-  type PRReview,
-} from "./lib/forgejo/review-service";
-export {
-  createCommitStatus,
-  getCombinedStatus,
   getWorkflowTemplate,
   WORKFLOW_TEMPLATES,
-  type CommitStatus,
   type WorkflowTemplateKey,
 } from "./lib/forgejo/ci-helpers";
 export {

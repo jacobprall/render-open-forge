@@ -51,7 +51,7 @@ describe("sandbox HTTP adapter", () => {
       urls.push(new URL(request.url).pathname);
 
       if (request.url.endsWith("/read")) return jsonResponse({ content: "file", exists: true });
-      if (request.url.endsWith("/glob")) return jsonResponse({ files: ["a.ts"] });
+      if (request.url.endsWith("/glob")) return jsonResponse({ files: ["a.ts"], truncated: false });
       if (request.url.endsWith("/grep")) return jsonResponse({ matches: [] });
       if (request.url.endsWith("/git")) return jsonResponse({ stdout: "clean" });
       if (request.url.endsWith("/verify")) return jsonResponse([{ name: "test", status: "pass" }]);
@@ -63,7 +63,10 @@ describe("sandbox HTTP adapter", () => {
     const adapter = new HttpSandboxAdapter("sandbox.internal");
 
     await expect(adapter.readFile("s", "README.md")).resolves.toEqual({ content: "file", exists: true });
-    await expect(adapter.glob("s", "**/*.ts")).resolves.toEqual(["a.ts"]);
+    await expect(adapter.glob("s", "**/*.ts")).resolves.toEqual({
+      files: ["a.ts"],
+      truncated: false,
+    });
     await expect(adapter.grep("s", "TODO", "src")).resolves.toEqual({ matches: [] });
     await expect(adapter.git("s", ["status"])).resolves.toEqual({ stdout: "clean" });
     await expect(adapter.verify("s", [{ name: "test", command: "bun test" }])).resolves.toEqual([

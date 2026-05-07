@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 
 export async function GET(
   _req: NextRequest,
@@ -18,8 +18,8 @@ export async function GET(
     return NextResponse.json({ error: "Invalid repo path" }, { status: 400 });
   }
 
-  const client = createForgejoClient(userSession.forgejoToken);
-  const branches = await client.listBranches(owner, repo).catch(() => []);
+  const forge = createForgeProvider(userSession.forgejoToken);
+  const branches = await forge.branches.list(owner, repo).catch(() => []);
 
   return NextResponse.json({ branches });
 }

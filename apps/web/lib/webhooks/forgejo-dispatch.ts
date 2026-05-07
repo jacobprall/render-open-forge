@@ -3,7 +3,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { ciEvents, sessions } from "@render-open-forge/db";
 import { logger } from "@render-open-forge/shared";
 import type { ForgeDb } from "@/lib/db";
-import { getAgentClient } from "@/lib/forgejo/client";
+import { getAgentForgeProvider } from "@/lib/forgejo/client";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
 import { enqueueSessionTriggerJob } from "@/lib/agent/enqueue-session-job";
 
@@ -142,8 +142,8 @@ async function handleWorkflowRun(db: ForgeDb, redis: Redis | null, payload: unkn
       const parts = parseForgejoRepoPath(s.forgejoRepoPath);
       if (parts) {
         try {
-          const agent = getAgentClient();
-          await agent.mergePullRequest(parts.owner, parts.repo, s.prNumber, "merge");
+          const forge = getAgentForgeProvider();
+          await forge.pulls.merge(parts.owner, parts.repo, s.prNumber, "merge");
         } catch (err) {
           logger.warn("auto-merge after CI success failed", {
             sessionId: s.id,

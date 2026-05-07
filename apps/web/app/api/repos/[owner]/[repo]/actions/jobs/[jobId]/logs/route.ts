@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -10,9 +10,9 @@ export async function GET(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { owner, repo, jobId } = await params;
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
   try {
-    const logs = await client.getActionJobLogs(owner, repo, jobId);
+    const logs = await forge.ci.getJobLogs(owner, repo, jobId);
     return new Response(logs, {
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });

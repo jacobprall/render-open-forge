@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string; path: string[] }>;
@@ -15,8 +15,8 @@ export async function GET(request: Request, { params }: RouteParams) {
   const url = new URL(request.url);
   const ref = url.searchParams.get("ref") || undefined;
 
-  const client = createForgejoClient(session.forgejoToken);
-  const file = await client.getContents(owner, repo, filePath, ref);
+  const forge = createForgeProvider(session.forgejoToken);
+  const file = await forge.files.getContents(owner, repo, filePath, ref);
   return NextResponse.json(file);
 }
 
@@ -36,8 +36,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "message is required" }, { status: 400 });
   }
 
-  const client = createForgejoClient(session.forgejoToken);
-  const result = await client.updateFileContent(owner, repo, filePath, {
+  const forge = createForgeProvider(session.forgejoToken);
+  const result = await forge.files.putFile(owner, repo, filePath, {
     content,
     message,
     sha,

@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
-import {
-  listPRReviews,
-  submitReview,
-} from "@render-open-forge/shared/lib/forgejo/review-service";
+import { createForgeProvider } from "@/lib/forgejo/client";
+import type { ReviewEvent } from "@render-open-forge/shared/lib/forge";
 
 export async function GET(
   _req: Request,
@@ -19,9 +16,9 @@ export async function GET(
     return NextResponse.json({ error: "Invalid PR number" }, { status: 400 });
   }
 
-  const client = createForgejoClient(auth.forgejoToken);
+  const forge = createForgeProvider(auth.forgejoToken);
   try {
-    const reviews = await listPRReviews(client, owner, repo, n);
+    const reviews = await forge.reviews.listReviews(owner, repo, n);
     return NextResponse.json({ reviews });
   } catch (e) {
     return NextResponse.json(
@@ -32,7 +29,11 @@ export async function GET(
 }
 
 const REVIEW_EVENTS = ["APPROVE", "REQUEST_CHANGES", "COMMENT"] as const;
-type ReviewEvent = (typeof REVIEW_EVENTS)[number];
+const EVENT_MAP: Record<string, ReviewEvent> = {
+  APPROVE: "approve",
+  REQUEST_CHANGES: "request_changes",
+  COMMENT: "comment",
+};
 
 export async function POST(
   req: NextRequest,
@@ -55,32 +56,25 @@ export async function POST(
   }
 
   const b = body as Record<string, unknown>;
-  const event = typeof b.event === "string" ? b.event.toUpperCase() : "";
-  if (!REVIEW_EVENTS.includes(event as ReviewEvent)) {
+  const rawEvent = typeof b.event === "string" ? b.event.toUpperCase() : "";
+  if (!REVIEW_EVENTS.includes(rawEvent as (typeof REVIEW_EVENTS)[number])) {
     return NextResponse.json({ error: "Invalid event — use APPROVE, REQUEST_CHANGES, or COMMENT" }, { status: 400 });
   }
 
+  const event = EVENT_MAP[rawEvent]!;
   const reviewBody = typeof b.body === "string" ? b.body : undefined;
   const comments = Array.isArray(b.comments)
     ? (b.comments as Array<Record<string, unknown>>).map((c) => ({
-        path: String(c.path ?? ""),
         body: String(c.body ?? ""),
-        new_line_num: typeof c.new_line_num === "number" ? c.new_line_num : undefined,
-        old_line_num: typeof c.old_line_num === "number" ? c.old_line_num : undefined,
+        path: String(c.path ?? ""),
+        newLine: typeof c.new_line_num === "number" ? c.new_line_num : undefined,
+        oldLine: typeof c.old_line_num === "number" ? c.old_line_num : undefined,
       }))
     : undefined;
 
-  const client = createForgejoClient(auth.forgejoToken);
+  const forge = createForgeProvider(auth.forgejoToken);
   try {
-    const review = await submitReview(
-      client,
-      owner,
-      repo,
-      n,
-      event as ReviewEvent,
-      reviewBody,
-      comments,
-    );
+    const review = await forge.reviews.submitReview(owner, repo, n, event, reviewBody, comments);
     return NextResponse.json({ review });
   } catch (e) {
     return NextResponse.json(

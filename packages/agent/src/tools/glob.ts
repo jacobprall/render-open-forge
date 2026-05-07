@@ -12,8 +12,8 @@ export function globTool() {
     inputSchema: globInputSchema,
     execute: async ({ pattern }, { experimental_context }) => {
       const { adapter, sessionId } = getSandboxContext(experimental_context);
-      const files = await adapter.glob(sessionId, pattern);
-      return { files };
+      const { files, truncated } = await adapter.glob(sessionId, pattern);
+      return { files, ...(truncated ? { truncated } : {}) };
     },
   });
 }

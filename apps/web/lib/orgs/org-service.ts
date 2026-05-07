@@ -1,38 +1,38 @@
-import type { ForgejoClient } from "@/lib/forgejo/client";
+import type { ForgeProvider } from "@/lib/forgejo/client";
 
 export async function createOrg(
-  client: ForgejoClient,
+  forge: ForgeProvider,
   login: string,
   fullName?: string,
   description?: string,
 ) {
-  return client.createOrg(login, { full_name: fullName, description });
+  return forge.orgs.create(login, { fullName, description });
 }
 
-export async function deleteOrg(client: ForgejoClient, orgName: string) {
-  return client.deleteOrg(orgName);
+export async function deleteOrg(forge: ForgeProvider, orgName: string) {
+  return forge.orgs.delete(orgName);
 }
 
-export async function listOrgMembers(client: ForgejoClient, orgName: string) {
-  return client.listOrgMembers(orgName);
+export async function listOrgMembers(forge: ForgeProvider, orgName: string) {
+  return forge.orgs.listMembers(orgName);
 }
 
 export async function addOrgMember(
-  client: ForgejoClient,
+  forge: ForgeProvider,
   orgName: string,
   username: string,
 ) {
-  return client.addOrgMember(orgName, username);
+  return forge.orgs.addMember(orgName, username);
 }
 
 export async function removeOrgMember(
-  client: ForgejoClient,
+  forge: ForgeProvider,
   orgName: string,
   username: string,
 ) {
-  return client.removeOrgMember(orgName, username);
+  return forge.orgs.removeMember(orgName, username);
 }
 
-export async function listUserOrgs(client: ForgejoClient) {
-  return client.listUserOrgs();
+export async function listUserOrgs(forge: ForgeProvider) {
+  return forge.orgs.list();
 }

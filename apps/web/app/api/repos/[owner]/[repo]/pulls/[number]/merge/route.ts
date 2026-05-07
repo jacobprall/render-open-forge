@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 
 const mergeModes = ["merge", "rebase", "squash"] as const;
 type MergeMode = (typeof mergeModes)[number];
@@ -32,9 +32,9 @@ export async function POST(
     mode = undefined;
   }
 
-  const client = createForgejoClient(auth.forgejoToken);
+  const forge = createForgeProvider(auth.forgejoToken);
   try {
-    await client.mergePullRequest(owner, repo, n, mode ?? "merge");
+    await forge.pulls.merge(owner, repo, n, mode ?? "merge");
     return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json(

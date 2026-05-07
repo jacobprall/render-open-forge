@@ -432,8 +432,8 @@ async function ensureRepoCloned(job: AgentJob, adapter: SandboxAdapter): Promise
   const [session] = await db.select().from(sessions).where(eq(sessions.id, job.sessionId)).limit(1);
   if (!session?.forgejoRepoPath) return;
 
-  const files = await adapter.glob(job.sessionId, "*").catch(() => [] as string[]);
-  if (files.length > 0) return;
+  const globResult = await adapter.glob(job.sessionId, "*").catch(() => ({ files: [] as string[] }));
+  if (globResult.files.length > 0) return;
 
   const forge = getForgeProvider();
   const [owner, repo] = session.forgejoRepoPath.split("/");

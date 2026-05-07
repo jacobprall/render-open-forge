@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { relativeTime } from "@/lib/utils";
@@ -13,11 +13,11 @@ export default async function CommitDetailPage({
   if (!session) redirect("/");
 
   const { owner, repo, sha } = await params;
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
 
   let commits;
   try {
-    commits = await client.listCommits(owner, repo, { sha, limit: 1 });
+    commits = await forge.commits.list(owner, repo, { sha, limit: 1 });
   } catch {
     notFound();
   }
@@ -25,7 +25,7 @@ export default async function CommitDetailPage({
   const commit = commits[0];
   if (!commit) notFound();
 
-  const messageParts = commit.commit.message.split("\n");
+  const messageParts = commit.message.split("\n");
   const title = messageParts[0];
   const body = messageParts.slice(1).join("\n").trim();
 
@@ -44,17 +44,17 @@ export default async function CommitDetailPage({
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-6 py-4">
           <div className="flex items-center gap-2">
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 text-xs font-medium text-zinc-400">
-              {commit.commit.author.name.charAt(0).toUpperCase()}
+              {commit.authorName.charAt(0).toUpperCase()}
             </div>
             <span className="text-sm font-medium text-zinc-200">
-              {commit.commit.author.name}
+              {commit.authorName}
             </span>
             <span className="text-sm text-zinc-500">
-              &lt;{commit.commit.author.email}&gt;
+              &lt;{commit.authorEmail}&gt;
             </span>
           </div>
           <span className="text-sm text-zinc-500">
-            committed {relativeTime(commit.commit.author.date)}
+            committed {relativeTime(commit.authorDate)}
           </span>
         </div>
       </div>
@@ -71,13 +71,13 @@ export default async function CommitDetailPage({
           <div className="flex items-center gap-3 px-4 py-3">
             <span className="w-20 text-sm text-zinc-500">Date</span>
             <span className="text-sm text-zinc-300">
-              {new Date(commit.commit.author.date).toLocaleString()}
+              {new Date(commit.authorDate).toLocaleString()}
             </span>
           </div>
           <div className="flex items-center gap-3 px-4 py-3">
             <span className="w-20 text-sm text-zinc-500">Author</span>
             <span className="text-sm text-zinc-300">
-              {commit.commit.author.name} &lt;{commit.commit.author.email}&gt;
+              {commit.authorName} &lt;{commit.authorEmail}&gt;
             </span>
           </div>
         </div>

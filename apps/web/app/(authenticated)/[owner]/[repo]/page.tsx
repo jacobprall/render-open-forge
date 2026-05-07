@@ -1,8 +1,6 @@
 import { getSession } from "@/lib/auth/session";
-import {
-  createForgejoClient,
-  type ForgejoFileContent,
-} from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
+import type { ForgeFileContent } from "@render-open-forge/shared/lib/forge/types";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { relativeTime, formatBytes } from "@/lib/utils";
@@ -17,23 +15,23 @@ export default async function RepoDetailPage({
   if (!session) redirect("/");
 
   const { owner, repo: repoName } = await params;
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
 
   let repoData;
   try {
-    repoData = await client.getRepo(owner, repoName);
+    repoData = await forge.repos.get(owner, repoName);
   } catch {
     notFound();
   }
 
   const [branches, contents, commits] = await Promise.all([
-    client.listBranches(owner, repoName).catch(() => []),
-    client
-      .getContents(owner, repoName, "", repoData.default_branch)
-      .catch(() => [] as ForgejoFileContent[]),
-    client
-      .listCommits(owner, repoName, {
-        sha: repoData.default_branch,
+    forge.branches.list(owner, repoName).catch(() => []),
+    forge.files
+      .getContents(owner, repoName, "", repoData.defaultBranch)
+      .catch(() => [] as ForgeFileContent[]),
+    forge.commits
+      .list(owner, repoName, {
+        sha: repoData.defaultBranch,
         limit: 1,
       })
       .catch(() => []),
@@ -53,12 +51,12 @@ export default async function RepoDetailPage({
   let readmeContent: string | null = null;
   if (readmeEntry) {
     try {
-      const readmeData = (await client.getContents(
+      const readmeData = (await forge.files.getContents(
         owner,
         repoName,
         readmeEntry.path,
-        repoData.default_branch,
-      )) as ForgejoFileContent;
+        repoData.defaultBranch,
+      )) as ForgeFileContent;
       if (readmeData.content && readmeData.encoding === "base64") {
         readmeContent = Buffer.from(readmeData.content, "base64").toString(
           "utf-8",
@@ -95,7 +93,7 @@ export default async function RepoDetailPage({
                 />
               </svg>
               <code className="select-all text-xs text-zinc-400">
-                {repoData.clone_url}
+                {repoData.cloneUrl}
               </code>
             </div>
           </div>
@@ -125,7 +123,7 @@ export default async function RepoDetailPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <BranchSelector
           branches={branches}
-          currentBranch={repoData.default_branch}
+          currentBranch={repoData.defaultBranch}
           owner={owner}
           repo={repoName}
         />
@@ -138,11 +136,11 @@ export default async function RepoDetailPage({
               {latestCommit.sha.slice(0, 7)}
             </Link>
             <span className="truncate max-w-xs">
-              {latestCommit.commit.message.split("\n")[0]}
+              {latestCommit.message.split("\n")[0]}
             </span>
             <span className="text-zinc-500">·</span>
             <span className="whitespace-nowrap text-zinc-500">
-              {relativeTime(latestCommit.commit.author.date)}
+              {relativeTime(latestCommit.authorDate)}
             </span>
           </div>
         )}
@@ -153,13 +151,13 @@ export default async function RepoDetailPage({
         {latestCommit && (
           <div className="flex items-center gap-3 border-b border-zinc-800 bg-zinc-900/50 px-4 py-2.5 text-sm">
             <span className="font-medium text-zinc-200">
-              {latestCommit.commit.author.name}
+              {latestCommit.authorName}
             </span>
             <span className="truncate text-zinc-400">
-              {latestCommit.commit.message.split("\n")[0]}
+              {latestCommit.message.split("\n")[0]}
             </span>
             <span className="ml-auto whitespace-nowrap text-xs text-zinc-500">
-              {relativeTime(latestCommit.commit.author.date)}
+              {relativeTime(latestCommit.authorDate)}
             </span>
           </div>
         )}
@@ -169,8 +167,8 @@ export default async function RepoDetailPage({
               key={file.path}
               href={
                 file.type === "dir"
-                  ? `/${owner}/${repoName}/tree/${repoData.default_branch}/${file.path}`
-                  : `/${owner}/${repoName}/blob/${repoData.default_branch}/${file.path}`
+                  ? `/${owner}/${repoName}/tree/${repoData.defaultBranch}/${file.path}`
+                  : `/${owner}/${repoName}/blob/${repoData.defaultBranch}/${file.path}`
               }
               className="flex items-center gap-3 px-4 py-2 transition hover:bg-zinc-900/50"
             >

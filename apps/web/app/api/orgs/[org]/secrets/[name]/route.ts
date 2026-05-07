@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 
 export async function DELETE(
   _req: Request,
@@ -10,10 +10,10 @@ export async function DELETE(
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { org, name } = await params;
-  const client = createForgejoClient(auth.forgejoToken);
+  const forge = createForgeProvider(auth.forgejoToken);
 
   try {
-    await client.deleteOrgSecret(org, name);
+    await forge.orgs.secrets.delete(org, name);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json(

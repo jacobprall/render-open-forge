@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { relativeTime } from "@/lib/utils";
@@ -19,17 +19,17 @@ export default async function PullRequestDetailPage({
   const num = parseInt(prNumber, 10);
   if (isNaN(num)) notFound();
 
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
   let pr;
   try {
-    pr = await client.getPullRequest(owner, repo, num);
+    pr = await forge.pulls.get(owner, repo, num);
   } catch {
     notFound();
   }
 
   let rawDiff = "";
   try {
-    rawDiff = await client.getPullRequestDiff(owner, repo, num);
+    rawDiff = await forge.pulls.diff(owner, repo, num);
   } catch {
     rawDiff = "";
   }
@@ -81,7 +81,7 @@ export default async function PullRequestDetailPage({
             </span>
           )}
           <span className="text-sm text-zinc-400">
-            {pr.user.login} opened {relativeTime(pr.created_at)}
+            {pr.author} opened {relativeTime(pr.createdAt)}
           </span>
         </div>
       </div>
@@ -89,13 +89,13 @@ export default async function PullRequestDetailPage({
       {/* Branch info */}
       <div className="mb-6 flex items-center gap-2 text-sm">
         <span className="rounded-md bg-zinc-800 px-2.5 py-1 font-mono text-xs text-emerald-400">
-          {pr.head.ref}
+          {pr.headRef}
         </span>
         <svg className="h-4 w-4 text-zinc-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
         </svg>
         <span className="rounded-md bg-zinc-800 px-2.5 py-1 font-mono text-xs text-zinc-300">
-          {pr.base.ref}
+          {pr.baseRef}
         </span>
       </div>
 

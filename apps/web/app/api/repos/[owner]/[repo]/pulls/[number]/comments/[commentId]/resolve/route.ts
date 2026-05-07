@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
-import {
-  resolveComment,
-  unresolveComment,
-} from "@render-open-forge/shared/lib/forgejo/review-service";
+import { createForgeProvider } from "@/lib/forgejo/client";
 
 export async function POST(
   req: NextRequest,
@@ -29,12 +25,12 @@ export async function POST(
     // default to resolve
   }
 
-  const client = createForgejoClient(auth.forgejoToken);
+  const forge = createForgeProvider(auth.forgejoToken);
   try {
     if (unresolve) {
-      await unresolveComment(client, owner, repo, cid);
+      await forge.reviews.unresolveComment(owner, repo, cid);
     } else {
-      await resolveComment(client, owner, repo, cid);
+      await forge.reviews.resolveComment(owner, repo, cid);
     }
     return NextResponse.json({ success: true, resolved: !unresolve });
   } catch (e) {

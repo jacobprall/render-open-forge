@@ -1,11 +1,11 @@
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
-import type { ForgejoPullRequest } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
+import type { ForgePullRequest } from "@render-open-forge/shared/lib/forge/types";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { relativeTime } from "@/lib/utils";
 
-function StatusBadge({ pr }: { pr: ForgejoPullRequest }) {
+function StatusBadge({ pr }: { pr: ForgePullRequest }) {
   if (pr.merged) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 px-2 py-0.5 text-xs font-medium text-purple-400">
@@ -40,7 +40,7 @@ function PrRow({
   pr,
   basePath,
 }: {
-  pr: ForgejoPullRequest;
+  pr: ForgePullRequest;
   basePath: string;
 }) {
   return (
@@ -57,14 +57,14 @@ function PrRow({
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
           <span>#{pr.number}</span>
-          <span>opened by {pr.user.login}</span>
-          <span>{relativeTime(pr.created_at)}</span>
+          <span>opened by {pr.author}</span>
+          <span>{relativeTime(pr.createdAt)}</span>
           <span className="inline-flex items-center gap-1 rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[11px] text-zinc-400">
-            {pr.head.ref}
+            {pr.headRef}
             <svg className="h-3 w-3 text-zinc-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
             </svg>
-            {pr.base.ref}
+            {pr.baseRef}
           </span>
         </div>
       </div>
@@ -86,10 +86,10 @@ export default async function PullRequestsPage({
   const { state } = await searchParams;
   const activeTab = state === "closed" ? "closed" : "open";
 
-  const client = createForgejoClient(session.forgejoToken);
-  let pullRequests: ForgejoPullRequest[] = [];
+  const forge = createForgeProvider(session.forgejoToken);
+  let pullRequests: ForgePullRequest[] = [];
   try {
-    pullRequests = await client.listPullRequests(owner, repo, activeTab);
+    pullRequests = await forge.pulls.list(owner, repo, activeTab);
   } catch {
     // fall through with empty array
   }

@@ -4,6 +4,8 @@ import { HttpSandboxAdapter, type SandboxSessionAuth } from "../adapter";
 export class SharedHttpSandboxProvider implements SandboxProvider {
   readonly type = "shared-http";
 
+  private adapter: HttpSandboxAdapter | null = null;
+
   constructor(
     private host: string,
     private sharedSecret?: string,
@@ -11,7 +13,10 @@ export class SharedHttpSandboxProvider implements SandboxProvider {
   ) {}
 
   async provision(_sessionId: string, _opts?: ProvisionOptions): Promise<HttpSandboxAdapter> {
-    return new HttpSandboxAdapter(this.host, this.sharedSecret, this.sessionAuth);
+    if (!this.adapter) {
+      this.adapter = new HttpSandboxAdapter(this.host, this.sharedSecret, this.sessionAuth);
+    }
+    return this.adapter;
   }
 
   async deprovision(_sessionId: string): Promise<void> {}

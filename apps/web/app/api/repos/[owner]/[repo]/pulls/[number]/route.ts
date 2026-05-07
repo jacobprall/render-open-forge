@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 
 export async function PATCH(
   req: NextRequest,
@@ -32,9 +32,9 @@ export async function PATCH(
     return NextResponse.json({ error: "No valid patch fields (state | title)" }, { status: 400 });
   }
 
-  const client = createForgejoClient(auth.forgejoToken);
+  const forge = createForgeProvider(auth.forgejoToken);
   try {
-    const pr = await client.patchPullRequest(owner, repo, n, patch);
+    const pr = await forge.pulls.update(owner, repo, n, patch);
     return NextResponse.json({ pull_request: pr });
   } catch (e) {
     return NextResponse.json(

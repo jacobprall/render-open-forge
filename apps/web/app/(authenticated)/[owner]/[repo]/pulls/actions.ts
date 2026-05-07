@@ -1,7 +1,7 @@
 "use server";
 
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -14,9 +14,9 @@ export async function mergePullRequestAction(
   const session = await getSession();
   if (!session) redirect("/");
 
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
   try {
-    await client.mergePullRequest(
+    await forge.pulls.merge(
       owner,
       repo,
       number,
@@ -40,9 +40,9 @@ export async function createPullRequestAction(
   const session = await getSession();
   if (!session) redirect("/");
 
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
   try {
-    const pr = await client.createPullRequest({
+    const pr = await forge.pulls.create({
       owner,
       repo,
       title,

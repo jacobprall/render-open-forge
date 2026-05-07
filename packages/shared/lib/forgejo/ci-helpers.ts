@@ -1,42 +1,8 @@
 /**
- * CI/CD helpers for Forgejo Actions — commit status reporting
- * and workflow template generation.
+ * CI/CD helpers — workflow template generation.
+ * Commit status operations are now in ForgeProvider.commits.
  */
-import type { ForgejoClient } from "./client";
 
-export interface CommitStatus {
-  state: "pending" | "success" | "error" | "failure";
-  target_url?: string;
-  description?: string;
-  context: string;
-}
-
-/**
- * Report a commit status back to Forgejo (status checks on PRs / commits).
- */
-export async function createCommitStatus(
-  client: ForgejoClient,
-  owner: string,
-  repo: string,
-  sha: string,
-  status: CommitStatus,
-): Promise<Record<string, unknown>> {
-  return client.createCommitStatus(owner, repo, sha, status);
-}
-
-/**
- * Fetch combined commit status for a ref.
- */
-export async function getCombinedStatus(
-  client: ForgejoClient,
-  owner: string,
-  repo: string,
-  ref: string,
-) {
-  return client.getCombinedStatus(owner, repo, ref);
-}
-
-/** Common Forgejo Actions workflow templates. */
 export const WORKFLOW_TEMPLATES = {
   node: {
     filename: ".forgejo/workflows/ci.yml",

@@ -15,6 +15,8 @@ export interface FileReadResult {
 
 export interface GlobResult {
   files: string[];
+  /** True when the server hit the max result cap and may have omitted matches */
+  truncated?: boolean;
 }
 
 export interface GrepResult {

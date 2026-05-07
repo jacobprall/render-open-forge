@@ -3,6 +3,7 @@ import type { SandboxAdapter } from "./interface";
 import type {
   ExecResult,
   FileReadResult,
+  GlobResult,
   GrepResult,
   GitResult,
   SnapshotResult,
@@ -85,9 +86,8 @@ export class HttpSandboxAdapter implements SandboxAdapter {
     await this.request("/write", sessionId, { path, content });
   }
 
-  async glob(sessionId: string, pattern: string): Promise<string[]> {
-    const result = await this.request<{ files: string[] }>("/glob", sessionId, { pattern });
-    return result.files;
+  async glob(sessionId: string, pattern: string): Promise<GlobResult> {
+    return this.request<GlobResult>("/glob", sessionId, { pattern });
   }
 
   async grep(sessionId: string, pattern: string, path?: string): Promise<GrepResult> {

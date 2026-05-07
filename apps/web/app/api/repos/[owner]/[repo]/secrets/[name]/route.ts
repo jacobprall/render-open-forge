@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth/session"
-import { createForgejoClient } from "@/lib/forgejo/client"
+import { createForgeProvider } from "@/lib/forgejo/client"
 
 export async function PUT(
   req: NextRequest,
@@ -22,10 +22,10 @@ export async function PUT(
     return NextResponse.json({ error: "Secret value is required" }, { status: 400 })
   }
 
-  const client = createForgejoClient(session.forgejoToken)
+  const forge = createForgeProvider(session.forgejoToken)
 
   try {
-    await client.setRepoSecret(owner, repo, name, body.value)
+    await forge.secrets.set(owner, repo, name, body.value)
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json(
@@ -43,10 +43,10 @@ export async function DELETE(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { owner, repo, name } = await params
-  const client = createForgejoClient(session.forgejoToken)
+  const forge = createForgeProvider(session.forgejoToken)
 
   try {
-    await client.deleteRepoSecret(owner, repo, name)
+    await forge.secrets.delete(owner, repo, name)
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json(

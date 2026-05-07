@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 
 export async function GET() {
   const userSession = await getSession();
@@ -8,8 +8,8 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const client = createForgejoClient(userSession.forgejoToken);
-  const repos = await client.listUserRepos().catch(() => []);
+  const forge = createForgeProvider(userSession.forgejoToken);
+  const repos = await forge.repos.list().catch(() => []);
 
   return NextResponse.json({ repos });
 }

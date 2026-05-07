@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 
@@ -15,10 +15,10 @@ export default async function RepoLayout({
 
   const { owner, repo } = await params;
 
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
   let repoData;
   try {
-    repoData = await client.getRepo(owner, repo);
+    repoData = await forge.repos.get(owner, repo);
   } catch {
     notFound();
   }
@@ -26,7 +26,7 @@ export default async function RepoLayout({
   const basePath = `/${owner}/${repo}`;
   const tabs = [
     { label: "Code", href: basePath },
-    { label: "Commits", href: `${basePath}/commits/${repoData.default_branch}` },
+    { label: "Commits", href: `${basePath}/commits/${repoData.defaultBranch}` },
     { label: "Pull Requests", href: `${basePath}/pulls` },
     { label: "CI", href: `${basePath}/actions` },
     { label: "Settings", href: `${basePath}/settings` },
@@ -65,7 +65,7 @@ export default async function RepoLayout({
                 {repo}
               </Link>
             </div>
-            {repoData.private ? (
+            {repoData.isPrivate ? (
               <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
                 Private
               </span>

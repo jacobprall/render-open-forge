@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { relativeTime } from "@/lib/utils";
@@ -15,14 +15,14 @@ export default async function CommitsPage({
 
   const { owner, repo, branch: rawBranch } = await params;
   const branch = decodeURIComponent(rawBranch);
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
 
   let commits;
   let branches;
   try {
     [commits, branches] = await Promise.all([
-      client.listCommits(owner, repo, { sha: branch, limit: 50 }),
-      client.listBranches(owner, repo).catch(() => []),
+      forge.commits.list(owner, repo, { sha: branch, limit: 50 }),
+      forge.branches.list(owner, repo).catch(() => []),
     ]);
   } catch {
     notFound();
@@ -57,14 +57,14 @@ export default async function CommitsPage({
                   href={`/${owner}/${repo}/commit/${commit.sha}`}
                   className="text-sm font-medium text-zinc-200 hover:text-emerald-400 hover:underline"
                 >
-                  {commit.commit.message.split("\n")[0]}
+                  {commit.message.split("\n")[0]}
                 </Link>
                 <div className="mt-1 flex items-center gap-2 text-xs text-zinc-500">
                   <span className="font-medium text-zinc-400">
-                    {commit.commit.author.name}
+                    {commit.authorName}
                   </span>
                   <span>committed</span>
-                  <span>{relativeTime(commit.commit.author.date)}</span>
+                  <span>{relativeTime(commit.authorDate)}</span>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">

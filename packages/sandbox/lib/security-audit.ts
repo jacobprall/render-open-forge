@@ -7,6 +7,12 @@
 
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { ALLOWED_ENV_KEYS } from "../server/lib/constants";
+import { validateGitArgv } from "../server/lib/git-policy";
+import {
+  getSessionId,
+  validatePath,
+} from "../server/lib/path-security";
 
 export interface AuditCheck {
   name: string;
@@ -18,87 +24,122 @@ export interface AuditCheck {
 export async function runSecurityAudit(): Promise<AuditCheck[]> {
   const checks: AuditCheck[] = [];
 
-  // 1. Path traversal prevention: validatePath exists and works
+  let pathTraversalPassed = false;
+  try {
+    validatePath("audittestsession", "../../../etc/passwd");
+  } catch {
+    pathTraversalPassed = true;
+  }
   checks.push({
     name: "path-traversal-guard",
-    passed: true,
+    passed: pathTraversalPassed,
     severity: "critical",
-    detail: "validatePath() uses resolve() + prefix check + symlink realpath check (implemented in server.ts)",
+    detail: pathTraversalPassed
+      ? "validatePath() rejects traversal outside session workspace"
+      : "FAIL: traversal path should have been rejected",
   });
 
-  // 2. Session ID validation regex
+  let sessionIdPassed = false;
+  try {
+    getSessionId(
+      new Request("http://localhost/", { headers: { "x-session-id": "../bad" } }),
+    );
+  } catch {
+    sessionIdPassed = true;
+  }
   checks.push({
     name: "session-id-alphanumeric-only",
-    passed: true,
+    passed: sessionIdPassed,
     severity: "critical",
-    detail: "getSessionId() enforces /^[a-zA-Z0-9_-]+$/ — no dots, slashes, or special chars",
+    detail: sessionIdPassed ? "Malformed X-Session-Id is rejected" : "FAIL: invalid session header accepted",
   });
 
-  // 3. Auth checks present
   checks.push({
     name: "bearer-auth-enforced",
     passed: !!process.env.SANDBOX_SHARED_SECRET,
     severity: "critical",
     detail: process.env.SANDBOX_SHARED_SECRET
       ? "SANDBOX_SHARED_SECRET is configured — bearer auth is active"
-      : "WARNING: SANDBOX_SHARED_SECRET is not set — auth is disabled",
+      : process.env.NODE_ENV === "production"
+        ? "FATAL at startup: SANDBOX_SHARED_SECRET is required when NODE_ENV=production"
+        : "WARNING: SANDBOX_SHARED_SECRET is not set — bearer auth is disabled (non-production)",
   });
 
-  // 4. Session binding tokens
   checks.push({
     name: "session-binding-enforced",
     passed: !!process.env.SANDBOX_SESSION_SECRET,
     severity: "high",
     detail: process.env.SANDBOX_SESSION_SECRET
       ? "SANDBOX_SESSION_SECRET is configured — session binding active"
-      : "WARNING: SANDBOX_SESSION_SECRET is not set — any session ID can access any workspace",
+      : process.env.NODE_ENV === "production"
+        ? "FATAL at startup: SANDBOX_SESSION_SECRET is required when NODE_ENV=production"
+        : "WARNING: SANDBOX_SESSION_SECRET is not set — session binding is disabled (non-production)",
   });
 
-  // 5. Environment variable allowlist
+  const envAllowlistPassed = !ALLOWED_ENV_KEYS.has("DATABASE_URL") && !ALLOWED_ENV_KEYS.has("OPENAI_API_KEY");
   checks.push({
     name: "env-var-allowlist",
-    passed: true,
+    passed: envAllowlistPassed,
     severity: "high",
-    detail: "childProcessEnv() uses ALLOWED_ENV_KEYS allowlist — sensitive vars like DATABASE_URL, API keys are excluded from child processes",
+    detail: envAllowlistPassed
+      ? "Common secret env keys are not in allowlist"
+      : "FAIL: sensitive env keys must not be allowlisted for child processes",
   });
 
-  // 6. Process ulimits set in exec
   checks.push({
     name: "process-ulimits",
     passed: true,
     severity: "medium",
-    detail: "runCommand wraps commands with ulimit -u 256 (max procs) and ulimit -v 2097152 (2GB vmem)",
+    detail: "runCommand wraps shell commands with ulimit -u 256 (max procs) and ulimit -v 2097152 (2GB vmem)",
   });
 
-  // 7. Exec timeout enforcement
   checks.push({
     name: "exec-timeout",
     passed: true,
     severity: "high",
-    detail: "All exec calls have SIGKILL timeout (default 5min exec, 10min for verify/clone-workspace)",
+    detail: "runArgv/runCommand use timed SIGKILL via process-group kill where possible",
   });
 
-  // 8. File read size limit
+  checks.push({
+    name: "grep-stream-drain-timeout",
+    passed: true,
+    severity: "high",
+    detail: "/grep awaits stdout concurrently with exited and has a wall-clock timeout to avoid deadlock + hangs",
+  });
+
   checks.push({
     name: "file-read-size-limit",
     passed: true,
     severity: "medium",
-    detail: "handleRead enforces MAX_READ_BYTES = 5MB — prevents DoS from large file reads",
+    detail: "/read rejects files larger than 5MB via size check before reading payload",
   });
 
-  // 9. Disk usage monitoring
+  checks.push({
+    name: "file-write-size-limit",
+    passed: true,
+    severity: "medium",
+    detail: "/write rejects bodies larger than 5MB UTF-8",
+  });
+
+  checks.push({
+    name: "request-body-limit",
+    passed: true,
+    severity: "high",
+    detail: "JSON bodies are parsed via capped stream reader with Content-Length hints",
+  });
+
   checks.push({
     name: "disk-cleanup-cron",
     passed: true,
     severity: "medium",
-    detail: "Hourly cron removes old snapshots when disk usage > 80%, targets < 70%",
+    detail: "Hourly cron removes old snapshots when disk usage >80%, targeting <70%",
   });
 
-  // 10. Network isolation check (if running in Docker)
   let dockerized = false;
   try {
     const cgroup = await readFile("/proc/1/cgroup", "utf-8").catch(() => "");
-    dockerized = cgroup.includes("docker") || cgroup.includes("containerd") || existsSync("/.dockerenv");
+    dockerized =
+      cgroup.includes("docker") || cgroup.includes("containerd") || existsSync("/.dockerenv");
   } catch {
     // not in Linux or cgroup unavailable
   }
@@ -112,7 +153,6 @@ export async function runSecurityAudit(): Promise<AuditCheck[]> {
       : "Not running in a container — consider Docker deployment for network isolation",
   });
 
-  // 11. Git safe.directory is not globally overridden
   checks.push({
     name: "git-safe-directory",
     passed: true,
@@ -120,20 +160,23 @@ export async function runSecurityAudit(): Promise<AuditCheck[]> {
     detail: "Git operations use per-session workspace cwd — no global safe.directory override",
   });
 
-  // 12. No shell injection via git args
+  const gitInjectionPassed =
+    validateGitArgv(["-c", "protocol.ext.allow=always", "status"]) !== null &&
+    validateGitArgv(["status", "-sb"]) === null;
   checks.push({
-    name: "git-arg-filtering",
-    passed: true,
+    name: "git-global-flag-blocklist",
+    passed: gitInjectionPassed,
     severity: "high",
-    detail: "handleGit filters args to strings only, passed as array to spawn (not shell interpolated)",
+    detail: gitInjectionPassed
+      ? "Global -c is rejected; subcommand flags after the subcommand are allowed"
+      : "FAIL: git argv policy did not behave as expected",
   });
 
-  // 13. Constant-time secret comparison
   checks.push({
     name: "constant-time-auth",
     passed: true,
     severity: "medium",
-    detail: "checkAuth uses timingSafeEqual for token comparison — prevents timing attacks",
+    detail: "checkAuth uses timingSafeEqual for bearer token comparison",
   });
 
   return checks;

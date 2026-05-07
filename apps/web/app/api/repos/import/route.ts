@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -30,16 +30,20 @@ export async function POST(req: Request) {
     );
   }
 
-  const client = createForgejoClient(session.forgejoToken);
+  const validServices = ["git", "github", "gitlab", "gitea", "forgejo"] as const;
+  type ServiceType = typeof validServices[number];
+  const service = validServices.includes(body.service as ServiceType) ? (body.service as ServiceType) : undefined;
+
+  const forge = createForgeProvider(session.forgejoToken);
 
   try {
-    const repo = await client.migrateRepo({
-      clone_addr: body.clone_addr,
-      repo_name: body.repo_name,
-      repo_owner: body.repo_owner ?? session.username,
+    const repo = await forge.repos.migrate({
+      cloneAddr: body.clone_addr,
+      repoName: body.repo_name,
+      repoOwner: body.repo_owner ?? session.username,
       mirror: body.mirror ?? false,
-      service: body.service,
-      auth_token: body.auth_token,
+      service,
+      authToken: body.auth_token,
     });
     return NextResponse.json({ repo }, { status: 201 });
   } catch (e) {

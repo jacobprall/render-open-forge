@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  verifyForgejoWebhookSignature,
-  isForgejoWebhookVerificationConfigured,
-  shouldAllowUnsignedForgejoWebhooks,
-  logger,
-} from "@render-open-forge/shared";
+import { logger } from "@render-open-forge/shared";
 import { getDb } from "@/lib/db";
 import { processForgejoWebhook } from "@/lib/webhooks/forgejo-dispatch";
+import { getAgentForgeProvider } from "@/lib/forgejo/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,23 +13,15 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
-  const secret = process.env.FORGEJO_WEBHOOK_SECRET ?? "";
+  const forge = getAgentForgeProvider();
 
-  if (isForgejoWebhookVerificationConfigured()) {
-    const sig =
-      verifyForgejoWebhookSignature(
-        rawBody,
-        request.headers.get("x-forgejo-signature"),
-        request.headers.get("x-gitea-signature"),
-        secret,
-      );
-    if (!sig) {
-      logger.warn("forgejo webhook rejected: invalid signature", {});
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
-  } else if (!shouldAllowUnsignedForgejoWebhooks()) {
-    logger.warn("forgejo webhook rejected: FORGEJO_WEBHOOK_SECRET not set", {});
-    return NextResponse.json({ error: "Webhook secret not configured" }, { status: 503 });
+  const sig = request.headers.get("x-forgejo-signature")
+    ?? request.headers.get("x-gitea-signature")
+    ?? "";
+
+  if (!forge.webhooks.verifySignature(rawBody, sig)) {
+    logger.warn("forgejo webhook rejected: invalid signature", {});
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   const event = request.headers.get("x-forgejo-event") ?? request.headers.get("x-gitea-event");

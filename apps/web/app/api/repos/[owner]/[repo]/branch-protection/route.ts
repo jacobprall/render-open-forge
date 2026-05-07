@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
-import {
-  forgeListBranchProtections,
-  forgeSetBranchProtection,
-} from "@render-open-forge/shared/lib/forgejo/repo-service";
+import { createForgeProvider } from "@/lib/forgejo/client";
 
 export async function GET(
   _req: Request,
@@ -14,10 +10,10 @@ export async function GET(
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { owner, repo } = await params;
-  const client = createForgejoClient(auth.forgejoToken);
+  const forge = createForgeProvider(auth.forgejoToken);
 
   try {
-    const protections = await forgeListBranchProtections(client, owner, repo);
+    const protections = await forge.branches.listProtectionRules(owner, repo);
     return NextResponse.json({ protections });
   } catch (e) {
     return NextResponse.json(
@@ -46,15 +42,20 @@ export async function POST(
     return NextResponse.json({ error: "Expected JSON object" }, { status: 400 });
   }
 
-  const client = createForgejoClient(auth.forgejoToken);
+  const forge = createForgeProvider(auth.forgejoToken);
 
   try {
-    const protection = await forgeSetBranchProtection(
-      client,
-      owner,
-      repo,
-      body as Record<string, unknown>,
-    );
+    const b = body as Record<string, unknown>;
+    const pattern = (b.branch_name as string) ?? (b.rule_name as string) ?? (b.pattern as string) ?? "";
+    const protection = await forge.branches.setProtectionRule(owner, repo, {
+      pattern,
+      name: (b.rule_name as string) ?? pattern,
+      requiredApprovals: (b.required_approvals as number) ?? 0,
+      requireStatusChecks: Boolean(b.enable_status_check),
+      statusCheckContexts: (b.status_check_contexts as string[]) ?? [],
+      blockForcePush: Boolean(b.block_on_rejection),
+      raw: b,
+    });
     return NextResponse.json({ protection });
   } catch (e) {
     return NextResponse.json(

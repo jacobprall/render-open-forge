@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 import Link from "next/link";
 
 async function createRepository(formData: FormData) {
@@ -20,17 +20,17 @@ async function createRepository(formData: FormData) {
     redirect("/repos/new?error=invalid_name");
   }
 
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
 
   try {
-    const repo = await client.createRepo({
+    const repo = await forge.repos.create({
       name,
       description,
-      private: isPrivate,
-      auto_init: autoInit,
-      default_branch: defaultBranch,
+      isPrivate,
+      autoInit,
+      defaultBranch,
     });
-    redirect(`/${repo.full_name}`);
+    redirect(`/${repo.fullName}`);
   } catch {
     redirect("/repos/new?error=create_failed");
   }

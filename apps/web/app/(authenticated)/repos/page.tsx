@@ -1,10 +1,10 @@
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 import Link from "next/link";
 import { Suspense } from "react";
 import { RepoSearch } from "./search";
-import type { ForgejoRepo } from "@/lib/forgejo/client";
+import type { ForgeRepo } from "@render-open-forge/shared/lib/forge/types";
 
 function VisibilityBadge({ isPrivate }: { isPrivate: boolean }) {
   if (isPrivate) {
@@ -47,10 +47,10 @@ function VisibilityBadge({ isPrivate }: { isPrivate: boolean }) {
   );
 }
 
-function RepoCard({ repo }: { repo: ForgejoRepo }) {
+function RepoCard({ repo }: { repo: ForgeRepo }) {
   return (
     <Link
-      href={`/${repo.full_name}`}
+      href={`/${repo.fullName}`}
       className="group block rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 transition hover:border-zinc-700 hover:bg-zinc-900"
     >
       <div className="flex items-start justify-between gap-3">
@@ -70,7 +70,7 @@ function RepoCard({ repo }: { repo: ForgejoRepo }) {
               />
             </svg>
             <h3 className="truncate font-semibold text-zinc-100 group-hover:text-emerald-400">
-              {repo.full_name}
+              {repo.fullName}
             </h3>
           </div>
           {repo.description && (
@@ -79,7 +79,7 @@ function RepoCard({ repo }: { repo: ForgejoRepo }) {
             </p>
           )}
         </div>
-        <VisibilityBadge isPrivate={repo.private} />
+        <VisibilityBadge isPrivate={repo.isPrivate} />
       </div>
       <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500">
         <span className="inline-flex items-center gap-1">
@@ -96,7 +96,7 @@ function RepoCard({ repo }: { repo: ForgejoRepo }) {
               d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
             />
           </svg>
-          {repo.default_branch}
+          {repo.defaultBranch}
         </span>
       </div>
     </Link>
@@ -186,8 +186,8 @@ export default async function ReposPage({
   const session = await getSession();
   if (!session) redirect("/");
 
-  const client = createForgejoClient(session.forgejoToken);
-  const repos = await client.listUserRepos().catch(() => [] as ForgejoRepo[]);
+  const forge = createForgeProvider(session.forgejoToken);
+  const repos = await forge.repos.list().catch(() => [] as ForgeRepo[]);
 
   const { q } = await searchParams;
   const query = q?.toLowerCase() ?? "";
@@ -195,7 +195,7 @@ export default async function ReposPage({
     ? repos.filter(
         (r) =>
           r.name.toLowerCase().includes(query) ||
-          r.full_name.toLowerCase().includes(query) ||
+          r.fullName.toLowerCase().includes(query) ||
           r.description?.toLowerCase().includes(query),
       )
     : repos;

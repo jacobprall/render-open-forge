@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { NewPrForm } from "./form";
@@ -14,13 +14,13 @@ export default async function NewPullRequestPage({
 
   const { owner, repo } = await params;
 
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
   let branches;
   let repoData;
   try {
     [branches, repoData] = await Promise.all([
-      client.listBranches(owner, repo),
-      client.getRepo(owner, repo),
+      forge.branches.list(owner, repo),
+      forge.repos.get(owner, repo),
     ]);
   } catch {
     notFound();
@@ -47,7 +47,7 @@ export default async function NewPullRequestPage({
         owner={owner}
         repo={repo}
         branches={branchNames}
-        defaultBranch={repoData.default_branch}
+        defaultBranch={repoData.defaultBranch}
       />
     </div>
   );

@@ -14,6 +14,13 @@ describe("SharedHttpSandboxProvider", () => {
     expect(adapter).toBeDefined();
   });
 
+  test("provision caches a single adapter instance", async () => {
+    const p = new SharedHttpSandboxProvider("127.0.0.1:4000");
+    const a = await p.provision("sess-1");
+    const b = await p.provision("sess-2");
+    expect(a).toBe(b);
+  });
+
   test("deprovision is a no-op", async () => {
     const p = new SharedHttpSandboxProvider("127.0.0.1:4000");
     await expect(p.deprovision("sess-1")).resolves.toBeUndefined();

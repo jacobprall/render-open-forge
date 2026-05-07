@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgejoClient } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
 
 export async function GET(
   _request: Request,
@@ -10,8 +10,8 @@ export async function GET(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { org } = await params;
-  const client = createForgejoClient(session.forgejoToken);
-  const members = await client.listOrgMembers(org);
+  const forge = createForgeProvider(session.forgejoToken);
+  const members = await forge.orgs.listMembers(org);
   return NextResponse.json(members);
 }
 
@@ -28,8 +28,8 @@ export async function PUT(
     return NextResponse.json({ error: "username is required" }, { status: 400 });
   }
 
-  const client = createForgejoClient(session.forgejoToken);
-  await client.addOrgMember(org, username);
+  const forge = createForgeProvider(session.forgejoToken);
+  await forge.orgs.addMember(org, username);
   return new NextResponse(null, { status: 204 });
 }
 
@@ -46,7 +46,7 @@ export async function DELETE(
     return NextResponse.json({ error: "username is required" }, { status: 400 });
   }
 
-  const client = createForgejoClient(session.forgejoToken);
-  await client.removeOrgMember(org, username);
+  const forge = createForgeProvider(session.forgejoToken);
+  await forge.orgs.removeMember(org, username);
   return new NextResponse(null, { status: 204 });
 }

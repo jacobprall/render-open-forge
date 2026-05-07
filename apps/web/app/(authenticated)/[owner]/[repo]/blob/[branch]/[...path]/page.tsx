@@ -1,8 +1,6 @@
 import { getSession } from "@/lib/auth/session";
-import {
-  createForgejoClient,
-  type ForgejoFileContent,
-} from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forgejo/client";
+import type { ForgeFileContent } from "@render-open-forge/shared/lib/forge/types";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { formatBytes } from "@/lib/utils";
@@ -20,11 +18,11 @@ export default async function BlobPage({
   const branch = decodeURIComponent(rawBranch);
   const filePath = pathSegments.join("/");
   const fileName = pathSegments[pathSegments.length - 1];
-  const client = createForgejoClient(session.forgejoToken);
+  const forge = createForgeProvider(session.forgejoToken);
 
-  let fileData: ForgejoFileContent;
+  let fileData: ForgeFileContent;
   try {
-    const result = await client.getContents(owner, repo, filePath, branch);
+    const result = await forge.files.getContents(owner, repo, filePath, branch);
     if (Array.isArray(result)) {
       redirect(
         `/${owner}/${repo}/tree/${encodeURIComponent(branch)}/${filePath}`,

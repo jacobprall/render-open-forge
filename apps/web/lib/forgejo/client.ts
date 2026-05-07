@@ -1,22 +1,16 @@
-import { ForgejoClient } from "@render-open-forge/shared/lib/forgejo/client";
+import { getDefaultForgeProvider, type ForgeProvider } from "@render-open-forge/shared/lib/forge";
+import { ForgejoProvider } from "@render-open-forge/shared/lib/forge/forgejo-adapter";
 
-export { ForgejoClient } from "@render-open-forge/shared/lib/forgejo/client";
-export type {
-  ForgejoRepo,
-  ForgejoBranch,
-  ForgejoPullRequest,
-  ForgejoFileContent,
-  ForgejoCommit,
-} from "@render-open-forge/shared/lib/forgejo/client";
+export type { ForgeProvider } from "@render-open-forge/shared/lib/forge";
 
 const FORGEJO_URL = process.env.FORGEJO_INTERNAL_URL || "http://localhost:3000";
 
-export function createForgejoClient(token: string): ForgejoClient {
-  return new ForgejoClient(FORGEJO_URL, token);
+export function createForgeProvider(token: string): ForgeProvider {
+  return new ForgejoProvider(FORGEJO_URL, token);
 }
 
-export function getAgentClient(): ForgejoClient {
+export function getAgentForgeProvider(): ForgeProvider {
   const token = process.env.FORGEJO_AGENT_TOKEN;
   if (!token) throw new Error("FORGEJO_AGENT_TOKEN not configured");
-  return new ForgejoClient(FORGEJO_URL, token);
+  return getDefaultForgeProvider(token);
 }
