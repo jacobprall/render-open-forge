@@ -8,6 +8,43 @@
         "typescript": "^5",
       },
     },
+    "apps/agent": {
+      "name": "@render-open-forge/agent",
+      "version": "0.0.0",
+      "dependencies": {
+        "@ai-sdk/anthropic": "catalog:",
+        "@ai-sdk/openai": "catalog:",
+        "@render-open-forge/db": "workspace:*",
+        "@render-open-forge/sandbox": "workspace:*",
+        "@render-open-forge/shared": "workspace:*",
+        "@render-open-forge/skills": "workspace:*",
+        "ai": "catalog:",
+        "drizzle-orm": "^0.45.1",
+        "ioredis": "^5.9.2",
+        "nanoid": "^5.1.6",
+        "postgres": "^3.4.8",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "1.3.12",
+        "@types/node": "^22",
+        "typescript": "^5",
+      },
+    },
+    "apps/ci-runner": {
+      "name": "@render-open-forge/ci-runner",
+      "version": "0.0.0",
+      "dependencies": {
+        "@render-open-forge/shared": "workspace:*",
+        "@renderinc/sdk": "^0.5.0",
+        "yaml": "^2.7.1",
+      },
+      "devDependencies": {
+        "@types/bun": "1.3.12",
+        "@types/node": "^22",
+        "typescript": "^5",
+      },
+    },
     "apps/web": {
       "name": "@render-open-forge/web",
       "version": "0.0.0",
@@ -42,43 +79,6 @@
         "drizzle-kit": "^0.31.1",
         "postcss": "^8.5.0",
         "tailwindcss": "^4.1.0",
-        "typescript": "^5",
-      },
-    },
-    "packages/agent": {
-      "name": "@render-open-forge/agent",
-      "version": "0.0.0",
-      "dependencies": {
-        "@ai-sdk/anthropic": "catalog:",
-        "@ai-sdk/openai": "catalog:",
-        "@render-open-forge/db": "workspace:*",
-        "@render-open-forge/sandbox": "workspace:*",
-        "@render-open-forge/shared": "workspace:*",
-        "@render-open-forge/skills": "workspace:*",
-        "ai": "catalog:",
-        "drizzle-orm": "^0.45.1",
-        "ioredis": "^5.9.2",
-        "nanoid": "^5.1.6",
-        "postgres": "^3.4.8",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@types/bun": "1.3.12",
-        "@types/node": "^22",
-        "typescript": "^5",
-      },
-    },
-    "packages/ci-runner": {
-      "name": "@render-open-forge/ci-runner",
-      "version": "0.0.0",
-      "dependencies": {
-        "@render-open-forge/shared": "workspace:*",
-        "@renderinc/sdk": "^0.5.0",
-        "yaml": "^2.7.1",
-      },
-      "devDependencies": {
-        "@types/bun": "1.3.12",
-        "@types/node": "^22",
         "typescript": "^5",
       },
     },
@@ -303,9 +303,9 @@
 
     "@panva/hkdf": ["@panva/hkdf@1.2.1", "", {}, "sha512-6oclG6Y3PiDFcoyk8srjLfVKyMfVCKJ27JwNPViuXziFpmdz+MZnZN/aKY0JGXgYuO/VghU0jcOAZgWXZ1Dmrw=="],
 
-    "@render-open-forge/agent": ["@render-open-forge/agent@workspace:packages/agent"],
+    "@render-open-forge/agent": ["@render-open-forge/agent@workspace:apps/agent"],
 
-    "@render-open-forge/ci-runner": ["@render-open-forge/ci-runner@workspace:packages/ci-runner"],
+    "@render-open-forge/ci-runner": ["@render-open-forge/ci-runner@workspace:apps/ci-runner"],
 
     "@render-open-forge/db": ["@render-open-forge/db@workspace:packages/db"],
 

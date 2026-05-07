@@ -1,4 +1,4 @@
-# render-open-forge
+# OpenForge
 
 An open-source self-hosted coding agent and git forge you deploy and own entirely. Repository hosting, pull requests, CI runners, and an AI coding agent on your infrastructure, with no per-seat fees.
 
@@ -54,8 +54,8 @@ graph LR
 
 ```
 apps/web                 Next.js 15 app: auth, sessions, chat UI, forge browser, REST API, SSE, CI dispatch & callbacks
-packages/agent           Agent worker: tools, skills, subagents, Redis consumer
-packages/ci-runner       Render Workflows task worker: clone repo, run `run:` steps, POST results to web app
+apps/agent               Agent worker: tools, skills, subagents, Redis consumer
+apps/ci-runner           Render Workflows task worker: clone repo, run `run:` steps, POST results to web app
 packages/db              Shared Drizzle schema
 packages/sandbox         Sandbox HTTP adapter + Bun server + Docker image
 packages/shared          Shared types, forge provider abstraction, queue helpers
@@ -96,20 +96,29 @@ This creates the `forge-agent` service account and generates API tokens. Copy th
 
 **4. Configure environment**
 
-Use [.env.example](./.env.example) at the repo root as a reference. Create **`apps/web/.env.local`** for the Next.js app and **`packages/agent/.env`** for the worker. Duplicate shared keys (`DATABASE_URL`, `REDIS_URL`, `FORGEJO_*`, `ANTHROPIC_API_KEY`, ...) into both files as needed.
+There's a single `.env` at the **repo root**. The per-package locations Next.js
+and the worker expect — `apps/web/.env`, `apps/web/.env.local`, and
+`apps/agent/.env` — are symlinks back to it (already checked into the repo).
+Edit the root file once; every process picks up the change.
+
+```bash
+cp .env.example .env
+# then fill in the values
+```
 
 Fill in the values printed by the setup script, plus:
 
-| Variable | Where | Notes |
-|---|---|---|
-| `AUTH_SECRET` | `apps/web/.env.local` | Generate with `openssl rand -base64 32` |
-| `ADMIN_EMAIL` | `apps/web/.env.local` | Email for the first admin account |
-| `ADMIN_PASSWORD` | `apps/web/.env.local` | Password for the first admin account |
-| `ANTHROPIC_API_KEY` | `packages/agent/.env` | Required, at least one LLM provider key |
-| `FORGEJO_AGENT_TOKEN` | `packages/agent/.env`, `apps/web/.env.local` | From setup script, needed for CI clone URLs and forge API |
-| `CI_RUNNER_MODE` | `apps/web/.env.local` | Use `local` to run CI steps on your host (default dev); use `render` + `RENDER_API_KEY` to dispatch Render Workflows |
-| `CI_RUNNER_SECRET` | `apps/web/.env.local` | Shared secret for `POST /api/ci/results` (set any dev string; must match if you run `forge-ci` locally) |
-| `RENDER_API_KEY` | `apps/web/.env.local` | Required when `CI_RUNNER_MODE=render` |
+| Variable | Notes |
+|---|---|
+| `AUTH_SECRET` | Generate with `openssl rand -base64 32` |
+| `ADMIN_EMAIL` | Email for the first admin account |
+| `ADMIN_PASSWORD` | Password for the first admin account |
+| `ANTHROPIC_API_KEY` | Required, at least one LLM provider key |
+| `FORGEJO_AGENT_TOKEN` | From setup script, needed for CI clone URLs and forge API |
+| `FORGEJO_SANDBOX_URL` | `http://forgejo:3000` — hostname the sandbox container uses to reach Forgejo |
+| `CI_RUNNER_MODE` | `local` to run CI on your host (default dev); `render` + `RENDER_API_KEY` to dispatch Render Workflows |
+| `CI_RUNNER_SECRET` | Shared secret for `POST /api/ci/results` (any dev string; must match if you run `forge-ci` locally) |
+| `RENDER_API_KEY` | Required when `CI_RUNNER_MODE=render` |
 
 **5. Push the database schema**
 

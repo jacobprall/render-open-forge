@@ -1,5 +1,26 @@
 # Environment Variables
 
+## Local development
+
+There is a single `.env` at the **repo root** that holds every variable for every
+process. The per-package files are symlinks back to it:
+
+```
+.env                          # canonical
+apps/web/.env          → ../../.env
+apps/web/.env.local    → ../../.env
+apps/agent/.env        → ../../.env
+```
+
+So `bun run web`, `bun run worker`, `next dev`, drizzle-kit, and the setup
+scripts all read the same file. Edit the root `.env`, no per-package
+duplication. The symlinks are checked into the repo (the targets — the actual
+secret-bearing files — remain `.gitignore`d). On a fresh checkout, run
+`cp .env.example .env` and fill values in.
+
+The tables below describe what each **service** needs at deploy time on Render
+(via `render.yaml`). In dev, the union of all of them lives in the root `.env`.
+
 ## Web service (`apps/web`)
 
 | Variable | Required | Notes |
@@ -22,7 +43,7 @@
 | `CI_CALLBACK_URL` | No | Override callback base URL if tasks cannot POST to the default app URL |
 | `CI_RUNNER_MODE` | No | Omit or **`render`** on Render. Use **`local`** only for laptop dev |
 
-## CI workflow worker (`packages/ci-runner`, service `forge-ci`)
+## CI workflow worker (`apps/ci-runner`, service `forge-ci`)
 
 | Variable | Required | Notes |
 |---|---|---|
@@ -30,7 +51,7 @@
 | `FORGEJO_AGENT_TOKEN` | Yes | Same service token as web/agent, used for authenticated git clones |
 | `CI_RUNNER_SECRET` | Yes | Linked from **`forge-web`**, must match web app for signed callbacks |
 
-## Agent worker (`packages/agent`)
+## Agent worker (`apps/agent`)
 
 | Variable | Required | Notes |
 |---|---|---|
@@ -39,6 +60,7 @@
 | `SANDBOX_SERVICE_HOST` | Yes | Auto-wired (`forge-sandbox:3001`) |
 | `SANDBOX_SHARED_SECRET` | Yes | Must match web and sandbox |
 | `FORGEJO_INTERNAL_URL` | Yes | Auto-wired |
+| `FORGEJO_SANDBOX_URL` | Yes (dev) | Hostname the sandbox container uses to reach Forgejo. Required when the agent clones repos from inside Docker; otherwise `localhost` resolves to the container itself. Set to `http://forgejo:3000` in dev. |
 | `FORGEJO_AGENT_TOKEN` | Yes | Agent service account token |
 | `ANTHROPIC_API_KEY` | Yes* | *Provider key required for LLM access unless keys are stored in Postgres (see `ENCRYPTION_KEY`) |
 | `OPENAI_API_KEY` | No | Enables OpenAI models |

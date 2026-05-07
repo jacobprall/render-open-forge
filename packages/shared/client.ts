@@ -25,10 +25,7 @@ export {
 export { isApiError, type ApiErrorResponse } from "./lib/api-types";
 
 export {
-  DEFAULT_MODEL_ID,
-  filterModelsByCredentialAvailability,
   MODEL_DEFS,
   type ModelDef,
   type ModelSummary,
-  toModelSummaries,
 } from "./lib/model-catalog";

@@ -176,14 +176,11 @@ export {
   type TestSuite,
 } from "./lib/ci/test-results";
 
-// Model catalog
+// Model catalog (OpenAI only — Anthropic is fetched live, see apps/agent/src/models.ts)
 export {
-  DEFAULT_MODEL_ID,
-  filterModelsByCredentialAvailability,
   MODEL_DEFS,
   type ModelDef,
   type ModelSummary,
-  toModelSummaries,
 } from "./lib/model-catalog";
 
 // LLM API keys (encrypted storage + resolution)

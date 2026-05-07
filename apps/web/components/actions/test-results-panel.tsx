@@ -175,7 +175,7 @@ function TestCaseRow({ tc }: { tc: TestCase }) {
             <p className="mb-1 text-xs font-medium text-red-300">{tc.message}</p>
           )}
           {tc.stackTrace && (
-            <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-zinc-400">
+            <pre className="max-h-48 overflow-auto whitespace-pre-wrap wrap-break-words font-mono text-xs leading-relaxed text-zinc-400">
               {tc.stackTrace}
             </pre>
           )}

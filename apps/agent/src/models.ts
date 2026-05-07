@@ -4,12 +4,16 @@ import type { LanguageModel } from "ai";
 import { MODEL_DEFS } from "@render-open-forge/shared";
 import type { ResolvedLlmKeys } from "@render-open-forge/shared";
 
+export type ThinkingType = "adaptive" | "enabled";
+
 export interface ModelDef {
   id: string;
   provider: "anthropic" | "openai";
   modelId: string;
   displayName: string;
   supportsThinking?: boolean;
+  /** Anthropic models advertise either `adaptive` or `enabled` (or both). */
+  thinkingType?: ThinkingType;
 }
 
 const MODEL_PREFERENCE = [
@@ -88,13 +92,20 @@ export async function fetchAvailableModels(): Promise<ModelDef[]> {
           const thinking = m.capabilities?.thinking;
           const supportsAdaptive = thinking?.types?.adaptive?.supported === true;
           const supportsEnabled = thinking?.types?.enabled?.supported === true;
+          // Prefer adaptive when both are advertised — it lets the model decide.
+          const thinkingType: ThinkingType | undefined = supportsAdaptive
+            ? "adaptive"
+            : supportsEnabled
+              ? "enabled"
+              : undefined;
 
           models.push({
             id: toCanonicalId("anthropic", m.id),
             provider: "anthropic",
             modelId: m.id,
             displayName: m.display_name ?? m.id,
-            supportsThinking: supportsAdaptive || supportsEnabled,
+            supportsThinking: thinkingType !== undefined,
+            thinkingType,
           });
         }
       }

@@ -20,7 +20,7 @@
     "test": "bun test tests",
     "typecheck": "turbo typecheck",
     "web": "cd apps/web && bun run dev",
-    "worker": "cd packages/agent && bun run src/worker.ts",
+    "worker": "cd apps/agent && bun run src/worker.ts",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
     "infra:logs": "docker compose logs -f",

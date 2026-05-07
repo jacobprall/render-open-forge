@@ -1,3 +1,12 @@
+/**
+ * Static catalog of OpenAI models we surface in the UI / use in the worker.
+ *
+ * Anthropic models are NOT listed here — the worker queries Anthropic's
+ * `/v1/models` API at startup so the catalog (including thinking-mode
+ * capability) stays in sync with whatever the upstream provider currently
+ * exposes. See `apps/agent/src/models.ts` and
+ * `apps/web/lib/models/anthropic-models.ts`.
+ */
 export interface ModelDef {
   id: string;
   provider: "anthropic" | "openai";
@@ -8,28 +17,6 @@ export interface ModelDef {
 }
 
 export const MODEL_DEFS: ModelDef[] = [
-  {
-    id: "anthropic/claude-sonnet-4-5",
-    provider: "anthropic",
-    nativeId: "claude-sonnet-4-5",
-    label: "Claude Sonnet 4.5",
-    description: "Best balance of speed and intelligence",
-  },
-  {
-    id: "anthropic/claude-haiku-4-5",
-    provider: "anthropic",
-    nativeId: "claude-haiku-4-5",
-    label: "Claude Haiku 4.5",
-    description: "Fast and cost-effective",
-  },
-  {
-    id: "anthropic/claude-opus-4-7",
-    provider: "anthropic",
-    nativeId: "claude-opus-4-7",
-    label: "Claude Opus 4.7",
-    description: "Most powerful — slower and expensive",
-    supportsThinking: true,
-  },
   {
     id: "openai/gpt-4.1",
     provider: "openai",
@@ -62,28 +49,7 @@ export const MODEL_DEFS: ModelDef[] = [
   },
 ];
 
-export const DEFAULT_MODEL_ID = "anthropic/claude-sonnet-4-5";
-
 export type ModelSummary = Pick<
   ModelDef,
   "id" | "provider" | "label" | "description" | "supportsThinking"
 >;
-
-export function toModelSummaries(defs: ModelDef[]): ModelSummary[] {
-  return defs.map(({ id, provider, label, description, supportsThinking }) => ({
-    id,
-    provider,
-    label,
-    description,
-    supportsThinking,
-  }));
-}
-
-export function filterModelsByCredentialAvailability(
-  defs: ModelDef[],
-  env: { anthropic: boolean; openai: boolean },
-): ModelDef[] {
-  return defs.filter((m) =>
-    m.provider === "anthropic" ? env.anthropic : env.openai,
-  );
-}

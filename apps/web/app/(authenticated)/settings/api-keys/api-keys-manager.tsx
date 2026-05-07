@@ -100,7 +100,7 @@ export function ApiKeysManager() {
           </code>{" "}
           and{" "}
           <code className="rounded bg-zinc-900 px-1.5 py-0.5 text-xs text-zinc-300">
-            packages/agent/.env
+            apps/agent/.env
           </code>{" "}
           (identical values; generate with{" "}
           <code className="text-xs text-zinc-300">openssl rand -hex 32</code>) before saving keys here.

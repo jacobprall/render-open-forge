@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { MODEL_DEFS, DEFAULT_MODEL_ID } from "@render-open-forge/shared/lib/model-catalog";
-import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { getDb } from "@/lib/db";
-import { userPreferences } from "@render-open-forge/db/schema";
 import { eq } from "drizzle-orm";
+import { resolveLlmApiKeys } from "@render-open-forge/shared";
+import { userPreferences } from "@render-open-forge/db/schema";
+import { getSession } from "@/lib/auth/session";
+import { getDb } from "@/lib/db";
+import { fetchModelsForSession, type ModelSummary } from "@/lib/models/anthropic-models";
 
 export const metadata: Metadata = { title: "Models" };
 
@@ -25,9 +26,12 @@ export default async function ModelsPage() {
   const session = await getSession();
   if (!session) redirect("/");
 
-  let selectedModel = DEFAULT_MODEL_ID;
+  const db = getDb();
+  const keys = await resolveLlmApiKeys(db, String(session.userId));
+  const models = await fetchModelsForSession(keys);
+
+  let selectedModel: string | null = null;
   try {
-    const db = getDb();
     const [prefs] = await db
       .select()
       .from(userPreferences)
@@ -39,10 +43,12 @@ export default async function ModelsPage() {
   } catch {
     // DB might not be ready
   }
+  // Fall back to the first available model so the UI still highlights something sensible.
+  if (!selectedModel) selectedModel = models[0]?.id ?? null;
 
-  const grouped = {
-    anthropic: MODEL_DEFS.filter((m) => m.provider === "anthropic"),
-    openai: MODEL_DEFS.filter((m) => m.provider === "openai"),
+  const grouped: Record<"anthropic" | "openai", ModelSummary[]> = {
+    anthropic: models.filter((m) => m.provider === "anthropic"),
+    openai: models.filter((m) => m.provider === "openai"),
   };
 
   return (
@@ -54,57 +60,68 @@ export default async function ModelsPage() {
         </p>
       </div>
 
-      <div className="space-y-8">
-        {(["anthropic", "openai"] as const).map((provider) => (
-          <section key={provider}>
-            <div className="mb-3 flex items-center gap-2">
-              <span className="text-zinc-400">{providerIcons[provider]}</span>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
-                {provider === "anthropic" ? "Anthropic" : "OpenAI"}
-              </h3>
-            </div>
-            <div className="space-y-2">
-              {grouped[provider].map((model) => {
-                const isDefault = model.id === selectedModel;
-                return (
-                  <div
-                    key={model.id}
-                    className={`rounded-xl border p-4 transition ${
-                      isDefault
-                        ? "border-emerald-500/40 bg-emerald-500/5"
-                        : "border-zinc-800 bg-zinc-900/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-zinc-100">{model.label}</h4>
-                          {model.supportsThinking && (
-                            <span className="rounded-full border border-purple-500/25 bg-purple-500/15 px-2 py-0.5 text-[10px] font-medium text-purple-400">
-                              Thinking
-                            </span>
-                          )}
-                          {isDefault && (
-                            <span className="rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-                              Default
-                            </span>
-                          )}
+      {models.length === 0 ? (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 text-sm text-zinc-400">
+          No models available. Add an API key in <span className="font-medium text-zinc-200">Settings → API Keys</span>{" "}
+          or set <code className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-xs">ANTHROPIC_API_KEY</code> /
+          <code className="ml-1 rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-xs">OPENAI_API_KEY</code>.
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {(["anthropic", "openai"] as const).map((provider) => {
+            const list = grouped[provider];
+            if (list.length === 0) return null;
+            return (
+              <section key={provider}>
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="text-zinc-400">{providerIcons[provider]}</span>
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
+                    {provider === "anthropic" ? "Anthropic" : "OpenAI"}
+                  </h3>
+                </div>
+                <div className="space-y-2">
+                  {list.map((model) => {
+                    const isDefault = model.id === selectedModel;
+                    return (
+                      <div
+                        key={model.id}
+                        className={`rounded-xl border p-4 transition ${
+                          isDefault
+                            ? "border-emerald-500/40 bg-emerald-500/5"
+                            : "border-zinc-800 bg-zinc-900/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-zinc-100">{model.label}</h4>
+                              {model.supportsThinking && (
+                                <span className="rounded-full border border-purple-500/25 bg-purple-500/15 px-2 py-0.5 text-[10px] font-medium text-purple-400">
+                                  Thinking
+                                </span>
+                              )}
+                              {isDefault && (
+                                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 font-mono text-xs text-zinc-600">{model.id}</p>
+                          </div>
                         </div>
-                        <p className="mt-0.5 text-sm text-zinc-400">{model.description}</p>
-                        <p className="mt-1 font-mono text-xs text-zinc-600">{model.id}</p>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
 
       <p className="mt-8 text-xs text-zinc-600">
-        Model preferences can be changed per-session when creating a new session.
-        Default model selection is configured in your profile preferences.
+        Anthropic models are fetched live from the provider so this list always reflects what your account currently
+        supports. Default model selection is configured in your profile preferences.
       </p>
     </div>
   );

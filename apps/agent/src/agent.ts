@@ -268,10 +268,21 @@ async function runTurn(params: {
   const model = getModel(job.modelId, llmKeys);
   const isAnthropic = modelDef.provider === "anthropic";
 
-  const thinkingOptions =
-    isAnthropic && modelDef.supportsThinking
-      ? { anthropic: { thinking: { type: "adaptive" as const }, output_config: { effort: "high" as const } } }
-      : undefined;
+  const thinkingType = isAnthropic ? modelDef.thinkingType : undefined;
+  const thinkingOptions = thinkingType
+    ? thinkingType === "adaptive"
+      ? {
+          anthropic: {
+            thinking: { type: "adaptive" as const },
+            output_config: { effort: "high" as const },
+          },
+        }
+      : {
+          anthropic: {
+            thinking: { type: "enabled" as const, budget_tokens: 8000 },
+          },
+        }
+    : undefined;
 
   const appended = [job.fixContext].filter(Boolean).join("\n\n");
   const systemPrompt =

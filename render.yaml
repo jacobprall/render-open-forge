@@ -50,7 +50,7 @@ services:
     runtime: node
     plan: starter
     buildCommand: bun install && npx turbo build --filter=agent
-    startCommand: cd packages/agent && bun run start
+    startCommand: cd apps/agent && bun run start
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -150,7 +150,7 @@ services:
     runtime: node
     plan: starter
     buildCommand: bun install && npx turbo build --filter=ci-runner
-    startCommand: cd packages/ci-runner && bun run start
+    startCommand: cd apps/ci-runner && bun run start
     envVars:
       - key: FORGEJO_INTERNAL_URL
         value: http://forge-forgejo:3000

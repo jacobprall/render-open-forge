@@ -84,7 +84,7 @@ Forgejo holds repos and workflow YAML; **Render Workflows** runs the jobs.
 1. Authors commit `.forgejo/workflows/*.yml` (GitHub Actions-shaped files).
 2. Forgejo sends `push` / `pull_request` webhooks to the web app.
 3. The web app loads workflow definitions from the repo via the Forge API, matches triggers, creates a `ci_events` row, sets a **pending** commit status on Forgejo, and calls **`render.workflows.startTask`** (or runs in-process when `CI_RUNNER_MODE=local`).
-4. The **`forge-ci`** worker (`packages/ci-runner`) executes the registered task: shallow `git clone`, runs each **`run:`** step under `bash`, captures logs, scans for JUnit/TAP, then POSTs JSON to **`/api/ci/results`** with a shared **`CI_RUNNER_SECRET`**.
+4. The **`forge-ci`** worker (`apps/ci-runner`) executes the registered task: shallow `git clone`, runs each **`run:`** step under `bash`, captures logs, scans for JUnit/TAP, then POSTs JSON to **`/api/ci/results`** with a shared **`CI_RUNNER_SECRET`**.
 5. The web app validates the callback, updates Postgres, sets **success** / **failure** / **error** on the commit, and enqueues the agent on failure (same as before).
 
 Render manages task retries, timeouts, and observability. No Docker-in-Docker or Forgejo runner container required.

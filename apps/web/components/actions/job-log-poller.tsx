@@ -63,7 +63,7 @@ export function JobLogsPoller(props: {
   }
 
   return (
-    <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-words rounded-lg border border-zinc-800 bg-zinc-950 p-4 font-mono text-xs leading-relaxed text-zinc-200">
+    <pre className="max-h-128 overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg border border-zinc-800 bg-zinc-950 p-4 font-mono text-xs leading-relaxed text-zinc-200">
       {text || "Fetching logs…"}
     </pre>
   );
