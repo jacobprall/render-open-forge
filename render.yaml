@@ -58,7 +58,33 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: SANDBOX_SERVICE_HOST
-        sync: false
+        value: forge-sandbox:3001
+      - key: SANDBOX_SHARED_SECRET
+        generateValue: true
+      - key: SANDBOX_SESSION_SECRET
+        generateValue: true
+
+  # Sandbox (isolated execution environment)
+  - type: web
+    name: forge-sandbox
+    runtime: docker
+    plan: standard
+    dockerfilePath: packages/sandbox/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    disk:
+      name: sandbox-workspace
+      mountPath: /workspace
+      sizeGB: 20
+    envVars:
+      - key: PORT
+        value: "3001"
+      - key: WORKSPACE_ROOT
+        value: /workspace
+      - key: SANDBOX_SHARED_SECRET
+        generateValue: true
+      - key: SANDBOX_SESSION_SECRET
+        generateValue: true
 
   # Forgejo (Internal Forge)
   - type: web

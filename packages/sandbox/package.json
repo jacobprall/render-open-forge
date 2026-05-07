@@ -1,24 +1,19 @@
 {
   "name": "@render-open-forge/sandbox",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "main": "./index.ts",
+  "types": "./index.ts",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./types": "./types.ts",
+    "./interface": "./interface.ts",
+    "./provider": "./provider.ts",
+    "./session-token": "./session-token.ts"
   },
-  "scripts": {
-    "build": "echo 'sandbox build placeholder'",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@render-open-forge/shared": "workspace:*",
-    "nanoid": "^5.1.6",
-    "zod": "catalog:"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@types/bun": "1.3.12",
-    "@types/node": "^22",
-    "typescript": "^5"
+    "typescript": "^5.7.0"
   }
 }

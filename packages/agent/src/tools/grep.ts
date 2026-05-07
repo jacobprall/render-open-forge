@@ -16,8 +16,8 @@ export function grepTool() {
       const adapter = getAdapter(experimental_context);
       const sessionId = getSessionId(experimental_context);
       const command = path
-        ? ["rg", "--json", pattern, path]
-        : ["rg", "--json", pattern];
+        ? `rg --json ${JSON.stringify(pattern)} ${JSON.stringify(path)}`
+        : `rg --json ${JSON.stringify(pattern)}`;
       const result = await adapter.exec(sessionId, command);
 
       const lines = result.stdout.split("\n").filter(Boolean);

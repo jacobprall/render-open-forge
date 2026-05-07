@@ -49,6 +49,12 @@ export class InsufficientPermissionsError extends AuthError {
   }
 }
 
+export class SessionExpiredError extends AuthError {
+  constructor(message = "Session expired", opts: ExtraErrorFields = {}) {
+    super({ code: "SESSION_EXPIRED", message, httpStatus: 401, ...opts });
+  }
+}
+
 // --- Forge ---
 export class ForgeError extends AppError {}
 export class ForgeUnreachableError extends ForgeError {

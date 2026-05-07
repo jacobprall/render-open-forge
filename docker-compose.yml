@@ -78,8 +78,31 @@ services:
     volumes:
       - dind-data:/var/lib/docker
 
+  sandbox:
+    build:
+      context: .
+      dockerfile: packages/sandbox/Dockerfile
+    environment:
+      - PORT=3001
+      - WORKSPACE_ROOT=/workspace
+      - SANDBOX_SHARED_SECRET=dev-sandbox-secret
+      - SANDBOX_SESSION_SECRET=dev-session-secret
+      - SANDBOX_GIT_USER_NAME=Forge Agent
+      - SANDBOX_GIT_USER_EMAIL=agent@render-open-forge.dev
+    ports:
+      - "3001:3001"
+    volumes:
+      - sandbox-data:/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   pgdata:
   forgejo-data:
   runner-data:
   dind-data:
+  sandbox-data:

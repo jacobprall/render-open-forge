@@ -10,7 +10,12 @@ import {
   publishRunEvent,
 } from "@render-open-forge/shared";
 import { ForgejoClient } from "@render-open-forge/shared/lib/forgejo/client";
-import type { ForgeAgentContext, SandboxAdapter } from "./context/agent-context";
+import {
+  SharedHttpSandboxProvider,
+  type SandboxAdapter,
+  type SandboxSessionAuth,
+} from "@render-open-forge/sandbox";
+import type { ForgeAgentContext } from "./context/agent-context";
 import { jobMessagesToModelMessages, sanitizeMessages, validateMessages } from "./messages";
 import { buildAgentSystemPrompt } from "./system-prompt";
 import {
@@ -57,6 +62,26 @@ function getForgejoClient(): ForgejoClient {
   const token = process.env.FORGEJO_AGENT_TOKEN;
   if (!token) throw new Error("FORGEJO_AGENT_TOKEN not configured");
   return new ForgejoClient(url, token);
+}
+
+let _sandboxProvider: SharedHttpSandboxProvider | null = null;
+
+function getSandboxProvider(): SharedHttpSandboxProvider {
+  if (_sandboxProvider) return _sandboxProvider;
+  const host = process.env.SANDBOX_SERVICE_HOST;
+  if (!host) throw new Error("SANDBOX_SERVICE_HOST not configured");
+  const secret = process.env.SANDBOX_SHARED_SECRET;
+  const sessionSecret = process.env.SANDBOX_SESSION_SECRET;
+  const sessionAuth: SandboxSessionAuth | undefined = sessionSecret
+    ? { secret: sessionSecret, userId: "forge-agent" }
+    : undefined;
+  _sandboxProvider = new SharedHttpSandboxProvider(host, secret, sessionAuth);
+  return _sandboxProvider;
+}
+
+async function getAdapter(sessionId: string): Promise<SandboxAdapter> {
+  const provider = getSandboxProvider();
+  return provider.provision(sessionId);
 }
 
 // ─── Message building ────────────────────────────────────────────────────────
@@ -200,13 +225,13 @@ async function runTurn(params: {
 
       for (const tc of toolCalls ?? []) {
         const ev: StreamEvent = { type: "tool_call", toolName: tc.toolName, toolCallId: tc.toolCallId, args: tc.input };
-        assistantParts.push({ type: "tool_call", ...ev });
+        assistantParts.push({ type: "tool_call", toolName: tc.toolName, toolCallId: tc.toolCallId, args: tc.input });
         await publishEvent(redis, job.runId, ev, reqId);
       }
 
       for (const tr of toolResults ?? []) {
         const ev: StreamEvent = { type: "tool_result", toolCallId: tr.toolCallId, result: tr.output };
-        assistantParts.push({ type: "tool_result", ...ev });
+        assistantParts.push({ type: "tool_result", toolCallId: tr.toolCallId, result: tr.output });
         await publishEvent(redis, job.runId, ev, reqId);
       }
 
@@ -333,7 +358,7 @@ async function ensureRepoCloned(job: AgentJob, adapter: SandboxAdapter): Promise
   const [session] = await db.select().from(sessions).where(eq(sessions.id, job.sessionId)).limit(1);
   if (!session?.forgejoRepoPath) return;
 
-  const files = await adapter.listFiles(job.sessionId, "*").catch(() => [] as string[]);
+  const files = await adapter.glob(job.sessionId, "*").catch(() => [] as string[]);
   if (files.length > 0) return;
 
   const forgejoClient = getForgejoClient();
@@ -405,9 +430,7 @@ export async function runAgentTurn(job: AgentJob, redis: Redis): Promise<void> {
   let streamedParts: AssistantPart[] = [];
   let latestResponseMessages: ModelMessage[] = [];
 
-  // TODO: resolve sandbox adapter from provider registry
-  // For now, using a placeholder that will be filled when sandbox is fully ported
-  const adapter: SandboxAdapter = null as unknown as SandboxAdapter;
+  const adapter = await getAdapter(job.sessionId);
 
   try {
     const db = getDb();

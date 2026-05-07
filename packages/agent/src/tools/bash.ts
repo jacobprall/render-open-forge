@@ -29,7 +29,7 @@ export function bashTool() {
       }
       const adapter = getAdapter(experimental_context);
       const sessionId = getSessionId(experimental_context);
-      const result = await adapter.exec(sessionId, [command], { timeout: timeoutMs });
+      const result = await adapter.exec(sessionId, command, timeoutMs);
       const stdout = truncateLargeString(result.stdout, MAX_BASH_STREAM_CHARS);
       const stderr = truncateLargeString(result.stderr, MAX_BASH_STREAM_CHARS);
       return {

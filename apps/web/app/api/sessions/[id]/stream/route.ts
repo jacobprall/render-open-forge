@@ -1,0 +1,205 @@
+import { NextRequest } from "next/server";
+import { getSession } from "@/lib/auth/session";
+import { getDb } from "@/lib/db";
+import { sessions, chats } from "@render-open-forge/db";
+import { eq, and, desc } from "drizzle-orm";
+import {
+  readRunEventHistoryDetailed,
+  readRunEventPayloadsAfterId,
+} from "@render-open-forge/shared";
+import { createRedisClient, isRedisConfigured } from "@/lib/redis";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const KEEPALIVE_MS = 25_000;
+
+function isTerminalEvent(type: string): boolean {
+  return type === "done" || type === "error" || type === "aborted";
+}
+
+function sseData(obj: unknown): string {
+  return `data: ${JSON.stringify(obj)}\n\n`;
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const userSession = await getSession();
+  if (!userSession) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const db = getDb();
+  const [sessionRow] = await db
+    .select()
+    .from(sessions)
+    .where(and(eq(sessions.id, id), eq(sessions.userId, String(userSession.userId))))
+    .limit(1);
+
+  if (!sessionRow) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  const [chatRow] = await db
+    .select()
+    .from(chats)
+    .where(eq(chats.sessionId, id))
+    .orderBy(desc(chats.createdAt))
+    .limit(1);
+
+  const runId = chatRow?.activeRunId;
+
+  if (!runId) {
+    return new Response(sseData({ type: "no_active_run" }), {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
+  }
+
+  if (!isRedisConfigured()) {
+    return new Response(
+      sseData({ type: "error", code: "REDIS_NOT_CONFIGURED", message: "Redis not configured", retryable: false }),
+      {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      },
+    );
+  }
+
+  const cmd = createRedisClient(`sse-cmd-${id}`);
+  const sub = createRedisClient(`sse-sub-${id}`);
+
+  let history: string[];
+  let lastStreamId: string | null;
+  try {
+    const detailed = await readRunEventHistoryDetailed(cmd, runId);
+    history = detailed.payloads;
+    lastStreamId = detailed.lastStreamId;
+  } catch (err) {
+    cmd.disconnect();
+    sub.disconnect();
+    return new Response(
+      sseData({ type: "error", code: "REPLAY_FAILED", message: "Could not read event history", retryable: true }),
+      {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      },
+    );
+  }
+
+  let gap: string[] = [];
+  try {
+    await sub.subscribe(`run:${runId}`);
+    if (lastStreamId) {
+      gap = await readRunEventPayloadsAfterId(cmd, runId, lastStreamId);
+    }
+  } catch {
+    cleanup(sub, cmd, runId);
+    return new Response(
+      sseData({ type: "error", code: "SUBSCRIBE_FAILED", message: "Could not subscribe to stream", retryable: true }),
+      {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      },
+    );
+  }
+
+  let keepAlive: ReturnType<typeof setInterval> | undefined;
+
+  const stream = new ReadableStream({
+    start(controller) {
+      const send = (payload: string): boolean => {
+        try {
+          controller.enqueue(new TextEncoder().encode(`data: ${payload}\n\n`));
+          const parsed = JSON.parse(payload) as { type?: string };
+          if (parsed.type && isTerminalEvent(parsed.type)) {
+            cleanup(sub, cmd, runId, keepAlive);
+            controller.close();
+            return true;
+          }
+        } catch {
+          // non-fatal parse error
+        }
+        return false;
+      };
+
+      for (const msg of history) {
+        if (send(msg)) return;
+      }
+      for (const msg of gap) {
+        if (send(msg)) return;
+      }
+
+      keepAlive = setInterval(() => {
+        try {
+          controller.enqueue(new TextEncoder().encode(`: ping\n\n`));
+        } catch {
+          // stream closed
+        }
+      }, KEEPALIVE_MS);
+
+      sub.on("message", (_channel: string, message: string) => {
+        send(message);
+      });
+
+      sub.on("error", (err: Error) => {
+        console.error(`[sse] Redis subscription error:`, err);
+        cleanup(sub, cmd, runId, keepAlive);
+        try {
+          controller.enqueue(new TextEncoder().encode(
+            sseData({ type: "error", code: "STREAM_INTERRUPTED", message: "Connection interrupted", retryable: true }),
+          ));
+        } catch {
+          // ignore
+        }
+        controller.close();
+      });
+    },
+    cancel() {
+      cleanup(sub, cmd, runId, keepAlive);
+    },
+  });
+
+  req.signal.addEventListener("abort", () => {
+    cleanup(sub, cmd, runId, keepAlive);
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
+}
+
+function cleanup(
+  sub: ReturnType<typeof createRedisClient>,
+  cmd: ReturnType<typeof createRedisClient>,
+  runId: string,
+  keepAlive?: ReturnType<typeof setInterval>,
+) {
+  if (keepAlive) clearInterval(keepAlive);
+  sub.removeAllListeners("message");
+  sub.removeAllListeners("error");
+  void sub.unsubscribe(`run:${runId}`).catch(() => {}).finally(() => {
+    sub.disconnect();
+    cmd.disconnect();
+  });
+}

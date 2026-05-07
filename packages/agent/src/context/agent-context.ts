@@ -6,6 +6,9 @@
  */
 
 import type { ForgejoClient } from "@render-open-forge/shared/lib/forgejo/client";
+import type { SandboxAdapter } from "@render-open-forge/sandbox";
+
+export type { SandboxAdapter };
 
 export interface ForgeAgentContext {
   __brand: "ForgeAgentContext";
@@ -16,26 +19,7 @@ export interface ForgeAgentContext {
   branch: string;
   baseBranch: string;
   adapter: SandboxAdapter;
-  onFileChanged?: (event: FileChangedEvent) => void;
-}
-
-export interface SandboxAdapter {
-  exec(sessionId: string, command: string[], opts?: ExecOpts): Promise<ExecResult>;
-  git(sessionId: string, args: string[]): Promise<ExecResult>;
-  readFile(sessionId: string, path: string): Promise<string>;
-  writeFile(sessionId: string, path: string, content: string): Promise<void>;
-  listFiles(sessionId: string, pattern?: string): Promise<string[]>;
-}
-
-export interface ExecOpts {
-  timeout?: number;
-  cwd?: string;
-}
-
-export interface ExecResult {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
+  onFileChanged?: (event: FileChangedEvent) => void | Promise<void>;
 }
 
 export interface FileChangedEvent {

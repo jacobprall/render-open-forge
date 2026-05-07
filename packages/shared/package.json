@@ -6,7 +6,9 @@
   "main": "./index.ts",
   "exports": {
     ".": "./index.ts",
-    "./lib/*": "./lib/*.ts"
+    "./client": "./client.ts",
+    "./lib/*": "./lib/*.ts",
+    "./hooks/*": "./hooks/*.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
@@ -17,9 +19,13 @@
     "ioredis": "^5.9.2",
     "zod": "catalog:"
   },
+  "peerDependencies": {
+    "react": "^18 || ^19"
+  },
   "devDependencies": {
     "@types/bun": "1.3.12",
     "@types/node": "^22",
+    "@types/react": "^19",
     "typescript": "^5"
   }
 }

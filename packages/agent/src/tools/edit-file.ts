@@ -23,7 +23,11 @@ export function editFileTool() {
       }
 
       try {
-        const content = await adapter.readFile(sessionId, filePath);
+        const file = await adapter.readFile(sessionId, filePath);
+        if (!file.exists) {
+          return { success: false, error: "File not found" };
+        }
+        const content = file.content;
         if (!content.includes(oldString)) {
           return { success: false, error: "oldString not found in file" };
         }

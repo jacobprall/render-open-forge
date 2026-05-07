@@ -15,8 +15,11 @@ export function readFileTool() {
       const adapter = getAdapter(experimental_context);
       const sessionId = getSessionId(experimental_context);
       try {
-        const content = await adapter.readFile(sessionId, path);
-        const truncated = truncateLargeString(content, MAX_READ_FILE_CHARS);
+        const file = await adapter.readFile(sessionId, path);
+        if (!file.exists) {
+          return { content: "", exists: false as const };
+        }
+        const truncated = truncateLargeString(file.content, MAX_READ_FILE_CHARS);
         return {
           content: truncated.value,
           exists: true as const,

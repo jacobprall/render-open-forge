@@ -17,7 +17,8 @@ export function writeFileTool() {
       const sessionId = getSessionId(experimental_context);
       let before = "";
       try {
-        before = await adapter.readFile(sessionId, path);
+        const file = await adapter.readFile(sessionId, path);
+        if (file.exists) before = file.content;
       } catch {}
       await adapter.writeFile(sessionId, path, content);
       await notifyFileChanged(experimental_context, path, before, content);

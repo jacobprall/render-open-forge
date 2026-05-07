@@ -13,7 +13,7 @@ export function globTool() {
     execute: async ({ pattern }, { experimental_context }) => {
       const adapter = getAdapter(experimental_context);
       const sessionId = getSessionId(experimental_context);
-      const files = await adapter.listFiles(sessionId, pattern);
+      const files = await adapter.glob(sessionId, pattern);
       return { files };
     },
   });

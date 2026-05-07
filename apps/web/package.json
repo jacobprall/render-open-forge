@@ -17,10 +17,13 @@
     "@render-open-forge/shared": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "ioredis": "^5.9.2",
+    "lucide-react": "^1.14.0",
     "next": "^15.3.0",
     "postgres": "^3.4.8",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "zod": "catalog:"
   },
   "devDependencies": {
