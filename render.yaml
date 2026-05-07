@@ -27,10 +27,12 @@ services:
         sync: false
       - key: FORGEJO_AGENT_TOKEN
         sync: false
-      - key: SESSION_SECRET
+      - key: AUTH_SECRET
         generateValue: true
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: ENCRYPTION_KEY
+        generateValue: true
       - key: RENDER_API_KEY
         sync: false
       - key: RENDER_CI_WORKFLOW_SLUG
@@ -65,6 +67,11 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: ENCRYPTION_KEY
+        fromService:
+          name: forge-web
+          type: web
+          envVarKey: ENCRYPTION_KEY
       - key: SANDBOX_SERVICE_HOST
         value: forge-sandbox:3001
       - key: SANDBOX_SHARED_SECRET
@@ -165,7 +172,7 @@ services:
 databases:
   - name: forge-db
     plan: basic-256mb
-    postgresMajorVersion: 16
+    postgresMajorVersion: "16"
 
 previews:
   generation: manual

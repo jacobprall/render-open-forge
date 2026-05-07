@@ -102,23 +102,6 @@ export function SessionWorkspace({
               <span className={`h-1.5 w-1.5 rounded-full ${statusDot[session.status] ?? "bg-zinc-600"}`} />
               {session.status}
             </span>
-            {(session.activeSkills?.length ?? 0) > 0 ? (
-              <span className="flex max-w-[200px] flex-wrap items-center gap-0.5 sm:max-w-none">
-                {session.activeSkills!.slice(0, 8).map((s) => (
-                  <span
-                    key={`${s.source}-${s.slug}`}
-                    className="rounded border border-zinc-700/80 px-1 font-mono text-[10px] text-zinc-500"
-                  >
-                    {s.slug}
-                  </span>
-                ))}
-                {session.activeSkills!.length > 8 ? (
-                  <span className="text-[10px] text-zinc-600">+{session.activeSkills!.length - 8}</span>
-                ) : null}
-              </span>
-            ) : (
-              <span className="text-[10px] text-zinc-600">default skills</span>
-            )}
             {session.prNumber != null ? (
               <a
                 href={`/${session.repoPath}/pulls/${session.prNumber}`}

@@ -185,3 +185,16 @@ export {
   type ModelSummary,
   toModelSummaries,
 } from "./lib/model-catalog";
+
+// LLM API keys (encrypted storage + resolution)
+export {
+  decryptLlmApiKey,
+  encryptLlmApiKey,
+  isLlmKeyEncryptionConfigured,
+} from "./lib/encryption";
+export {
+  llmKeyHint,
+  validateAnthropicApiKey,
+  validateOpenAiApiKey,
+} from "./lib/llm-key-validation";
+export { resolveLlmApiKeys, type ResolvedLlmKeys } from "./lib/api-key-resolver";

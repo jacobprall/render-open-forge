@@ -1,38 +1,35 @@
-import { cookies } from "next/headers";
 import { cache } from "react";
+import { auth } from "@/lib/auth";
 
+/**
+ * Application-level session shape.
+ *
+ * This interface is consumed by every server component, API route, and
+ * server action. It acts as a stable contract on top of NextAuth's
+ * session, isolating the rest of the codebase from auth internals.
+ */
 export interface UserSession {
   forgejoToken: string;
-  userId: number;
+  userId: string;
   username: string;
   email: string;
   avatarUrl: string;
+  isAdmin: boolean;
 }
 
-const SESSION_COOKIE = "forge_session";
-
 async function readSession(): Promise<UserSession | null> {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get(SESSION_COOKIE);
-  if (!sessionCookie?.value) return null;
+  const session = await auth();
+  if (!session?.user) return null;
 
-  try {
-    const decoded = JSON.parse(
-      Buffer.from(sessionCookie.value, "base64").toString("utf-8"),
-    );
-    return decoded as UserSession;
-  } catch {
-    return null;
-  }
+  return {
+    forgejoToken: session.forgejoToken,
+    userId: session.user.id,
+    username: session.forgejoUsername,
+    email: session.user.email ?? "",
+    avatarUrl: session.user.image ?? "",
+    isAdmin: session.isAdmin ?? false,
+  };
 }
 
 /** Per-request deduplicated session (React.cache). */
 export const getSession = cache(readSession);
-
-export function encodeSession(session: UserSession): string {
-  return Buffer.from(JSON.stringify(session)).toString("base64");
-}
-
-export function getSessionCookieName(): string {
-  return SESSION_COOKIE;
-}

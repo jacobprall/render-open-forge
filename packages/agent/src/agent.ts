@@ -6,6 +6,8 @@ import { agentRuns, chats, chatMessages, specs, sessions, prEvents } from "@rend
 import {
   AppError,
   publishRunEvent,
+  resolveLlmApiKeys,
+  type ResolvedLlmKeys,
 } from "@render-open-forge/shared";
 import { getDefaultForgeProvider, type ForgeProvider } from "@render-open-forge/shared/lib/forge";
 import {
@@ -253,6 +255,7 @@ async function runTurn(params: {
   job: AgentJob;
   redis: Redis;
   adapter: SandboxAdapter;
+  llmKeys: ResolvedLlmKeys;
 }): Promise<{
   text: string;
   assistantParts: AssistantPart[];
@@ -260,9 +263,9 @@ async function runTurn(params: {
   usage: { promptTokens?: number; completionTokens?: number };
   hitStepLimit: boolean;
 }> {
-  const { job, redis, adapter } = params;
+  const { job, redis, adapter, llmKeys } = params;
   const modelDef = getModelDef(job.modelId);
-  const model = getModel(job.modelId);
+  const model = getModel(job.modelId, llmKeys);
   const isAnthropic = modelDef.provider === "anthropic";
 
   const thinkingOptions =
@@ -499,10 +502,13 @@ export async function runAgentTurn(job: AgentJob, redis: Redis): Promise<void> {
 
     await ensureRepoCloned(job, adapter);
 
+    const llmKeys = await resolveLlmApiKeys(getDb(), job.userId);
+
     const { assistantParts, responseMessages, usage } = await runTurn({
       job,
       redis,
       adapter,
+      llmKeys,
     });
 
     let assistantMessageId: string | undefined;

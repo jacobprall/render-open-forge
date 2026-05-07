@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { sessions, chatMessages, chats } from "@render-open-forge/db";
 import { eq, and, asc } from "drizzle-orm";
+import { resolveLlmApiKeys } from "@render-open-forge/shared";
 
 export async function POST(
   _req: NextRequest,
@@ -14,12 +15,13 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const db = getDb();
+
+  const keys = await resolveLlmApiKeys(db, String(userSession.userId));
+  const apiKey = keys.anthropic;
   if (!apiKey) {
     return NextResponse.json({ error: "API key not configured" }, { status: 500 });
   }
-
-  const db = getDb();
 
   const [sessionRow] = await db
     .select()

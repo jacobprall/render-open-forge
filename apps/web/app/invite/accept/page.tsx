@@ -1,0 +1,112 @@
+import Link from "next/link";
+import { and, eq, isNull } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { invites, users } from "@render-open-forge/db/schema";
+import { verifyInviteToken } from "@/lib/auth/invite-tokens";
+import { InvitePasswordForm } from "./invite-password-form";
+
+interface PageProps {
+  searchParams: Promise<{ token?: string }>;
+}
+
+export default async function InviteAcceptPage({ searchParams }: PageProps) {
+  const { token: raw } = await searchParams;
+
+  if (!raw) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center px-4">
+        <p className="text-zinc-400">Missing invite link. Ask your admin for a new invite.</p>
+        <Link href="/" className="mt-4 text-sm text-emerald-500 hover:underline">
+          Back to home
+        </Link>
+      </main>
+    );
+  }
+
+  const signed = verifyInviteToken(raw);
+  if (!signed) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center px-4">
+        <p className="text-center text-zinc-400">
+          This invite link is invalid or has expired.
+        </p>
+        <Link href="/" className="mt-4 text-sm text-emerald-500 hover:underline">
+          Back to home
+        </Link>
+      </main>
+    );
+  }
+
+  const db = getDb();
+
+  const [invite] = await db
+    .select()
+    .from(invites)
+    .where(and(eq(invites.id, signed.inviteId), isNull(invites.redeemedAt)))
+    .limit(1);
+
+  if (!invite) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center px-4">
+        <p className="text-center text-zinc-400">
+          This invite has already been used or does not exist.
+        </p>
+        <Link href="/" className="mt-4 text-sm text-emerald-500 hover:underline">
+          Sign in
+        </Link>
+      </main>
+    );
+  }
+
+  if (new Date() > invite.expiresAt) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center px-4">
+        <p className="text-center text-zinc-400">This invite has expired.</p>
+        <Link href="/" className="mt-4 text-sm text-emerald-500 hover:underline">
+          Back to home
+        </Link>
+      </main>
+    );
+  }
+
+  const [invitedUser] = await db
+    .select({ passwordHash: users.passwordHash })
+    .from(users)
+    .where(eq(users.id, invite.invitedUserId))
+    .limit(1);
+
+  if (invitedUser?.passwordHash) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center px-4">
+        <p className="text-center text-zinc-400">
+          You have already set a password for this account.
+        </p>
+        <Link
+          href="/"
+          className="mt-6 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+        >
+          Sign in
+        </Link>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-16">
+      <div className="w-full max-w-md text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome</h1>
+        <p className="mt-2 text-sm text-zinc-400">
+          Set a password for your Open Forge account. You won&apos;t need to use Forgejo
+          directly.
+        </p>
+        <InvitePasswordForm token={raw} />
+        <p className="mt-8 text-xs text-zinc-500">
+          Wrong person?{" "}
+          <Link href="/" className="text-emerald-500 hover:underline">
+            Back to home
+          </Link>
+        </p>
+      </div>
+    </main>
+  );
+}

@@ -44,6 +44,18 @@ export async function POST(req: Request) {
   const forge = createForgeProvider(session.forgejoToken);
   const repoOwner = body.repo_owner ?? session.username;
 
+  // Resolve auth token: use explicit auth_token, or look up from sync connection
+  let authToken = body.auth_token;
+  if (!authToken && body.sync_connection_id) {
+    const db = getDb();
+    const [conn] = await db
+      .select({ accessToken: syncConnections.accessToken })
+      .from(syncConnections)
+      .where(eq(syncConnections.id, body.sync_connection_id))
+      .limit(1);
+    authToken = conn?.accessToken ?? undefined;
+  }
+
   try {
     const repo = await forge.repos.migrate({
       cloneAddr: body.clone_addr,
@@ -51,8 +63,23 @@ export async function POST(req: Request) {
       repoOwner,
       mirror: body.mirror ?? false,
       service,
-      authToken: body.auth_token,
+      authToken,
     });
+
+    // Trigger an immediate mirror-sync so branches/commits are available right away
+    if (body.mirror) {
+      const [owner, repoName] = repo.fullName.split("/");
+      if (owner && repoName) {
+        const forgejoUrl = process.env.FORGEJO_INTERNAL_URL || "http://localhost:3000";
+        const agentToken = process.env.FORGEJO_AGENT_TOKEN;
+        if (agentToken) {
+          fetch(`${forgejoUrl}/api/v1/repos/${owner}/${repoName}/mirror-sync`, {
+            method: "POST",
+            headers: { Authorization: `token ${agentToken}` },
+          }).catch(() => {});
+        }
+      }
+    }
 
     // If this import was from a connected external provider, create a mirror
     // row so the sync engine tracks it and webhook forwarding works.

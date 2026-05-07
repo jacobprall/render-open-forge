@@ -1,7 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { DevLoginForm } from "./dev-login-form";
+import { SignInForm } from "./sign-in-form";
 
 const features = [
   {
@@ -118,14 +117,8 @@ export default async function Home() {
               />
             </svg>
           </div>
-          <span className="text-lg font-semibold">Open Forge</span>
+          <span className="text-lg font-semibold">OpenForge</span>
         </div>
-        <Link
-          href="/api/auth/login"
-          className="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-zinc-700"
-        >
-          Sign in
-        </Link>
       </nav>
 
       {/* Hero */}
@@ -158,20 +151,7 @@ export default async function Home() {
             your data, and your development workflow.
           </p>
           <div className="mt-10 flex flex-col items-center gap-6">
-            <Link
-              href="/api/auth/login"
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-emerald-500"
-            >
-              Sign in with Forgejo OAuth
-            </Link>
-
-            <div className="flex items-center gap-3 text-sm text-zinc-500">
-              <div className="h-px w-16 bg-zinc-800" />
-              or
-              <div className="h-px w-16 bg-zinc-800" />
-            </div>
-
-            <DevLoginForm />
+            <SignInForm />
           </div>
         </div>
 
@@ -196,7 +176,7 @@ export default async function Home() {
 
       {/* Footer */}
       <footer className="border-t border-zinc-800/50 px-6 py-6 text-center text-sm text-zinc-500">
-        Open Forge &mdash; Self-hosted agentic development platform
+        OpenForge &mdash; Self-hosted agentic development platform
       </footer>
     </main>
   );

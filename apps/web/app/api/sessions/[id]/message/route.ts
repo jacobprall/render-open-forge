@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { sessions, chats, chatMessages, agentRuns } from "@render-open-forge/db";
 import { eq, and, desc, asc, count } from "drizzle-orm";
-import { enqueueJob, ensureConsumerGroup } from "@render-open-forge/shared";
+import { enqueueJob, ensureConsumerGroup, resolveLlmApiKeys } from "@render-open-forge/shared";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
 import { createForgeProvider } from "@/lib/forgejo/client";
 import { resolveSkillsForSessionRow } from "@/lib/skills/resolve-for-session";
@@ -49,7 +49,8 @@ export async function POST(
     typeof body.modelId === "string" && body.modelId.trim() ? body.modelId.trim() : undefined;
   if (requestedModelId) {
     try {
-      const vr = await validateModelOrThrow(requestedModelId);
+      const keys = await resolveLlmApiKeys(db, String(userSession.userId));
+      const vr = await validateModelOrThrow(requestedModelId, keys);
       if (!vr.ok) {
         return NextResponse.json(
           { error: vr.error, available: vr.available },

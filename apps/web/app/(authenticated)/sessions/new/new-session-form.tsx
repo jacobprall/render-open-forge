@@ -61,7 +61,7 @@ export function NewSessionForm() {
   const [newBranchName, setNewBranchName] = useState("");
   const [title, setTitle] = useState("");
   const [activeSkillKeys, setActiveSkillKeys] = useState<Set<string>>(new Set());
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set(["builtin"]));
+  const [skillsExpanded, setSkillsExpanded] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [initialParamsApplied, setInitialParamsApplied] = useState(false);
@@ -141,7 +141,12 @@ export function NewSessionForm() {
 
   const allSkills = useMemo(() => {
     if (!skillsPayload) return [];
-    return [...skillsPayload.builtins, ...skillsPayload.user, ...skillsPayload.repo];
+    // Deduplicate by slug: prefer user > repo > builtin
+    const seen = new Map<string, SkillSummary>();
+    for (const s of skillsPayload.builtins) seen.set(s.slug, s);
+    for (const s of skillsPayload.repo) seen.set(s.slug, s);
+    for (const s of skillsPayload.user) seen.set(s.slug, s);
+    return Array.from(seen.values());
   }, [skillsPayload]);
 
   const effectiveBranch = isNewBranch ? newBranchName.trim() : selectedBranch;
@@ -195,12 +200,6 @@ export function NewSessionForm() {
         setError(err instanceof Error ? err.message : "Unknown error");
       }
     });
-  }
-
-  function groupLabel(source: string): string {
-    if (source === "builtin") return "Built-in";
-    if (source === "user") return "Your skills";
-    return "Repository";
   }
 
   return (
@@ -346,65 +345,53 @@ export function NewSessionForm() {
               No skills found. Your forge-skills repo will seed built-ins automatically.
             </p>
           ) : (
-            <div className="space-y-4">
-              {(["builtin", "user", "repo"] as const).map((source) => {
-                const list = allSkills.filter((s) => s.source === source);
-                if (list.length === 0) return null;
-                const collapsed = collapsedGroups.has(source);
-                return (
-                  <div key={source}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCollapsedGroups((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(source)) next.delete(source);
-                          else next.add(source);
-                          return next;
-                        })
-                      }
-                      className="mb-2 mt-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-zinc-500 transition hover:text-zinc-400"
-                    >
-                      <svg
-                        className={`h-3 w-3 transition-transform ${collapsed ? "" : "rotate-90"}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2}
-                        stroke="currentColor"
+            <div>
+              <button
+                type="button"
+                onClick={() => setSkillsExpanded((v) => !v)}
+                className="mb-2 flex w-full items-center gap-2 text-left text-sm text-zinc-300 transition hover:text-zinc-100"
+              >
+                <svg
+                  className={`h-3.5 w-3.5 shrink-0 transition-transform ${skillsExpanded ? "rotate-90" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                </svg>
+                <span>
+                  {activeSkillKeys.size} of {allSkills.length} skills selected
+                </span>
+              </button>
+              {skillsExpanded && (
+                <div className="flex flex-col gap-2">
+                  {allSkills.map((s) => {
+                    const k = skillKey({ source: s.source, slug: s.slug });
+                    const on = activeSkillKeys.has(k);
+                    return (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => toggleSkill({ source: s.source, slug: s.slug })}
+                        className={`rounded-lg border px-3 py-2 text-left transition ${
+                          on
+                            ? "border-emerald-500/60 bg-emerald-500/10"
+                            : "border-zinc-700 bg-zinc-900 hover:border-zinc-600"
+                        }`}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                      </svg>
-                      {groupLabel(source)} ({list.length})
-                    </button>
-                    {!collapsed && (
-                      <div className="flex flex-col gap-2">
-                        {list.map((s) => {
-                          const k = skillKey({ source: s.source, slug: s.slug });
-                          const on = activeSkillKeys.has(k);
-                          return (
-                            <button
-                              key={k}
-                              type="button"
-                              onClick={() => toggleSkill({ source: s.source, slug: s.slug })}
-                              className={`rounded-lg border px-3 py-2 text-left transition ${
-                                on
-                                  ? "border-emerald-500/60 bg-emerald-500/10"
-                                  : "border-zinc-700 bg-zinc-900 hover:border-zinc-600"
-                              }`}
-                            >
-                              <div className="text-sm font-medium text-zinc-100">{s.name}</div>
-                              <div className="mt-0.5 text-xs text-zinc-500">{s.description}</div>
-                              <div className="mt-1 font-mono text-[10px] text-zinc-600">
-                                {s.source}/{s.slug}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-medium text-zinc-100">{s.name}</div>
+                          <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                            {s.source}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 text-xs text-zinc-500">{s.description}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

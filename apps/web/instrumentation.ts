@@ -6,17 +6,22 @@
  * @see https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
  */
 export async function register() {
-  // Only start background services on the Node.js runtime (not edge)
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { startMirrorCron } = await import("@/lib/sync/mirror-engine");
     const { getDb } = await import("@/lib/db");
+    const { bootstrapAdminIfNeeded } = await import("@/lib/auth/bootstrap");
 
     try {
       const db = getDb();
       startMirrorCron(db);
     } catch {
       // DB may not be available yet (e.g., during build).
-      // The cron will be started on the first request that initializes the DB.
+    }
+
+    try {
+      await bootstrapAdminIfNeeded();
+    } catch (err) {
+      console.warn("[bootstrap] Admin seed skipped:", err instanceof Error ? err.message : err);
     }
   }
 }

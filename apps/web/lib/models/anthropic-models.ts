@@ -1,3 +1,6 @@
+import { MODEL_DEFS } from "@render-open-forge/shared";
+import type { ResolvedLlmKeys } from "@render-open-forge/shared";
+
 export interface AnthropicModelInfo {
   id: string;
   display_name?: string;
@@ -24,18 +27,25 @@ function toCanonicalId(provider: string, modelId: string): string {
   return `${provider}/${modelId.replace(/-\d{8}$/, "")}`;
 }
 
-let cachedModels: ModelSummary[] | null = null;
-let cachedAt = 0;
+const anthropicCache = new Map<string, { at: number; models: ModelSummary[] }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-/** Fetches Anthropic models with in-process TTL cache. Shared by /api/models and route handlers. */
-export async function fetchAnthropicModels(): Promise<ModelSummary[]> {
-  if (cachedModels && Date.now() - cachedAt < CACHE_TTL_MS) {
-    return cachedModels;
+function anthropicCacheKey(apiKey: string | undefined): string {
+  if (!apiKey) return "none";
+  return `${apiKey.length}:${apiKey.slice(0, 12)}`;
+}
+
+/** Fetches Anthropic models with optional key (user/platform resolved or env). */
+export async function fetchAnthropicModelsWithApiKey(
+  apiKey: string | undefined,
+): Promise<ModelSummary[]> {
+  const ck = anthropicCacheKey(apiKey);
+  const hit = anthropicCache.get(ck);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
+    return hit.models;
   }
 
   const models: ModelSummary[] = [];
-  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (apiKey) {
     try {
       const res = await fetch("https://api.anthropic.com/v1/models?limit=100", {
@@ -73,28 +83,72 @@ export async function fetchAnthropicModels(): Promise<ModelSummary[]> {
       console.warn("[models] Failed to fetch from Anthropic:", err instanceof Error ? err.message : err);
     }
   } else {
-    console.warn("[models] ANTHROPIC_API_KEY not set");
+    console.warn("[models] No Anthropic API key available for model list");
   }
 
   if (models.length > 0) {
-    cachedModels = models;
-    cachedAt = Date.now();
+    anthropicCache.set(ck, { at: Date.now(), models });
   }
   return models;
 }
 
-/** Returns whether modelId is known, or true if the catalog is empty / unavailable (caller may proceed). */
-export async function isKnownModelId(modelId: string): Promise<boolean> {
-  const models = await fetchAnthropicModels();
-  if (models.length === 0) return true;
-  return models.some((m) => m.id === modelId);
+function openAiSummariesFromCatalog(): ModelSummary[] {
+  return MODEL_DEFS.filter((m) => m.provider === "openai").map((m) => ({
+    id: m.id,
+    provider: "openai",
+    label: m.label,
+    nativeId: m.nativeId,
+    supportsThinking: m.supportsThinking,
+  }));
 }
 
-export async function validateModelOrThrow(modelId: string): Promise<
+/** Models available to the current user given resolved credentials (DB + env fallback). */
+export async function fetchModelsForSession(keys: ResolvedLlmKeys): Promise<ModelSummary[]> {
+  const anthropic = await fetchAnthropicModelsWithApiKey(keys.anthropic);
+  const openai = keys.openai ? openAiSummariesFromCatalog() : [];
+  const merged = [...anthropic, ...openai];
+  const seen = new Set<string>();
+  return merged.filter((m) => {
+    if (seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
+}
+
+/** Returns whether modelId is known, or true if the catalog is empty / unavailable (caller may proceed). */
+export async function isKnownModelId(
+  modelId: string,
+  keys: ResolvedLlmKeys,
+): Promise<boolean> {
+  const r = await validateModelOrThrow(modelId, keys);
+  return r.ok;
+}
+
+export async function validateModelOrThrow(
+  modelId: string,
+  keys: ResolvedLlmKeys,
+): Promise<
   | { ok: true }
   | { ok: false; error: string; available: string[] }
 > {
-  const models = await fetchAnthropicModels();
+  if (modelId.startsWith("openai/")) {
+    if (!keys.openai) {
+      return {
+        ok: false,
+        error: "No OpenAI API key configured. Add one in Settings → API Keys or set OPENAI_API_KEY.",
+        available: MODEL_DEFS.filter((m) => m.provider === "openai").map((m) => m.id),
+      };
+    }
+    const allowed = MODEL_DEFS.filter((m) => m.provider === "openai");
+    if (allowed.some((m) => m.id === modelId)) return { ok: true };
+    return {
+      ok: false,
+      error: `Unknown model: ${modelId}`,
+      available: allowed.map((m) => m.id),
+    };
+  }
+
+  const models = await fetchAnthropicModelsWithApiKey(keys.anthropic);
   if (models.length === 0) return { ok: true };
   if (models.some((m) => m.id === modelId)) return { ok: true };
   return {

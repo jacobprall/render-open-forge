@@ -4,7 +4,7 @@ import type { UserSession } from "@/lib/auth/session"
 export interface EscalationNotification {
   id: string
   sessionId: string
-  userId: number
+  userId: string
   username: string
   type: "ci_escalation"
   title: string

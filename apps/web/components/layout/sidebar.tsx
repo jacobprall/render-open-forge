@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Folder,
   MessageCircle,
@@ -14,6 +14,7 @@ import {
   LogOut,
   Code,
 } from "@/components/icons";
+import { signOut } from "next-auth/react";
 import { useInboxCount } from "./use-inbox-count";
 
 interface NavItem {
@@ -42,7 +43,6 @@ interface SidebarProps {
 export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
   const { count: inboxCount } = useInboxCount();
 
   useEffect(() => {
@@ -64,9 +64,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
   }, [pathname]);
 
   async function handleSignOut() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
-    router.refresh();
+    await signOut({ callbackUrl: "/" });
   }
 
   return (
@@ -85,7 +83,11 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
         } ${collapsed ? "w-16" : "w-60"}`}
       >
         {/* Logo */}
-        <div className="flex h-12 items-center gap-2 border-b border-zinc-800 px-4">
+        <div
+          className={`flex h-12 items-center border-b border-zinc-800 ${
+            collapsed ? "justify-center" : "gap-2 px-4"
+          }`}
+        >
           <Code className="h-5 w-5 shrink-0 text-emerald-500" />
           {!collapsed && (
             <span className="truncate text-sm font-semibold tracking-tight">
@@ -136,13 +138,19 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
               collapsed ? "justify-center px-0" : ""
             }`}
           >
-            <Image
-              src={user.avatarUrl}
-              alt={user.username}
-              width={28}
-              height={28}
-              className="h-7 w-7 shrink-0 rounded-full bg-zinc-700"
-            />
+            {user.avatarUrl ? (
+              <Image
+                src={user.avatarUrl}
+                alt={user.username}
+                width={28}
+                height={28}
+                className="h-7 w-7 shrink-0 rounded-full bg-zinc-700"
+              />
+            ) : (
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs font-medium text-zinc-300">
+                {user.username.charAt(0).toUpperCase()}
+              </div>
+            )}
             {!collapsed && (
               <span className="flex-1 truncate text-sm text-zinc-300">
                 {user.username}

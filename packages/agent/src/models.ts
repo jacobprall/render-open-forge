@@ -1,6 +1,8 @@
-import { anthropic } from "@ai-sdk/anthropic";
-import { openai } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
+import { MODEL_DEFS } from "@render-open-forge/shared";
+import type { ResolvedLlmKeys } from "@render-open-forge/shared";
 
 export interface ModelDef {
   id: string;
@@ -41,6 +43,32 @@ function toCanonicalId(provider: string, modelId: string): string {
   return `${provider}/${modelId.replace(/-\d{8}$/, "")}`;
 }
 
+function modelDefFromCatalog(canonicalId: string): ModelDef | null {
+  const entry = MODEL_DEFS.find((m) => m.id === canonicalId);
+  if (!entry) return null;
+  return {
+    id: entry.id,
+    provider: entry.provider,
+    modelId: entry.nativeId,
+    displayName: entry.label,
+    supportsThinking: entry.supportsThinking,
+  };
+}
+
+function parseCanonicalModelId(modelId: string): ModelDef | null {
+  const idx = modelId.indexOf("/");
+  if (idx <= 0) return null;
+  const provider = modelId.slice(0, idx);
+  if (provider !== "anthropic" && provider !== "openai") return null;
+  const rest = modelId.slice(idx + 1);
+  return {
+    id: modelId,
+    provider,
+    modelId: rest,
+    displayName: rest,
+  };
+}
+
 export async function fetchAvailableModels(): Promise<ModelDef[]> {
   const models: ModelDef[] = [];
 
@@ -72,6 +100,18 @@ export async function fetchAvailableModels(): Promise<ModelDef[]> {
       }
     } catch {
       console.warn("[models] Failed to fetch Anthropic models, using fallback");
+    }
+  }
+
+  if (process.env.OPENAI_API_KEY) {
+    for (const m of MODEL_DEFS.filter((d) => d.provider === "openai")) {
+      models.push({
+        id: m.id,
+        provider: "openai",
+        modelId: m.nativeId,
+        displayName: m.label,
+        supportsThinking: m.supportsThinking,
+      });
     }
   }
 
@@ -123,17 +163,30 @@ export function getDefaultModelId(): string {
 export function getModelDef(modelId?: string): ModelDef {
   const models = getAvailableModels();
   const id = modelId || getDefaultModelId();
-  return models.find((m) => m.id === id) ?? models[0]!;
+  const found = models.find((m) => m.id === id);
+  if (found) return found;
+  const fromCat = modelDefFromCatalog(id);
+  if (fromCat) return fromCat;
+  const parsed = parseCanonicalModelId(id);
+  if (parsed) return parsed;
+  return models[0]!;
 }
 
-export function getModel(modelId?: string): LanguageModel {
+export function getModel(modelId: string | undefined, keys: ResolvedLlmKeys): LanguageModel {
   const def = getModelDef(modelId);
+  const anthropicKey = keys.anthropic ?? process.env.ANTHROPIC_API_KEY;
+  const openaiKey = keys.openai ?? process.env.OPENAI_API_KEY;
+
   switch (def.provider) {
-    case "anthropic":
-      return anthropic(def.modelId);
-    case "openai":
-      return openai(def.modelId);
+    case "anthropic": {
+      if (!anthropicKey) throw new Error("No Anthropic API key configured for this user or platform");
+      return createAnthropic({ apiKey: anthropicKey })(def.modelId);
+    }
+    case "openai": {
+      if (!openaiKey) throw new Error("No OpenAI API key configured for this user or platform");
+      return createOpenAI({ apiKey: openaiKey })(def.modelId);
+    }
     default:
-      return anthropic(def.modelId);
+      return createAnthropic({ apiKey: anthropicKey! })(def.modelId);
   }
 }
