@@ -32,7 +32,7 @@ export default async function SharedSessionPage({
           </p>
           <Link
             href="/"
-            className="mt-4 inline-block text-sm text-emerald-400 hover:text-emerald-300"
+            className="mt-4 inline-block text-sm text-accent-text hover:text-accent"
           >
             Go home
           </Link>
@@ -56,9 +56,9 @@ export default async function SharedSessionPage({
     : [];
 
   const statusColors: Record<string, string> = {
-    running: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    running: "bg-accent-bg text-accent-text border-accent/20",
     completed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    failed: "bg-red-500/10 text-red-400 border-red-500/20",
+    failed: "bg-danger/10 text-danger border-danger/20",
     archived: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
   };
 
@@ -122,7 +122,7 @@ export default async function SharedSessionPage({
                       className={`rounded px-1.5 py-0.5 text-xs font-medium ${
                         msg.role === "user"
                           ? "bg-blue-500/10 text-blue-400"
-                          : "bg-emerald-500/10 text-emerald-400"
+                          : "bg-accent-bg text-accent-text"
                       }`}
                     >
                       {msg.role}
@@ -161,7 +161,7 @@ export default async function SharedSessionPage({
                             key={i}
                             className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs"
                           >
-                            <span className="font-medium text-emerald-400">
+                            <span className="font-medium text-accent-text">
                               Result: {part.toolName}
                             </span>
                             <pre className="mt-1 max-h-40 overflow-auto text-zinc-400">
@@ -187,7 +187,7 @@ export default async function SharedSessionPage({
           </p>
           <Link
             href="/"
-            className="mt-2 inline-block text-sm text-emerald-400 hover:text-emerald-300"
+            className="mt-2 inline-block text-sm text-accent-text hover:text-accent"
           >
             Sign in to create your own sessions
           </Link>

@@ -97,12 +97,12 @@ export function MembersList({ org }: { org: string }) {
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
           <button
             type="submit"
             disabled={adding || !username.trim()}
-            className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
           >
             {adding ? "Adding…" : "Add Member"}
           </button>
@@ -115,7 +115,7 @@ export function MembersList({ org }: { org: string }) {
         {loading ? (
           <p className="mt-4 text-sm text-zinc-500">Loading…</p>
         ) : loadError ? (
-          <p className="mt-4 text-sm text-red-400">{loadError}</p>
+          <p className="mt-4 text-sm text-danger">{loadError}</p>
         ) : members.length === 0 ? (
           <p className="mt-4 text-sm text-zinc-500">No members found.</p>
         ) : (
@@ -141,7 +141,7 @@ export function MembersList({ org }: { org: string }) {
                   type="button"
                   disabled={removing === member.login}
                   onClick={() => void handleRemove(member.login)}
-                  className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-400 transition hover:border-red-500/40 hover:text-red-400 disabled:opacity-50"
+                  className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-400 transition hover:border-danger/40 hover:text-danger disabled:opacity-50"
                 >
                   {removing === member.login ? "Removing…" : "Remove"}
                 </button>
@@ -152,12 +152,12 @@ export function MembersList({ org }: { org: string }) {
       </div>
 
       {message ? (
-        <p className="text-sm text-emerald-400" role="status">
+        <p className="text-sm text-accent-text" role="status">
           {message}
         </p>
       ) : null}
       {error ? (
-        <p className="text-sm text-red-400" role="alert">
+        <p className="text-sm text-danger" role="alert">
           {error}
         </p>
       ) : null}

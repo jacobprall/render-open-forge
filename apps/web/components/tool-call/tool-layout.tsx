@@ -31,9 +31,9 @@ export function ToolLayout({
     status === "running" ? (
       <Loader2 className="size-3 text-zinc-400 animate-spin" />
     ) : status === "success" ? (
-      <CheckCircle2 className="size-3 text-emerald-500" />
+      <CheckCircle2 className="size-3 text-accent-text" />
     ) : status === "error" ? (
-      <XCircle className="size-3 text-red-400" />
+      <XCircle className="size-3 text-danger" />
     ) : null;
 
   return (

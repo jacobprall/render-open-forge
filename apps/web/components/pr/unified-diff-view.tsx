@@ -16,7 +16,7 @@ export function UnifiedDiffView({ raw, className = "" }: { raw: string; classNam
         const isRm = line.startsWith("-") && !line.startsWith("---");
         if (line.startsWith("@@")) cls = "text-cyan-400";
         else if (isAdd) cls = "border-l-2 border-accent/60 bg-accent-bg pl-2 text-accent";
-        else if (isRm) cls = "border-l-2 border-red-500/60 bg-red-500/10 pl-2 text-red-300";
+        else if (isRm) cls = "border-l-2 border-danger/60 bg-danger/10 pl-2 text-danger";
         else if (line.startsWith("diff ") || line.startsWith("Binary files")) cls = "text-zinc-500";
 
         const isCode = isAdd || isRm || (!line.startsWith("@@") && !line.startsWith("diff ") && !line.startsWith("Binary files") && !line.startsWith("---") && !line.startsWith("+++") && !line.startsWith("index "));

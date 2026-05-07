@@ -11,9 +11,9 @@ export default function AuthenticatedError({
 }) {
   return (
     <div className="mx-auto max-w-lg px-6 py-16 text-center">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-danger/10">
         <svg
-          className="h-6 w-6 text-red-400"
+          className="h-6 w-6 text-danger"
           fill="none"
           viewBox="0 0 24 24"
           strokeWidth={1.5}
@@ -38,7 +38,7 @@ export default function AuthenticatedError({
       <div className="mt-6 flex items-center justify-center gap-3">
         <button
           onClick={reset}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
         >
           Try again
         </button>

@@ -151,7 +151,7 @@ export function ApiKeysManager() {
                 <button
                   type="button"
                   onClick={() => void handleDelete(k.id)}
-                  className="shrink-0 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-red-500/40 hover:text-red-400"
+                  className="shrink-0 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-danger/40 hover:text-danger"
                 >
                   Remove
                 </button>

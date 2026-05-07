@@ -119,7 +119,7 @@ export default async function ConnectionsPage() {
                     </div>
                     <button
                       disabled
-                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-red-500/50 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-danger/50 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Disconnect
                     </button>

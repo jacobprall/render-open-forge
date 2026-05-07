@@ -11,9 +11,9 @@ export default function GlobalError({
     <html lang="en" className="dark">
       <body className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-100">
         <div className="max-w-md text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-danger/10">
             <svg
-              className="h-7 w-7 text-red-400"
+              className="h-7 w-7 text-danger"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -37,7 +37,7 @@ export default function GlobalError({
           )}
           <button
             onClick={reset}
-            className="mt-6 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500"
+            className="mt-6 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
           >
             Try again
           </button>

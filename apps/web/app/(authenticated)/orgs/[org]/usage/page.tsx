@@ -22,15 +22,15 @@ async function usageFetcher(url: string): Promise<QuotaItem[]> {
 }
 
 function barColor(pct: number): string {
-  if (pct >= 85) return "bg-red-500";
+  if (pct >= 85) return "bg-danger";
   if (pct >= 60) return "bg-amber-500";
-  return "bg-emerald-500";
+  return "bg-accent";
 }
 
 function textColor(pct: number): string {
-  if (pct >= 85) return "text-red-400";
+  if (pct >= 85) return "text-danger";
   if (pct >= 60) return "text-amber-400";
-  return "text-emerald-400";
+  return "text-accent-text";
 }
 
 export default function OrgUsagePage() {
@@ -59,7 +59,7 @@ export default function OrgUsagePage() {
       {loading ? (
         <p className="text-sm text-zinc-400">Loading usage data...</p>
       ) : error ? (
-        <p className="text-sm text-red-400">{error}</p>
+        <p className="text-sm text-danger">{error}</p>
       ) : quotas.length === 0 ? (
         <p className="text-sm text-zinc-400">No usage data available.</p>
       ) : (

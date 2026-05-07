@@ -39,7 +39,7 @@ export function TestResultsPanel({ owner, repo, runId }: Props) {
   }
 
   if (error) {
-    return <p className="text-sm text-red-400" role="alert">{error}</p>
+    return <p className="text-sm text-danger" role="alert">{error}</p>
   }
 
   if (!results || results.testSuites.length === 0) {
@@ -73,8 +73,8 @@ export function TestResultsPanel({ owner, repo, runId }: Props) {
 
 function CountBadge({ label, count, color }: { label: string; count: number; color: string }) {
   const colorMap: Record<string, string> = {
-    emerald: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20",
-    red: "bg-red-500/15 text-red-300 border-red-500/20",
+    emerald: "bg-accent-bg text-accent border-accent/20",
+    red: "bg-danger/15 text-danger border-danger/20",
     orange: "bg-orange-500/15 text-orange-300 border-orange-500/20",
     zinc: "bg-zinc-500/15 text-zinc-300 border-zinc-500/20",
   }
@@ -130,8 +130,8 @@ function SuiteSection({ suite }: { suite: TestSuite }) {
 }
 
 const statusIcons: Record<TestCase["status"], { icon: string; color: string }> = {
-  pass: { icon: "✓", color: "text-emerald-400" },
-  fail: { icon: "✗", color: "text-red-400" },
+  pass: { icon: "✓", color: "text-accent-text" },
+  fail: { icon: "✗", color: "text-danger" },
   error: { icon: "!", color: "text-orange-400" },
   skip: { icon: "–", color: "text-zinc-500" },
 }
@@ -172,7 +172,7 @@ function TestCaseRow({ tc }: { tc: TestCase }) {
       {expanded && hasDetails && (
         <div className="mx-4 mb-3 rounded-md border border-zinc-800 bg-zinc-950 p-3">
           {tc.message && (
-            <p className="mb-1 text-xs font-medium text-red-300">{tc.message}</p>
+            <p className="mb-1 text-xs font-medium text-danger">{tc.message}</p>
           )}
           {tc.stackTrace && (
             <pre className="max-h-48 overflow-auto whitespace-pre-wrap wrap-break-words font-mono text-xs leading-relaxed text-zinc-400">

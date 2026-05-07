@@ -155,7 +155,7 @@ export function EditRenderer({
           <pre className="text-xs bg-danger/10 text-danger whitespace-pre-wrap px-1 rounded">
             {`- ${args.oldString.length > 400 ? args.oldString.slice(0, 400) + "…" : args.oldString}`}
           </pre>
-          <pre className="text-xs bg-emerald-500/10 text-emerald-400 whitespace-pre-wrap px-1 rounded">
+          <pre className="text-xs bg-accent-bg text-accent-text whitespace-pre-wrap px-1 rounded">
             {`+ ${args.newString ? (args.newString.length > 400 ? args.newString.slice(0, 400) + "…" : args.newString) : ""}`}
           </pre>
         </div>

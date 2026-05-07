@@ -23,7 +23,7 @@ const directionLabels: Record<string, { label: string; color: string }> = {
 const statusIndicators: Record<string, { dot: string; label: string }> = {
   active: { dot: "bg-accent", label: "Active" },
   paused: { dot: "bg-zinc-500", label: "Paused" },
-  error: { dot: "bg-red-500", label: "Error" },
+  error: { dot: "bg-danger", label: "Error" },
 };
 
 function formatRelative(dateStr: string | null): string {
@@ -160,7 +160,7 @@ export default function MirrorsPage() {
             <button
               type="button"
               onClick={() => void mutate()}
-              className="ml-2 text-red-400 underline hover:text-red-300"
+              className="ml-2 text-danger underline hover:text-danger"
             >
               Retry
             </button>
@@ -168,7 +168,7 @@ export default function MirrorsPage() {
             <button
               type="button"
               onClick={() => setError(null)}
-              className="ml-2 text-red-400 underline hover:text-red-300"
+              className="ml-2 text-danger underline hover:text-danger"
             >
               Dismiss
             </button>
@@ -286,7 +286,7 @@ export default function MirrorsPage() {
                     <button
                       onClick={() => handleDelete(mirror.id)}
                       disabled={isDeleting}
-                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-red-500/50 hover:text-red-400 disabled:opacity-50"
+                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-danger/50 hover:text-danger disabled:opacity-50"
                     >
                       {isDeleting ? "Removing..." : "Remove"}
                     </button>
