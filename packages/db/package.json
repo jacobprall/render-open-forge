@@ -1,0 +1,22 @@
+{
+  "name": "@render-open-forge/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./schema": "./schema.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.1"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.12",
+    "@types/node": "^22",
+    "typescript": "^5"
+  }
+}

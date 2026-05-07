@@ -1,0 +1,85 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: forge
+      POSTGRES_USER: forge
+      POSTGRES_PASSWORD: forge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forge"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:14
+    environment:
+      - FORGEJO__database__DB_TYPE=postgres
+      - FORGEJO__database__HOST=postgres:5432
+      - FORGEJO__database__NAME=forge
+      - FORGEJO__database__USER=forge
+      - FORGEJO__database__PASSWD=forge
+      - FORGEJO__server__ROOT_URL=http://localhost:3000
+      - FORGEJO__server__HTTP_PORT=3000
+      - FORGEJO__server__DOMAIN=localhost
+      - FORGEJO__service__DISABLE_REGISTRATION=false
+      - FORGEJO__service__ENABLE_NOTIFY_MAIL=false
+      - FORGEJO__actions__ENABLED=true
+      - FORGEJO__api__ENABLE_SWAGGER=true
+      - FORGEJO__oauth2__ENABLE=true
+      - FORGEJO__oauth2__JWT_SECRET=dev-jwt-secret-change-in-production
+    ports:
+      - "3000:3000"
+      - "2222:22"
+    volumes:
+      - forgejo-data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  runner:
+    image: code.forgejo.org/forgejo/runner:6.0.0
+    environment:
+      - DOCKER_HOST=tcp://docker-in-docker:2376
+      - DOCKER_TLS_VERIFY=0
+    volumes:
+      - runner-data:/data
+    depends_on:
+      forgejo:
+        condition: service_healthy
+      docker-in-docker:
+        condition: service_started
+
+  docker-in-docker:
+    image: docker:dind
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    volumes:
+      - dind-data:/var/lib/docker
+
+volumes:
+  pgdata:
+  forgejo-data:
+  runner-data:
+  dind-data:

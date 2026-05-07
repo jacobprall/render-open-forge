@@ -1,0 +1,51 @@
+import { tool } from "ai";
+import { z } from "zod";
+import { getAdapter, getSessionId } from "../context/agent-context";
+import { notifyFileChanged } from "./truncation";
+
+const editFileInputSchema = z.object({
+  path: z.string().describe("Workspace-relative path to the file"),
+  oldString: z.string().describe("Exact text to replace"),
+  newString: z.string().describe("Replacement text"),
+  replaceAll: z.boolean().optional().describe("Replace all occurrences. Default: false"),
+});
+
+export function editFileTool() {
+  return tool({
+    description: `Perform exact string replacement in a file. Read the file first, then supply the exact text to replace (including whitespace). Use replaceAll: true to replace every occurrence.`,
+    inputSchema: editFileInputSchema,
+    execute: async ({ path: filePath, oldString, newString, replaceAll = false }, { experimental_context }) => {
+      const adapter = getAdapter(experimental_context);
+      const sessionId = getSessionId(experimental_context);
+
+      if (oldString === newString) {
+        return { success: false, error: "oldString and newString must differ" };
+      }
+
+      try {
+        const content = await adapter.readFile(sessionId, filePath);
+        if (!content.includes(oldString)) {
+          return { success: false, error: "oldString not found in file" };
+        }
+
+        const occurrences = content.split(oldString).length - 1;
+        if (occurrences > 1 && !replaceAll) {
+          return {
+            success: false,
+            error: `oldString found ${occurrences} times. Use replaceAll: true or add more context.`,
+          };
+        }
+
+        const newContent = replaceAll
+          ? content.replaceAll(oldString, newString)
+          : content.replace(oldString, newString);
+
+        await adapter.writeFile(sessionId, filePath, newContent);
+        await notifyFileChanged(experimental_context, filePath, content, newContent);
+        return { success: true, path: filePath, replacements: replaceAll ? occurrences : 1 };
+      } catch (err) {
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    },
+  });
+}

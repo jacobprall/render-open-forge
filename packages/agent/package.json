@@ -1,0 +1,30 @@
+{
+  "name": "@render-open-forge/agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'agent build placeholder'",
+    "start": "bun run src/worker.ts",
+    "dev": "bun run --watch src/worker.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/openai": "catalog:",
+    "@render-open-forge/db": "workspace:*",
+    "@render-open-forge/sandbox": "workspace:*",
+    "@render-open-forge/shared": "workspace:*",
+    "ai": "catalog:",
+    "drizzle-orm": "^0.45.1",
+    "ioredis": "^5.9.2",
+    "nanoid": "^5.1.6",
+    "postgres": "^3.4.8",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.12",
+    "@types/node": "^22",
+    "typescript": "^5"
+  }
+}

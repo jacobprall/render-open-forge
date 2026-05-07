@@ -1,0 +1,23 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "env": [
+        "DATABASE_URL",
+        "REDIS_URL",
+        "FORGEJO_INTERNAL_URL",
+        "FORGEJO_EXTERNAL_URL",
+        "FORGEJO_OAUTH_CLIENT_ID",
+        "FORGEJO_OAUTH_CLIENT_SECRET",
+        "FORGEJO_AGENT_TOKEN",
+        "SESSION_SECRET",
+        "ANTHROPIC_API_KEY"
+      ],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "dev": { "cache": false, "persistent": true },
+    "typecheck": { "dependsOn": ["^typecheck"], "outputs": [] },
+    "start": { "dependsOn": ["^build"] }
+  }
+}

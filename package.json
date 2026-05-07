@@ -1,0 +1,40 @@
+{
+  "name": "render-open-forge",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "ai": "^6.0.165",
+      "@ai-sdk/anthropic": "^3.0.70",
+      "@ai-sdk/openai": "^3.0.57",
+      "@ai-sdk/react": "^3.0.167",
+      "zod": "^4.3.6"
+    }
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "bun test tests",
+    "typecheck": "turbo typecheck",
+    "web": "cd apps/web && bun run dev",
+    "worker": "cd packages/agent && bun run src/worker.ts",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f",
+    "db:push": "cd apps/web && bun run db:push",
+    "db:generate": "cd apps/web && bun run db:generate",
+    "db:studio": "cd apps/web && bun run db:studio",
+    "setup": "bun run infrastructure/forgejo/setup.ts"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "^5"
+  },
+  "overrides": {
+    "zod": "^4.3.6"
+  },
+  "packageManager": "bun@1.2.14"
+}

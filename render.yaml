@@ -1,0 +1,129 @@
+services:
+  # Web Application (Next.js)
+  - type: web
+    name: forge-web
+    runtime: node
+    plan: starter
+    buildCommand: bun install && npx turbo build --filter=web
+    startCommand: cd apps/web && bun run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: forge-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: forge-redis
+          type: keyvalue
+          property: connectionString
+      - key: FORGEJO_INTERNAL_URL
+        value: http://forge-forgejo:3000
+      - key: FORGEJO_EXTERNAL_URL
+        sync: false
+      - key: FORGEJO_OAUTH_CLIENT_ID
+        sync: false
+      - key: FORGEJO_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: FORGEJO_AGENT_TOKEN
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: NODE_ENV
+        value: production
+
+  # Agent Worker
+  - type: worker
+    name: forge-agent
+    runtime: node
+    plan: starter
+    buildCommand: bun install && npx turbo build --filter=agent
+    startCommand: cd packages/agent && bun run start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: forge-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: forge-redis
+          type: keyvalue
+          property: connectionString
+      - key: FORGEJO_INTERNAL_URL
+        value: http://forge-forgejo:3000
+      - key: FORGEJO_AGENT_TOKEN
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SANDBOX_SERVICE_HOST
+        sync: false
+
+  # Forgejo (Internal Forge)
+  - type: web
+    name: forge-forgejo
+    runtime: docker
+    plan: standard
+    dockerfilePath: infrastructure/forgejo/Dockerfile
+    dockerContext: infrastructure/forgejo
+    healthCheckPath: /api/v1/version
+    disk:
+      name: forgejo-data
+      mountPath: /data
+      sizeGB: 10
+    envVars:
+      - key: FORGEJO__database__DB_TYPE
+        value: postgres
+      - key: FORGEJO__database__HOST
+        fromDatabase:
+          name: forge-db
+          property: host
+      - key: FORGEJO__database__NAME
+        fromDatabase:
+          name: forge-db
+          property: database
+      - key: FORGEJO__database__USER
+        fromDatabase:
+          name: forge-db
+          property: user
+      - key: FORGEJO__database__PASSWD
+        fromDatabase:
+          name: forge-db
+          property: password
+      - key: FORGEJO__server__ROOT_URL
+        sync: false
+      - key: FORGEJO__oauth2__JWT_SECRET
+        generateValue: true
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+
+  # Forgejo Actions Runner
+  - type: worker
+    name: forge-runner
+    runtime: docker
+    plan: starter
+    dockerfilePath: infrastructure/runner/Dockerfile
+    dockerContext: infrastructure/runner
+    envVars:
+      - key: FORGEJO_URL
+        value: http://forge-forgejo:3000
+      - key: RUNNER_TOKEN
+        sync: false
+
+  # Redis (job queue + streaming)
+  - type: keyvalue
+    name: forge-redis
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  - name: forge-db
+    plan: basic-256mb
+    postgresMajorVersion: 16
+
+previews:
+  generation: manual
