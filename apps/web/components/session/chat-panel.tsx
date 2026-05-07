@@ -16,10 +16,12 @@ interface Message {
 interface ChatPanelProps {
   sessionId: string;
   chatId: string | null;
+  activeRunId: string | null;
   initialMessages: Message[];
 }
 
-export function ChatPanel({ sessionId, chatId, initialMessages }: ChatPanelProps) {
+export function ChatPanel({ sessionId, chatId: _chatId, activeRunId, initialMessages }: ChatPanelProps) {
+  void _chatId;
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -169,8 +171,33 @@ export function ChatPanel({ sessionId, chatId, initialMessages }: ChatPanelProps
     }
   }
 
-  function handleAskUserResponse(answer: string) {
+  async function submitAskUserReply(answer: string) {
+    if (!askUserPrompt?.toolCallId || !activeRunId) return;
     setAskUserPrompt(null);
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toolCallId: askUserPrompt.toolCallId,
+          message: answer,
+          runId: activeRunId,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Reply failed" }));
+        setError(data.error ?? "Failed to send reply to agent");
+      }
+    } catch {
+      setError("Network error — reply failed");
+    }
+  }
+
+  function handleAskUserResponse(answer: string) {
+    if (askUserPrompt?.toolCallId && activeRunId) {
+      void submitAskUserReply(answer);
+      return;
+    }
     sendMessage(answer);
   }
 

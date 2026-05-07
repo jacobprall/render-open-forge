@@ -1,48 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  verifyForgejoWebhookSignature,
+  isForgejoWebhookVerificationConfigured,
+  shouldAllowUnsignedForgejoWebhooks,
+  logger,
+} from "@render-open-forge/shared";
+import { getDb } from "@/lib/db";
+import { processForgejoWebhook } from "@/lib/webhooks/forgejo-dispatch";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
- * Receives webhooks from the internal Forgejo instance.
- *
- * Events we handle:
- * - Workflow run completed (CI pass/fail) → update session CI status, trigger agent fix on failure
- * - Pull request events → update session PR status
- * - Push events → sync mirrors if configured
+ * Forgejo → platform webhooks (CI, PRs, push, comments, commit status).
+ * Configure in Forgejo with the same secret as FORGEJO_WEBHOOK_SECRET.
  */
 export async function POST(request: NextRequest) {
-  const event = request.headers.get("x-forgejo-event");
-  const body = await request.json();
+  const rawBody = await request.text();
+  const secret = process.env.FORGEJO_WEBHOOK_SECRET ?? "";
 
-  switch (event) {
-    case "workflow_run": {
-      await handleWorkflowRun(body);
-      break;
+  if (isForgejoWebhookVerificationConfigured()) {
+    const sig =
+      verifyForgejoWebhookSignature(
+        rawBody,
+        request.headers.get("x-forgejo-signature"),
+        request.headers.get("x-gitea-signature"),
+        secret,
+      );
+    if (!sig) {
+      logger.warn("forgejo webhook rejected: invalid signature", {});
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
-    case "pull_request": {
-      await handlePullRequest(body);
-      break;
-    }
-    case "push": {
-      // Future: trigger mirror sync
-      break;
-    }
-    default: {
-      console.log(`[webhook] Unhandled Forgejo event: ${event}`);
-    }
+  } else if (!shouldAllowUnsignedForgejoWebhooks()) {
+    logger.warn("forgejo webhook rejected: FORGEJO_WEBHOOK_SECRET not set", {});
+    return NextResponse.json({ error: "Webhook secret not configured" }, { status: 503 });
+  }
+
+  const event = request.headers.get("x-forgejo-event") ?? request.headers.get("x-gitea-event");
+
+  try {
+    const db = getDb();
+    await processForgejoWebhook(db, event, rawBody);
+  } catch (err) {
+    logger.errorWithCause(err, "forgejo webhook handler failed", {});
+    return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });
-}
-
-async function handleWorkflowRun(payload: unknown) {
-  // TODO: Parse workflow run payload
-  // If conclusion === "failure" and session has auto-fix enabled:
-  //   1. Record ci_event
-  //   2. Enqueue agent fix job via Redis
-  console.log("[webhook] workflow_run received");
-}
-
-async function handlePullRequest(payload: unknown) {
-  // TODO: Parse PR payload
-  // Update session.prStatus based on action (opened, closed, merged)
-  console.log("[webhook] pull_request received");
 }

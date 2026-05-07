@@ -122,13 +122,12 @@ export default async function ConnectionsPage() {
                     </button>
                   </div>
                 ) : (
-                  <button
-                    disabled
-                    className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-600 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
-                    title="OAuth integration coming soon"
+                  <a
+                    href={`/api/oauth/${provider.id}`}
+                    className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-600 hover:text-zinc-100"
                   >
                     Connect
-                  </button>
+                  </a>
                 )}
               </div>
             </div>
@@ -137,7 +136,7 @@ export default async function ConnectionsPage() {
       </div>
 
       <p className="mt-6 text-xs text-zinc-600">
-        External forge connections enable repository mirroring. OAuth flows for GitHub and GitLab are not yet implemented.
+        External forge OAuth: GitHub connect is wired; GitLab OAuth is queued. Tokens are stored in Postgres (sync_connections).
       </p>
     </div>
   );

@@ -4,6 +4,8 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { relativeTime } from "@/lib/utils";
 import { MergeControls } from "./merge-controls";
+import { UnifiedDiffView } from "@/components/pr/unified-diff-view";
+import { PRComments } from "@/components/pr/pr-comments";
 
 export default async function PullRequestDetailPage({
   params,
@@ -23,6 +25,13 @@ export default async function PullRequestDetailPage({
     pr = await client.getPullRequest(owner, repo, num);
   } catch {
     notFound();
+  }
+
+  let rawDiff = "";
+  try {
+    rawDiff = await client.getPullRequestDiff(owner, repo, num);
+  } catch {
+    rawDiff = "";
   }
 
   const basePath = `/${owner}/${repo}`;
@@ -100,6 +109,23 @@ export default async function PullRequestDetailPage({
         ) : (
           <p className="text-sm italic text-zinc-600">No description provided.</p>
         )}
+      </div>
+
+      {rawDiff ? (
+        <div className="mb-8 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/80">
+          <h3 className="border-b border-zinc-800 px-6 py-3 text-sm font-medium text-zinc-400">
+            Changes
+          </h3>
+          <div className="max-h-[70vh] overflow-y-auto px-4 py-3">
+            <UnifiedDiffView raw={rawDiff} />
+          </div>
+        </div>
+      ) : null}
+
+      {/* Comments & Reviews */}
+      <div className="mb-8">
+        <h3 className="mb-4 text-sm font-medium text-zinc-400">Discussion</h3>
+        <PRComments owner={owner} repo={repo} number={pr.number} />
       </div>
 
       {/* Merge controls */}

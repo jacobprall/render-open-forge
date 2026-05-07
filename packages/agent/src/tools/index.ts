@@ -10,3 +10,16 @@ export { webFetchTool } from "./web-fetch";
 export { todoWriteTool } from "./todo-write";
 export { askUserQuestionTool } from "./ask-user";
 export { taskTool } from "./task";
+export {
+  mergePrTool,
+  closePrTool,
+  addPrCommentTool,
+  requestReviewTool,
+  approvePrTool,
+  createRepoTool,
+  readBuildLogTool,
+  pullRequestDiffTool,
+  reviewPrTool,
+} from "./forge-pr";
+export { submitSpecTool } from "./submit-spec";
+export { resolveCommentTool } from "./resolve-comment";

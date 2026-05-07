@@ -20,3 +20,4 @@ export type {
   VerifyResult,
   HealthResult,
 } from "./types";
+export { runSecurityAudit, formatAuditReport, type AuditCheck } from "./lib/security-audit";

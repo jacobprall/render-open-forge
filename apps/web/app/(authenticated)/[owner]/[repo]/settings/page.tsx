@@ -2,6 +2,9 @@ import { getSession } from "@/lib/auth/session";
 import { createForgejoClient } from "@/lib/forgejo/client";
 import { redirect, notFound } from "next/navigation";
 import { DeleteRepoButton } from "./delete-button";
+import { BranchProtectionSettings } from "./branch-protection-settings";
+import { PipelineEditor } from "./pipeline-editor";
+import { SecretsSettings } from "./secrets-settings";
 
 export default async function RepoSettingsPage({
   params,
@@ -57,6 +60,21 @@ export default async function RepoSettingsPage({
             </div>
           </div>
         </div>
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-lg font-semibold text-zinc-100">Branch protection</h2>
+        <BranchProtectionSettings owner={owner} repo={repo} defaultBranch={repoData.default_branch} />
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-lg font-semibold text-zinc-100">Agent Pipeline</h2>
+        <PipelineEditor owner={owner} repo={repo} />
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-lg font-semibold text-zinc-100">Secrets</h2>
+        <SecretsSettings owner={owner} repo={repo} />
       </section>
 
       {/* Danger zone */}

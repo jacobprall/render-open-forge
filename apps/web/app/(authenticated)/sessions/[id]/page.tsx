@@ -113,6 +113,7 @@ export default async function SessionDetailPage({
         <ChatPanel
           sessionId={id}
           chatId={chatRow?.id ?? null}
+          activeRunId={chatRow?.activeRunId ?? null}
           initialMessages={messages.map((m) => ({
             id: m.id,
             role: m.role as "user" | "assistant",

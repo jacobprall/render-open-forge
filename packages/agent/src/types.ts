@@ -20,4 +20,11 @@ export interface AgentJob {
   requestId?: string;
   retryCount?: number;
   maxRetries?: number;
+  trigger?:
+    | "user_message"
+    | "ci_failure"
+    | "review_comment"
+    | "pr_opened"
+    | "pr_merged"
+    | "workflow_run";
 }

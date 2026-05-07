@@ -13,3 +13,5 @@ export function getDb() {
   }
   return _db;
 }
+
+export type ForgeDb = ReturnType<typeof getDb>;

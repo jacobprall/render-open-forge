@@ -17,6 +17,7 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
   const [activeTab, setActiveTab] = useState<"files" | "ci">("files");
   const [filesChanged, setFilesChanged] = useState<FileChange[]>([]);
   const [ciStatus, setCiStatus] = useState<"idle" | "running" | "success" | "failure">("idle");
+  const [ciEvents, setCiEvents] = useState<Array<{ type: string; status: string | null }>>([]);
 
   useEffect(() => {
     const eventSource = new EventSource(`/api/sessions/${sessionId}/stream`);
@@ -45,6 +46,30 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
     };
     return () => eventSource.close();
   }, [sessionId]);
+
+  useEffect(() => {
+    if (activeTab !== "ci") return;
+    async function poll() {
+      try {
+        const res = await fetch(`/api/sessions/${sessionId}/ci-events`);
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          events: Array<{ type: string; status: string | null }>;
+        };
+        setCiEvents(data.events ?? []);
+        const last = data.events?.[0];
+        if (!last?.status) return;
+        if (last.status === "success") setCiStatus("success");
+        else if (last.status === "running" || last.status === "pending") setCiStatus("running");
+        else setCiStatus("failure");
+      } catch {
+        // ignore
+      }
+    }
+    void poll();
+    const t = setInterval(poll, 5000);
+    return () => clearInterval(t);
+  }, [activeTab, sessionId]);
 
   if (!isOpen) {
     return (
@@ -138,18 +163,18 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
         )}
 
         {activeTab === "ci" && (
-          <div className="p-4">
+          <div className="space-y-4 p-4">
             <div className="flex items-center gap-2">
               {ciStatus === "idle" && (
                 <>
                   <div className="h-2.5 w-2.5 rounded-full bg-zinc-600" />
-                  <span className="text-sm text-zinc-500">No CI runs</span>
+                  <span className="text-sm text-zinc-500">No Forgejo webhook activity yet.</span>
                 </>
               )}
               {ciStatus === "running" && (
                 <>
                   <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-amber-400" />
-                  <span className="text-sm text-amber-400">Running</span>
+                  <span className="text-sm text-amber-400">Running / pending</span>
                 </>
               )}
               {ciStatus === "success" && (
@@ -165,6 +190,30 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
                 </>
               )}
             </div>
+
+            {ciEvents.length === 0 ? (
+              <p className="text-xs text-zinc-500">
+                Connect Forgejo → <span className="font-mono">/api/webhooks/forgejo</span>
+                {' '}with a shared secret to populate CI signals.
+              </p>
+            ) : (
+              <ul className="space-y-2 text-xs text-zinc-400">
+                {ciEvents.slice(0, 20).map((ev, i) => (
+                  <li key={`${ev.type}-${i}`} className="rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1.5">
+                    <span className="font-mono text-zinc-300">{ev.type}</span>
+                    {ev.status ? (
+                      <span
+                        className={`ml-2 ${
+                          ev.status === "success" ? "text-emerald-400" : ev.status === "running" ? "text-amber-400" : "text-red-400"
+                        }`}
+                      >
+                        {ev.status}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
       </div>

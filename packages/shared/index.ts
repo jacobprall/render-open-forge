@@ -100,6 +100,30 @@ export { logger } from "./lib/logger";
 
 // Forgejo client
 export { ForgejoClient } from "./lib/forgejo/client";
+export { getBranchProtection, setBranchProtection, normalizeBranchProtectionList } from "./lib/forgejo/branch-protection";
+export {
+  addInlineComment,
+  listPRComments,
+  listPRReviews,
+  resolveComment,
+  submitReview,
+  unresolveComment,
+  type PRComment,
+  type PRReview,
+} from "./lib/forgejo/review-service";
+export {
+  createCommitStatus,
+  getCombinedStatus,
+  getWorkflowTemplate,
+  WORKFLOW_TEMPLATES,
+  type CommitStatus,
+  type WorkflowTemplateKey,
+} from "./lib/forgejo/ci-helpers";
+export {
+  verifyForgejoWebhookSignature,
+  isForgejoWebhookVerificationConfigured,
+  shouldAllowUnsignedForgejoWebhooks,
+} from "./lib/forgejo/webhook-signature";
 
 // Redis Streams agent job queue
 export {
@@ -123,6 +147,15 @@ export {
   readRunEventPayloadsAfterId,
   runEventStreamKey,
 } from "./lib/run-stream";
+
+// CI test-result parsers
+export {
+  parseJUnitXML,
+  parseTAPOutput,
+  type TestCase,
+  type TestResultSummary,
+  type TestSuite,
+} from "./lib/ci/test-results";
 
 // Model catalog
 export {

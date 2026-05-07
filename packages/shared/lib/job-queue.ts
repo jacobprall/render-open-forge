@@ -42,6 +42,9 @@ export const AgentJobSchema = z.object({
   projectContext: z.string().nullish(),
   modelId: z.string().optional(),
   fixContext: z.string().optional(),
+  trigger: z
+    .enum(["user_message", "ci_failure", "review_comment", "pr_opened", "pr_merged", "workflow_run"])
+    .optional(),
   requestId: z.string().optional(),
   retryCount: z.number().int().min(0).optional(),
   maxRetries: z.number().int().min(0).max(50).optional(),

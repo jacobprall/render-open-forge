@@ -138,6 +138,20 @@ export class ForgejoClient {
     return this.request(`/repos/${owner}/${repo}`, { method: "DELETE" });
   }
 
+  async migrateRepo(params: {
+    clone_addr: string;
+    repo_name: string;
+    repo_owner?: string;
+    mirror?: boolean;
+    service?: string;
+    auth_token?: string;
+  }): Promise<ForgejoRepo> {
+    return this.request("/repos/migrate", {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
+  }
+
   // --- Branches ---
 
   async listBranches(owner: string, repo: string): Promise<ForgejoBranch[]> {
@@ -156,6 +170,28 @@ export class ForgejoClient {
   async getContents(owner: string, repo: string, path: string, ref?: string): Promise<ForgejoFileContent | ForgejoFileContent[]> {
     const params = ref ? `?ref=${encodeURIComponent(ref)}` : "";
     return this.request(`/repos/${owner}/${repo}/contents/${path}${params}`);
+  }
+
+  async createOrUpdateFile(
+    owner: string,
+    repo: string,
+    path: string,
+    content: string,
+    message: string,
+    sha?: string,
+    branch?: string,
+  ): Promise<ForgejoFileContent> {
+    const payload: Record<string, unknown> = {
+      content: Buffer.from(content, "utf-8").toString("base64"),
+      message,
+    };
+    if (sha) payload.sha = sha;
+    if (branch) payload.branch = branch;
+
+    return this.request(`/repos/${owner}/${repo}/contents/${path}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
   }
 
   async getTree(owner: string, repo: string, sha: string, recursive?: boolean): Promise<{ tree: Array<{ path: string; type: string; sha: string; size?: number }> }> {
@@ -197,6 +233,355 @@ export class ForgejoClient {
       method: "POST",
       body: JSON.stringify({ Do: method }),
     });
+  }
+
+  async patchPullRequest(
+    owner: string,
+    repo: string,
+    number: number,
+    body: { state?: "open" | "closed"; title?: string },
+  ): Promise<ForgejoPullRequest> {
+    return this.request(`/repos/${owner}/${repo}/pulls/${number}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  }
+
+  async createIssueComment(owner: string, repo: string, issueIndex: number, body: string): Promise<{ id: number }> {
+    return this.request(`/repos/${owner}/${repo}/issues/${issueIndex}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    });
+  }
+
+  async createPullReview(
+    owner: string,
+    repo: string,
+    number: number,
+    event: "APPROVE" | "REQUEST_CHANGES" | "COMMENT",
+    body?: string,
+    comments?: Array<Record<string, unknown>>,
+  ): Promise<Record<string, unknown>> {
+    const payload: Record<string, unknown> = { event };
+    if (comments?.length) {
+      payload.comments = comments;
+    }
+    const trimmed = typeof body === "string" ? body.trim() : "";
+    if (trimmed.length > 0) {
+      payload.body = trimmed;
+    } else if (comments?.length) {
+      payload.body = "";
+    } else if (event !== "APPROVE") {
+      payload.body = body ?? "";
+    }
+
+    return this.request(`/repos/${owner}/${repo}/pulls/${number}/reviews`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async listPullReviews(
+    owner: string,
+    repo: string,
+    number: number,
+  ): Promise<Array<Record<string, unknown>>> {
+    return this.request(`/repos/${owner}/${repo}/pulls/${number}/reviews`);
+  }
+
+  async listPullReviewComments(
+    owner: string,
+    repo: string,
+    number: number,
+  ): Promise<Array<Record<string, unknown>>> {
+    return this.request(`/repos/${owner}/${repo}/pulls/${number}/comments`);
+  }
+
+  async listIssueComments(
+    owner: string,
+    repo: string,
+    issueIndex: number,
+  ): Promise<Array<Record<string, unknown>>> {
+    return this.request(`/repos/${owner}/${repo}/issues/${issueIndex}/comments`);
+  }
+
+  async createPullReviewComment(
+    owner: string,
+    repo: string,
+    number: number,
+    body: string,
+    path: string,
+    newLineNum?: number,
+    oldLineNum?: number,
+  ): Promise<Record<string, unknown>> {
+    const payload: Record<string, unknown> = { body, path };
+    if (newLineNum != null) payload.new_position = newLineNum;
+    if (oldLineNum != null) payload.old_position = oldLineNum;
+    return this.request(`/repos/${owner}/${repo}/pulls/${number}/comments`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async resolveReviewComment(
+    owner: string,
+    repo: string,
+    commentId: number,
+  ): Promise<void> {
+    return this.request(`/repos/${owner}/${repo}/pulls/comments/${commentId}/resolve`, {
+      method: "POST",
+    });
+  }
+
+  async unresolveReviewComment(
+    owner: string,
+    repo: string,
+    commentId: number,
+  ): Promise<void> {
+    return this.request(`/repos/${owner}/${repo}/pulls/comments/${commentId}/unresolve`, {
+      method: "POST",
+    });
+  }
+
+  async requestPullReviewers(
+    owner: string,
+    repo: string,
+    number: number,
+    reviewers: string[],
+  ): Promise<unknown> {
+    return this.request(`/repos/${owner}/${repo}/pulls/${number}/requested_reviewers`, {
+      method: "POST",
+      body: JSON.stringify({ reviewers }),
+    });
+  }
+
+  async getPullRequestDiff(owner: string, repo: string, number: number): Promise<string> {
+    const url = `${this.baseUrl}/api/v1/repos/${owner}/${repo}/pulls/${number}.diff`;
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `token ${this.token}`,
+      },
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Forgejo diff API ${res.status}: ${txt}`);
+    }
+    return res.text();
+  }
+
+  async forkRepo(owner: string, repo: string, name?: string): Promise<ForgejoRepo> {
+    return this.request(`/repos/${owner}/${repo}/fork`, {
+      method: "POST",
+      body: JSON.stringify(name ? { name } : {}),
+    });
+  }
+
+  async updateRepo(owner: string, repo: string, patch: Record<string, unknown>): Promise<ForgejoRepo> {
+    return this.request(`/repos/${owner}/${repo}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    });
+  }
+
+  async getActionJobLogs(owner: string, repo: string, jobId: number | string): Promise<string> {
+    const url = `${this.baseUrl}/api/v1/repos/${owner}/${repo}/actions/jobs/${jobId}/logs`;
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `token ${this.token}`,
+      },
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Forgejo job logs API ${res.status}: ${txt}`);
+    }
+    return res.text();
+  }
+
+  async setRepoSecret(owner: string, repo: string, name: string, value: string): Promise<void> {
+    const payload = Buffer.from(value, "utf8").toString("base64");
+    const url = `${this.baseUrl}/api/v1/repos/${owner}/${repo}/actions/secrets/${encodeURIComponent(name)}`;
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${this.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: payload }),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Forgejo secret API ${res.status}: ${txt}`);
+    }
+  }
+
+  async listRepoSecrets(owner: string, repo: string): Promise<{ secrets?: { name: string }[] }> {
+    return this.request(`/repos/${owner}/${repo}/actions/secrets`);
+  }
+
+  async deleteRepoSecret(owner: string, repo: string, name: string): Promise<void> {
+    return this.request(`/repos/${owner}/${repo}/actions/secrets/${encodeURIComponent(name)}`, {
+      method: "DELETE",
+    });
+  }
+
+  // --- Org-level secrets ---
+
+  async setOrgSecret(org: string, name: string, value: string): Promise<void> {
+    const payload = Buffer.from(value, "utf8").toString("base64");
+    const url = `${this.baseUrl}/api/v1/orgs/${org}/actions/secrets/${encodeURIComponent(name)}`;
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: { Authorization: `token ${this.token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ data: payload }),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Forgejo org secret API ${res.status}: ${txt}`);
+    }
+  }
+
+  async listOrgSecrets(org: string): Promise<{ secrets?: { name: string }[] }> {
+    return this.request(`/orgs/${org}/actions/secrets`);
+  }
+
+  async deleteOrgSecret(org: string, name: string): Promise<void> {
+    return this.request(`/orgs/${org}/actions/secrets/${encodeURIComponent(name)}`, { method: "DELETE" });
+  }
+
+  // --- Artifacts ---
+
+  async listActionArtifacts(owner: string, repo: string, runId: string | number): Promise<Array<Record<string, unknown>>> {
+    const raw: unknown = await this.request(`/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`);
+    if (Array.isArray(raw)) return raw as Record<string, unknown>[];
+    if (raw && typeof raw === "object") {
+      const w = raw as Record<string, unknown>;
+      if (Array.isArray(w.artifacts)) return w.artifacts as Record<string, unknown>[];
+    }
+    return [];
+  }
+
+  async downloadArtifact(owner: string, repo: string, artifactId: string | number): Promise<ArrayBuffer> {
+    const url = `${this.baseUrl}/api/v1/repos/${owner}/${repo}/actions/artifacts/${artifactId}`;
+    const res = await fetch(url, { headers: { Authorization: `token ${this.token}` } });
+    if (!res.ok) throw new Error(`Forgejo artifact download ${res.status}`);
+    return res.arrayBuffer();
+  }
+
+  async createOrg(login: string, opts?: { full_name?: string; description?: string }): Promise<{ id: number; username: string }> {
+    return this.request(`/orgs`, {
+      method: "POST",
+      body: JSON.stringify({ username: login, ...opts }),
+    });
+  }
+
+  async deleteOrg(orgName: string): Promise<void> {
+    return this.request(`/orgs/${orgName}`, { method: "DELETE" });
+  }
+
+  async listOrgMembers(orgName: string): Promise<Array<{ id: number; login: string; avatar_url: string }>> {
+    return this.request(`/orgs/${orgName}/members`);
+  }
+
+  async addOrgMember(orgName: string, username: string): Promise<void> {
+    return this.request(`/orgs/${orgName}/members/${username}`, { method: "PUT" });
+  }
+
+  async removeOrgMember(orgName: string, username: string): Promise<void> {
+    return this.request(`/orgs/${orgName}/members/${username}`, { method: "DELETE" });
+  }
+
+  async listUserOrgs(): Promise<Array<{ id: number; username: string; full_name: string; avatar_url: string; description: string }>> {
+    return this.request(`/user/orgs`);
+  }
+
+  // --- Search ---
+
+  async searchRepos(query: string, limit?: number): Promise<ForgejoRepo[]> {
+    return this.request<{ data: ForgejoRepo[] }>(`/repos/search?q=${encodeURIComponent(query)}&limit=${limit ?? 20}`).then(r => r.data ?? (r as unknown as ForgejoRepo[]));
+  }
+
+  // --- File Content Mutations ---
+
+  async updateFileContent(owner: string, repo: string, path: string, params: { content: string; message: string; sha?: string; branch?: string }): Promise<unknown> {
+    return this.request(`/repos/${owner}/${repo}/contents/${path}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        content: Buffer.from(params.content, "utf-8").toString("base64"),
+        message: params.message,
+        sha: params.sha,
+        branch: params.branch,
+      }),
+    });
+  }
+
+  async createFileContent(owner: string, repo: string, path: string, params: { content: string; message: string; branch?: string }): Promise<unknown> {
+    return this.request(`/repos/${owner}/${repo}/contents/${path}`, {
+      method: "POST",
+      body: JSON.stringify({
+        content: Buffer.from(params.content, "utf-8").toString("base64"),
+        message: params.message,
+        branch: params.branch,
+      }),
+    });
+  }
+
+  async deleteFileContent(owner: string, repo: string, path: string, params: { message: string; sha: string; branch?: string }): Promise<unknown> {
+    return this.request(`/repos/${owner}/${repo}/contents/${path}`, {
+      method: "DELETE",
+      body: JSON.stringify({
+        message: params.message,
+        sha: params.sha,
+        branch: params.branch,
+      }),
+    });
+  }
+
+  // --- Branch protections (Gitea / Forgejo compatible) ---
+
+  async listBranchProtections(owner: string, repo: string): Promise<unknown> {
+    return this.request(`/repos/${owner}/${repo}/branch_protections`);
+  }
+
+  async createBranchProtection(
+    owner: string,
+    repo: string,
+    option: Record<string, unknown>,
+  ): Promise<unknown> {
+    return this.request(`/repos/${owner}/${repo}/branch_protections`, {
+      method: "POST",
+      body: JSON.stringify(option),
+    });
+  }
+
+  async deleteBranchProtection(owner: string, repo: string, name: string): Promise<void> {
+    return this.request(
+      `/repos/${owner}/${repo}/branch_protections/${encodeURIComponent(name)}`,
+      {
+        method: "DELETE",
+      },
+    );
+  }
+
+  // --- Commit status ---
+
+  async createCommitStatus(
+    owner: string,
+    repo: string,
+    sha: string,
+    status: { state: string; target_url?: string; description?: string; context: string },
+  ): Promise<Record<string, unknown>> {
+    return this.request(`/repos/${owner}/${repo}/statuses/${sha}`, {
+      method: "POST",
+      body: JSON.stringify(status),
+    });
+  }
+
+  async getCombinedStatus(
+    owner: string,
+    repo: string,
+    ref: string,
+  ): Promise<{ state: string; total_count: number; statuses: Array<Record<string, unknown>> }> {
+    return this.request(`/repos/${owner}/${repo}/commits/${ref}/status`);
   }
 
   // --- Clone URL helpers ---

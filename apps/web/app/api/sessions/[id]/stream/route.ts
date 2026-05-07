@@ -8,6 +8,12 @@ import {
   readRunEventPayloadsAfterId,
 } from "@render-open-forge/shared";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
+import {
+  canAcceptConnection,
+  registerConnection,
+  unregisterConnection,
+  touchConnection,
+} from "@/lib/sse/connection-pool";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,6 +66,20 @@ export async function GET(
         Connection: "keep-alive",
       },
     });
+  }
+
+  if (!canAcceptConnection()) {
+    return new Response(
+      sseData({ type: "error", code: "TOO_MANY_CONNECTIONS", message: "Server at SSE capacity", retryable: true }),
+      {
+        status: 503,
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache, no-transform",
+          "Retry-After": "10",
+        },
+      },
+    );
   }
 
   if (!isRedisConfigured()) {
@@ -120,14 +140,17 @@ export async function GET(
   }
 
   let keepAlive: ReturnType<typeof setInterval> | undefined;
+  const connId = registerConnection(String(userSession.userId), id, runId);
 
   const stream = new ReadableStream({
     start(controller) {
       const send = (payload: string): boolean => {
         try {
           controller.enqueue(new TextEncoder().encode(`data: ${payload}\n\n`));
+          touchConnection(connId);
           const parsed = JSON.parse(payload) as { type?: string };
           if (parsed.type && isTerminalEvent(parsed.type)) {
+            unregisterConnection(connId);
             cleanup(sub, cmd, runId, keepAlive);
             controller.close();
             return true;
@@ -148,6 +171,7 @@ export async function GET(
       keepAlive = setInterval(() => {
         try {
           controller.enqueue(new TextEncoder().encode(`: ping\n\n`));
+          touchConnection(connId);
         } catch {
           // stream closed
         }
@@ -159,6 +183,7 @@ export async function GET(
 
       sub.on("error", (err: Error) => {
         console.error(`[sse] Redis subscription error:`, err);
+        unregisterConnection(connId);
         cleanup(sub, cmd, runId, keepAlive);
         try {
           controller.enqueue(new TextEncoder().encode(
@@ -171,11 +196,13 @@ export async function GET(
       });
     },
     cancel() {
+      unregisterConnection(connId);
       cleanup(sub, cmd, runId, keepAlive);
     },
   });
 
   req.signal.addEventListener("abort", () => {
+    unregisterConnection(connId);
     cleanup(sub, cmd, runId, keepAlive);
   });
 

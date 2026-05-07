@@ -2,7 +2,7 @@ import { generateText, stepCountIs, type ModelMessage, type ToolSet } from "ai";
 import type Redis from "ioredis";
 import { desc, eq, asc } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { agentRuns, chats, chatMessages, specs, sessions } from "@render-open-forge/db";
+import { agentRuns, chats, chatMessages, specs, sessions, verificationResults } from "@render-open-forge/db";
 import {
   AppError,
   enqueueJob,
@@ -14,6 +14,7 @@ import {
   SharedHttpSandboxProvider,
   type SandboxAdapter,
   type SandboxSessionAuth,
+  type VerifyCheck,
 } from "@render-open-forge/sandbox";
 import type { ForgeAgentContext } from "./context/agent-context";
 import { jobMessagesToModelMessages, sanitizeMessages, validateMessages } from "./messages";
@@ -31,10 +32,24 @@ import {
   taskTool,
   todoWriteTool,
   askUserQuestionTool,
+  mergePrTool,
+  closePrTool,
+  addPrCommentTool,
+  requestReviewTool,
+  approvePrTool,
+  createRepoTool,
+  readBuildLogTool,
+  pullRequestDiffTool,
+  reviewPrTool,
+  resolveCommentTool,
+  submitSpecTool,
 } from "./tools";
 import { getModel, getModelDef, DEFAULT_MODEL_ID } from "./models";
 import { getDb } from "./db";
 import type { AgentJob, StreamEvent, SessionPhase } from "./types";
+import { nextPhase, shouldAutoTransition } from "./lib/phase-transitions";
+import { isDeliverComplete, transitionToComplete } from "./lib/deliver";
+import { handoffToNextAgent, type AgentRole } from "./lib/multi-agent";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -135,6 +150,22 @@ function buildToolSet(redis: Redis, job: AgentJob): ToolSet {
     ask_user_question: askUserQuestionTool(job.runId, () => redis.duplicate(), async (event) => {
       await publishEvent(redis, job.runId, event as unknown as StreamEvent, reqId);
     }),
+    merge_pr: mergePrTool(),
+    close_pr: closePrTool(),
+    add_pr_comment: addPrCommentTool(),
+    request_review: requestReviewTool(),
+    approve_pr: approvePrTool(),
+    create_repo: createRepoTool(),
+    read_build_log: readBuildLogTool(),
+    pull_request_diff: pullRequestDiffTool(),
+    review_pr: reviewPrTool(),
+    resolve_comment: resolveCommentTool(),
+    submit_spec: submitSpecTool(
+      async (event) => {
+        await publishEvent(redis, job.runId, event, reqId);
+      },
+      job.sessionId,
+    ),
   };
 }
 
@@ -424,6 +455,104 @@ async function updateRunStatus(
   await db.update(sessions).set({ lastActivityAt: finishedAt, updatedAt: finishedAt }).where(eq(sessions.id, job.sessionId));
 }
 
+// ─── Automatic phase transitions ─────────────────────────────────────────────
+
+async function handleAutoPhaseTransition(
+  job: AgentJob,
+  redis: Redis,
+  db: ReturnType<typeof getDb>,
+): Promise<void> {
+  const projectConfig = (job.projectConfig as Record<string, unknown>) ?? null;
+  const phase = job.phase;
+
+  if (phase === "execute" && shouldAutoTransition(phase, projectConfig)) {
+    const next = nextPhase(phase, true);
+    if (next) {
+      console.log(`[agent] auto-transition: ${phase} → ${next} for session ${job.sessionId}`);
+      await db.update(sessions).set({ phase: next, updatedAt: new Date() }).where(eq(sessions.id, job.sessionId));
+      await publishEvent(redis, job.runId, { type: "phase_changed", phase: next } as unknown as StreamEvent, job.requestId);
+
+      const newRunId = nanoid();
+      await db.insert(agentRuns).values({
+        id: newRunId,
+        chatId: job.chatId,
+        sessionId: job.sessionId,
+        userId: job.userId,
+        modelId: job.modelId ?? DEFAULT_MODEL_ID,
+        phase: next,
+        status: "queued",
+        createdAt: new Date(),
+      });
+      await db.update(chats).set({ activeRunId: newRunId, updatedAt: new Date() }).where(eq(chats.id, job.chatId));
+
+      await ensureConsumerGroup(redis);
+      await enqueueJob(redis, {
+        runId: newRunId,
+        chatId: job.chatId,
+        sessionId: job.sessionId,
+        userId: job.userId,
+        messages: job.messages,
+        modelMessages: job.modelMessages,
+        phase: next,
+        workflowMode: job.workflowMode,
+        projectConfig: job.projectConfig,
+        projectContext: job.projectContext,
+        modelId: job.modelId,
+        requestId: job.requestId,
+      });
+    }
+    return;
+  }
+
+  if (phase === "verify") {
+    const next = nextPhase(phase, false);
+    if (next) {
+      console.log(`[agent] auto-transition: ${phase} → ${next} for session ${job.sessionId}`);
+      await db.update(sessions).set({ phase: next, updatedAt: new Date() }).where(eq(sessions.id, job.sessionId));
+      await publishEvent(redis, job.runId, { type: "phase_changed", phase: next } as unknown as StreamEvent, job.requestId);
+    }
+    return;
+  }
+
+  if (phase === "deliver") {
+    const [session] = await db
+      .select({ prNumber: sessions.prNumber, prStatus: sessions.prStatus })
+      .from(sessions)
+      .where(eq(sessions.id, job.sessionId))
+      .limit(1);
+    if (session && isDeliverComplete(session)) {
+      console.log(`[agent] auto-transition: deliver → complete for session ${job.sessionId}`);
+      await transitionToComplete(db, job.sessionId);
+      await publishEvent(redis, job.runId, { type: "phase_changed", phase: "complete" } as unknown as StreamEvent, job.requestId);
+    }
+  }
+
+  // Multi-agent handoff: if the job has a trigger/role context, try handing off
+  const roleMap: Record<string, AgentRole> = {
+    spec: "spec",
+    execute: "implement",
+    verify: "review",
+    deliver: "merge",
+  };
+  const currentRole = roleMap[phase];
+  if (currentRole && currentRole !== "merge") {
+    const handoffResult = await handoffToNextAgent(db, redis, {
+      sessionId: job.sessionId,
+      chatId: job.chatId,
+      userId: job.userId,
+      fromRole: currentRole,
+      messages: job.messages,
+      modelMessages: job.modelMessages,
+      projectConfig: job.projectConfig,
+      projectContext: job.projectContext,
+      requestId: job.requestId,
+    });
+    if (handoffResult.handed) {
+      console.log(`[agent] multi-agent handoff: ${currentRole} → ${handoffResult.nextRole} run=${handoffResult.newRunId}`);
+    }
+  }
+}
+
 // ─── Public entry point ──────────────────────────────────────────────────────
 
 export async function runAgentTurn(job: AgentJob, redis: Redis): Promise<void> {
@@ -455,6 +584,51 @@ export async function runAgentTurn(job: AgentJob, redis: Redis): Promise<void> {
       assistantMessageId = await persistAssistantMessage(job, assistantParts, responseMessages);
     }
 
+    let verifyFixNeeded: string | null = null;
+    if (job.phase === "verify") {
+      const cfg = job.projectConfig as { verifyChecks?: VerifyCheck[] } | null | undefined;
+      const checks = cfg?.verifyChecks ?? [];
+      if (checks.length > 0) {
+        const results = await adapter.verify(job.sessionId, checks);
+        for (const r of results) {
+          await db.insert(verificationResults).values({
+            id: nanoid(),
+            runId: job.runId,
+            sessionId: job.sessionId,
+            checkName: r.name,
+            passed: r.status === "pass",
+            status: r.status,
+            exitCode: r.exitCode,
+            output: [r.stdout, r.stderr].filter(Boolean).join("\n---\n"),
+            stdout: r.stdout,
+            stderr: r.stderr,
+            durationMs: r.durationMs,
+          });
+        }
+        await publishEvent(
+          redis,
+          job.runId,
+          {
+            type: "verification",
+            results: results as unknown[],
+          },
+          job.requestId,
+        );
+        const failed = results.filter((r) => r.status !== "pass");
+        if (failed.length > 0) {
+          verifyFixNeeded = failed
+            .map((r) => `Check "${r.name}" (${r.status}): ${r.stderr.trim() || r.stdout.trim() || "failed"}`)
+            .join("\n\n");
+          await publishEvent(
+            redis,
+            job.runId,
+            { type: "verify_failed", message: verifyFixNeeded },
+            job.requestId,
+          );
+        }
+      }
+    }
+
     await updateRunStatus(job, "completed");
 
     await publishEvent(
@@ -464,6 +638,12 @@ export async function runAgentTurn(job: AgentJob, redis: Redis): Promise<void> {
       job.requestId,
     );
     await redis.set(`run:${job.runId}:status`, "completed", "EX", 3600);
+
+    if (verifyFixNeeded) {
+      await enqueueFixRun(job, redis, verifyFixNeeded);
+    } else {
+      await handleAutoPhaseTransition(job, redis, db);
+    }
   } catch (error) {
     if (error instanceof AbortError) {
       await updateRunStatus(job, "aborted");

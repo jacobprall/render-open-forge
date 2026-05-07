@@ -1,0 +1,191 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+
+interface Comment {
+  id: number;
+  body: string;
+  user: { login: string; avatar_url?: string };
+  path?: string;
+  line?: number;
+  resolved?: boolean;
+  createdAt: string;
+}
+
+function relTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+export function PRComments({
+  owner,
+  repo,
+  number,
+}: {
+  owner: string;
+  repo: string;
+  number: number;
+}) {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  const base = `/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${number}`;
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`${base}/comments`, { cache: "no-store" });
+      const j = (await res.json()) as { comments?: unknown[]; error?: string };
+      if (!res.ok) throw new Error(j.error ?? "Load failed");
+      setComments((j.comments ?? []) as Comment[]);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [base]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function post() {
+    if (!newComment.trim()) return;
+    setPosting(true);
+    try {
+      const res = await fetch(`${base}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: newComment }),
+      });
+      const j = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(j.error ?? "Post failed");
+      setNewComment("");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  async function toggleResolve(commentId: number, currentlyResolved: boolean) {
+    try {
+      await fetch(`${base}/comments/${commentId}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unresolve: currentlyResolved }),
+      });
+      await load();
+    } catch {
+      // silently fail, user can retry
+    }
+  }
+
+  if (loading) {
+    return <p className="text-sm text-zinc-500">Loading comments…</p>;
+  }
+
+  const inlineComments = comments.filter((c) => c.path);
+  const generalComments = comments.filter((c) => !c.path);
+
+  return (
+    <div className="space-y-6">
+      {/* General comments */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-zinc-400">
+          Comments ({comments.length})
+        </h4>
+        {comments.length === 0 && (
+          <p className="text-sm text-zinc-600">No comments yet.</p>
+        )}
+
+        {generalComments.map((c) => (
+          <div
+            key={`gen-${c.id}`}
+            className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4"
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-zinc-200">{c.user.login}</span>
+                <span className="text-xs text-zinc-500">{relTime(c.createdAt)}</span>
+              </div>
+            </div>
+            <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-300">{c.body}</pre>
+          </div>
+        ))}
+
+        {/* Inline comments grouped by file */}
+        {inlineComments.length > 0 && (
+          <div className="space-y-2">
+            <h5 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              Inline comments
+            </h5>
+            {inlineComments.map((c) => (
+              <div
+                key={`inline-${c.id}`}
+                className={`rounded-lg border p-4 ${
+                  c.resolved
+                    ? "border-zinc-800/50 bg-zinc-900/30 opacity-60"
+                    : "border-amber-500/20 bg-amber-500/5"
+                }`}
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-zinc-200">{c.user.login}</span>
+                    <span className="text-xs text-zinc-500">{relTime(c.createdAt)}</span>
+                    {c.path && (
+                      <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-xs text-zinc-400">
+                        {c.path}
+                        {c.line != null ? `:${c.line}` : ""}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleResolve(c.id, !!c.resolved)}
+                    className="text-xs text-zinc-400 hover:text-zinc-200"
+                  >
+                    {c.resolved ? "Unresolve" : "Resolve"}
+                  </button>
+                </div>
+                <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-300">{c.body}</pre>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Post new comment */}
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+        <textarea
+          className="w-full resize-none rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+          rows={3}
+          placeholder="Add a comment…"
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+        />
+        <div className="mt-2 flex items-center justify-between">
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <button
+            type="button"
+            onClick={() => void post()}
+            disabled={posting || !newComment.trim()}
+            className="ml-auto rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+          >
+            {posting ? "Posting…" : "Comment"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -5,6 +5,7 @@ import { ciEvents } from "@render-open-forge/db";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { relativeTime } from "@/lib/utils";
+import { JobLogsPoller } from "@/components/actions/job-log-poller";
 
 const statusStyles: Record<string, string> = {
   pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
@@ -16,13 +17,16 @@ const statusStyles: Record<string, string> = {
 
 export default async function CIRunDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ owner: string; repo: string; runId: string }>;
+  searchParams: Promise<{ job?: string }>;
 }) {
   const session = await getSession();
   if (!session) redirect("/");
 
   const { owner, repo, runId } = await params;
+  const { job: jobLogsJobId } = await searchParams;
   const db = getDb();
 
   const event = await db
@@ -57,20 +61,22 @@ export default async function CIRunDetailPage({
       );
     }
 
-    return <RunDetail owner={owner} repo={repo} event={eventByRunId} />;
+    return <RunDetail owner={owner} repo={repo} event={eventByRunId} jobLogsJobId={jobLogsJobId} />;
   }
 
-  return <RunDetail owner={owner} repo={repo} event={event} />;
+  return <RunDetail owner={owner} repo={repo} event={event} jobLogsJobId={jobLogsJobId} />;
 }
 
 function RunDetail({
   owner,
   repo,
   event,
+  jobLogsJobId,
 }: {
   owner: string;
   repo: string;
   event: typeof ciEvents.$inferSelect;
+  jobLogsJobId?: string;
 }) {
   const payload = event.payload as Record<string, unknown> | null;
 
@@ -144,17 +150,26 @@ function RunDetail({
         <h3 className="mb-3 text-sm font-medium text-zinc-400">
           Output / Logs
         </h3>
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-          {payload ? (
-            <pre className="overflow-auto font-mono text-xs text-zinc-300">
-              {JSON.stringify(payload, null, 2)}
-            </pre>
-          ) : (
-            <p className="text-sm text-zinc-500">
-              No log output available for this run.
-            </p>
-          )}
-        </div>
+        <p className="mb-2 text-xs text-zinc-500">
+          For live plaintext job logs here, open this page with{" "}
+          <code className="rounded bg-zinc-950 px-1 text-zinc-300">?job=FORGEJO_JOB_ID</code> in the URL (from the
+          Actions UI).
+        </p>
+        {jobLogsJobId ? (
+          <JobLogsPoller owner={owner} repo={repo} jobId={jobLogsJobId} />
+        ) : (
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+            {payload ? (
+              <pre className="overflow-auto font-mono text-xs text-zinc-300">
+                {JSON.stringify(payload, null, 2)}
+              </pre>
+            ) : (
+              <p className="text-sm text-zinc-500">
+                No log output available for this run.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

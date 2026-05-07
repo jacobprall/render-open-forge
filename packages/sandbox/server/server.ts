@@ -3,6 +3,7 @@ import { join, resolve, sep } from "node:path";
 import { existsSync, mkdirSync, realpathSync } from "node:fs";
 import { statfs } from "node:fs/promises";
 import { verifySandboxSessionToken } from "../session-token";
+import { runSecurityAudit, formatAuditReport } from "../lib/security-audit";
 import type {
   ExecResult,
   GrepResult,
@@ -627,6 +628,14 @@ const server = Bun.serve({
     try {
       if (method === "GET" && path === "/health") {
         return handleHealth();
+      }
+
+      if (method === "GET" && path === "/security-audit") {
+        const authError = checkAuth(req);
+        if (authError) return authError;
+        const checks = await runSecurityAudit();
+        const allPassed = checks.every((c) => c.passed || c.severity === "low");
+        return Response.json({ ok: allPassed, checks, report: formatAuditReport(checks) });
       }
 
       const authError = checkAuth(req);

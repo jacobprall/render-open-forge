@@ -1,8 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { mergePullRequestAction } from "../actions";
+
+function parseMergeBlockReason(errorMsg: string): string {
+  const lower = errorMsg.toLowerCase();
+  if (lower.includes("405") || lower.includes("not allowed")) {
+    return "Merge is blocked — branch protection rules or required approvals are not met.";
+  }
+  if (lower.includes("403") || lower.includes("forbidden")) {
+    return "You do not have permission to merge this pull request.";
+  }
+  if (lower.includes("409") || lower.includes("conflict")) {
+    return "There are merge conflicts that must be resolved first.";
+  }
+  if (lower.includes("required status") || lower.includes("ci") || lower.includes("check")) {
+    return "Required CI status checks have not passed yet.";
+  }
+  if (lower.includes("review") || lower.includes("approval")) {
+    return "Required reviewer approvals are missing.";
+  }
+  return errorMsg;
+}
 
 export function MergeControls({
   owner,
@@ -17,14 +37,26 @@ export function MergeControls({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [branchProtected, setBranchProtected] = useState<boolean | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    fetch(`/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branch-protection`, {
+      cache: "no-store",
+    })
+      .then((r) => r.json())
+      .then((j: { protections?: unknown[] }) => {
+        setBranchProtected(Array.isArray(j.protections) && j.protections.length > 0);
+      })
+      .catch(() => setBranchProtected(null));
+  }, [owner, repo]);
 
   function handleMerge() {
     setError(null);
     startTransition(async () => {
       const result = await mergePullRequestAction(owner, repo, number, method);
       if (result.error) {
-        setError(result.error);
+        setError(parseMergeBlockReason(result.error));
       } else {
         router.refresh();
       }
@@ -40,6 +72,18 @@ export function MergeControls({
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
       <h3 className="mb-4 text-sm font-medium text-zinc-300">Merge Pull Request</h3>
+
+      {branchProtected && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-400">
+          <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          <span>
+            Branch protection is enabled. Merging requires passing CI checks and/or reviewer approvals configured in the repo settings.
+          </span>
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}
