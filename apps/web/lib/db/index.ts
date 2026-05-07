@@ -2,16 +2,18 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "@render-open-forge/db/schema";
 
-let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+type Db = ReturnType<typeof drizzle<typeof schema>>;
 
-export function getDb() {
-  if (!_db) {
+const globalForDb = globalThis as unknown as { __forgeDb?: Db };
+
+export function getDb(): Db {
+  if (!globalForDb.__forgeDb) {
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL not set");
-    const client = postgres(url);
-    _db = drizzle(client, { schema });
+    const client = postgres(url, { max: 10, idle_timeout: 20 });
+    globalForDb.__forgeDb = drizzle(client, { schema });
   }
-  return _db;
+  return globalForDb.__forgeDb;
 }
 
 export type ForgeDb = ReturnType<typeof getDb>;

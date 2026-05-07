@@ -88,7 +88,7 @@ export function MergeControls({
       )}
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="mb-4 rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
@@ -97,7 +97,7 @@ export function MergeControls({
           <button
             onClick={handleMerge}
             disabled={isPending}
-            className="inline-flex items-center gap-2 rounded-l-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-l-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
           >
             {isPending ? (
               <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -113,7 +113,7 @@ export function MergeControls({
           </button>
           <button
             onClick={() => setOpen(!open)}
-            className="rounded-r-lg border-l border-emerald-700 bg-emerald-600 px-2.5 py-2 text-white transition hover:bg-emerald-500"
+            className="rounded-r-lg border-l border-accent bg-accent px-2.5 py-2 text-white transition hover:bg-accent-hover"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
@@ -129,7 +129,7 @@ export function MergeControls({
                     setOpen(false);
                   }}
                   className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition hover:bg-zinc-700 ${
-                    method === m ? "text-emerald-400" : "text-zinc-300"
+                    method === m ? "text-accent-text" : "text-zinc-300"
                   }`}
                 >
                   {method === m && (

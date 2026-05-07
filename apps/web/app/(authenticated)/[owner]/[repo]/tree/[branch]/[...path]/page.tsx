@@ -70,7 +70,7 @@ export default async function TreePage({
         <nav className="flex items-center gap-1 text-sm">
           <Link
             href={`/${owner}/${repo}`}
-            className="text-emerald-400 hover:underline"
+            className="text-accent-text hover:underline"
           >
             {repo}
           </Link>
@@ -84,7 +84,7 @@ export default async function TreePage({
               ) : (
                 <Link
                   href={crumb.href}
-                  className="text-emerald-400 hover:underline"
+                  className="text-accent-text hover:underline"
                 >
                   {crumb.label}
                 </Link>
@@ -133,7 +133,7 @@ export default async function TreePage({
             >
               {file.type === "dir" ? (
                 <svg
-                  className="h-4 w-4 shrink-0 text-emerald-400"
+                  className="h-4 w-4 shrink-0 text-accent-text"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}

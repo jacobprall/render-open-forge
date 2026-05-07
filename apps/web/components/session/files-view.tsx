@@ -46,9 +46,9 @@ export function FilesView({ sessionId, fileChanges }: FilesViewProps) {
             {fileChanges.length} file{fileChanges.length !== 1 ? "s" : ""}
           </span>
           <span className="text-[11px] font-mono tabular-nums">
-            <span className="text-emerald-400/70">+{totalAdded}</span>
+            <span className="text-accent-text/70">+{totalAdded}</span>
             <span className="text-zinc-700 mx-0.5">/</span>
-            <span className="text-red-400/70">-{totalRemoved}</span>
+            <span className="text-danger/70">-{totalRemoved}</span>
           </span>
         </div>
         <div className="py-1">
@@ -80,9 +80,9 @@ export function FilesView({ sessionId, fileChanges }: FilesViewProps) {
                   ) : null}
                 </div>
                 <span className="shrink-0 text-[10px] font-mono tabular-nums">
-                  <span className="text-emerald-400/60">+{file.additions}</span>
+                  <span className="text-accent-text/60">+{file.additions}</span>
                   {" "}
-                  <span className="text-red-400/60">-{file.deletions}</span>
+                  <span className="text-danger/60">-{file.deletions}</span>
                 </span>
               </button>
             );
@@ -97,9 +97,9 @@ export function FilesView({ sessionId, fileChanges }: FilesViewProps) {
               <span className="text-xs font-mono text-zinc-400">{selectedFile}</span>
               {selectedMeta ? (
                 <span className="text-[11px] font-mono tabular-nums">
-                  <span className="text-emerald-400/70">+{selectedMeta.additions}</span>
+                  <span className="text-accent-text/70">+{selectedMeta.additions}</span>
                   <span className="text-zinc-700 mx-0.5">/</span>
-                  <span className="text-red-400/70">-{selectedMeta.deletions}</span>
+                  <span className="text-danger/70">-{selectedMeta.deletions}</span>
                 </span>
               ) : null}
             </div>

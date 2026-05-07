@@ -55,7 +55,7 @@ export default async function SkillsSettingsPage() {
               href={repoWebUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 hover:text-emerald-300"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent-text hover:text-accent"
             >
               Open skills repo in Forgejo
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -118,7 +118,7 @@ export default async function SkillsSettingsPage() {
           Repository-specific skills: add markdown files under{" "}
           <span className="font-mono text-zinc-300">.forge/skills/*.md</span> in the target repository.
         </p>
-        <Link href="/sessions/new" className="mt-2 inline-block text-emerald-400 hover:text-emerald-300">
+        <Link href="/sessions/new" className="mt-2 inline-block text-accent-text hover:text-accent">
           New session
         </Link>
       </section>

@@ -66,7 +66,7 @@ export default async function SessionDetailPage({
       .limit(1)
       .then((r) => r[0]),
     db
-      .select({ defaultModelId: userPreferences.defaultModelId })
+      .select({ data: userPreferences.data })
       .from(userPreferences)
       .where(eq(userPreferences.userId, userId))
       .limit(1)
@@ -77,7 +77,7 @@ export default async function SessionDetailPage({
 
   const initialModelId =
     chatRow?.modelId?.trim() ||
-    prefsRow?.defaultModelId?.trim() ||
+    prefsRow?.data?.defaultModelId?.trim() ||
     "anthropic/claude-sonnet-4-5";
 
   const messages = chatRow

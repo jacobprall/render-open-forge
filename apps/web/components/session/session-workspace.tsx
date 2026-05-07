@@ -57,7 +57,7 @@ interface SessionWorkspaceProps {
 }
 
 const statusDot: Record<string, string> = {
-  running: "bg-emerald-500",
+  running: "bg-accent",
   completed: "bg-blue-500",
   failed: "bg-red-500",
   archived: "bg-zinc-500",
@@ -112,9 +112,9 @@ export function SessionWorkspace({
             ) : null}
             {hasLineStats ? (
               <span className="font-mono tabular-nums">
-                <span className="text-emerald-400/70">+{session.linesAdded ?? 0}</span>
+                <span className="text-accent-text/70">+{session.linesAdded ?? 0}</span>
                 <span className="text-zinc-700 mx-0.5">/</span>
-                <span className="text-red-400/70">-{session.linesRemoved ?? 0}</span>
+                <span className="text-danger/70">-{session.linesRemoved ?? 0}</span>
               </span>
             ) : null}
           </div>
@@ -192,7 +192,7 @@ function TabButton({
       onClick={onClick}
       className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
         active
-          ? "border-b-2 border-emerald-500 text-zinc-100"
+          ? "border-b-2 border-accent text-zinc-100"
           : "border-b-2 border-transparent text-zinc-500 hover:text-zinc-300"
       }`}
     >

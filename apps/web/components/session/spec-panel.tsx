@@ -85,12 +85,12 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
               <ul className="space-y-0.5">
                 {spec.filesToModify.map((f) => (
                   <li key={f} className="flex items-center gap-2 font-mono text-xs text-zinc-300">
-                    <span className="text-amber-400">M</span> {f}
+                    <span className="text-warning">M</span> {f}
                   </li>
                 ))}
                 {spec.filesToCreate.map((f) => (
                   <li key={f} className="flex items-center gap-2 font-mono text-xs text-zinc-300">
-                    <span className="text-emerald-400">A</span> {f}
+                    <span className="text-accent-text">A</span> {f}
                   </li>
                 ))}
               </ul>
@@ -120,7 +120,7 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
                 value={rejectionNote}
                 onChange={(e) => setRejectionNote(e.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </div>
           )}

@@ -325,9 +325,9 @@ export function ChatPanel({
                     <li key={f.path} className="py-1.5 flex justify-between gap-2">
                       <span className="truncate text-zinc-400">{f.path}</span>
                       <span className="shrink-0 tabular-nums">
-                        <span className="text-emerald-400">+{f.additions}</span>
+                        <span className="text-accent-text">+{f.additions}</span>
                         <span className="text-zinc-600 mx-1">/</span>
-                        <span className="text-red-400">-{f.deletions}</span>
+                        <span className="text-danger">-{f.deletions}</span>
                       </span>
                     </li>
                   ))}
@@ -338,9 +338,9 @@ export function ChatPanel({
 
           {messages.length === 0 && !isStreaming ? (
             <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-bg">
                 <svg
-                  className="h-6 w-6 text-emerald-500"
+                  className="h-6 w-6 text-accent-text"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
@@ -388,7 +388,7 @@ export function ChatPanel({
 
           {error ? (
             <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
-              <p className="text-sm text-red-400">{error}</p>
+              <p className="text-sm text-danger">{error}</p>
             </div>
           ) : null}
 
@@ -398,7 +398,7 @@ export function ChatPanel({
 
       <div className="shrink-0 border-t border-zinc-800 px-4 py-3">
         <form onSubmit={handleSubmit} className="mx-auto max-w-2xl">
-          <div className="flex items-end gap-2 rounded-xl border border-zinc-700 bg-zinc-900 p-2 transition focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/25">
+          <div className="flex items-end gap-2 rounded-xl border border-zinc-700 bg-zinc-900 p-2 transition focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/25">
             <textarea
               ref={textareaRef}
               value={input}
@@ -424,7 +424,7 @@ export function ChatPanel({
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path
@@ -503,7 +503,7 @@ function MessageBubble({ message }: { message: Message }) {
   if (isUser) {
     return (
       <div className="flex justify-end [content-visibility:auto]">
-        <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-emerald-600 px-3.5 py-2 text-[13px] leading-relaxed text-white shadow-sm">
+        <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-accent px-3.5 py-2 text-[13px] leading-relaxed text-white shadow-sm">
           {message.parts
             .filter((p) => p.type === "text")
             .map((p, i) => (
@@ -550,9 +550,9 @@ function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streamin
                 key={i}
                 className="inline-flex items-center gap-1.5 text-[11px] border border-zinc-800/60 rounded-md px-2 py-1 bg-zinc-900/40"
               >
-                <span className="text-emerald-400/80 tabular-nums font-mono">+{part.additions}</span>
+                <span className="text-accent-text/80 tabular-nums font-mono">+{part.additions}</span>
                 <span className="text-zinc-700">/</span>
-                <span className="text-red-400/80 tabular-nums font-mono">-{part.deletions}</span>
+                <span className="text-danger/80 tabular-nums font-mono">-{part.deletions}</span>
                 <span className="ml-1 font-mono text-zinc-500 break-all">{part.path}</span>
               </div>
             );
@@ -570,12 +570,12 @@ function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streamin
                   </svg>
                 ) : null}
                 {part.status === "done" ? (
-                  <svg className="h-3 w-3 text-emerald-400/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-3 w-3 text-accent-text/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : null}
                 {part.status === "error" ? (
-                  <svg className="h-3 w-3 text-red-400/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-3 w-3 text-danger/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 ) : null}
@@ -584,7 +584,7 @@ function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streamin
                   <span className="ml-auto text-zinc-600">{String(part.result)}</span>
                 ) : null}
                 {part.error != null && String(part.error).length > 0 ? (
-                  <span className="ml-auto text-red-400/80">{String(part.error)}</span>
+                  <span className="ml-auto text-danger/80">{String(part.error)}</span>
                 ) : null}
               </div>
             );
@@ -597,7 +597,7 @@ function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streamin
         }
       })}
       {streaming ? (
-        <span className="inline-block w-1 h-3.5 bg-emerald-400/50 animate-pulse rounded-sm" />
+        <span className="inline-block w-1 h-3.5 bg-accent/50 animate-pulse rounded-sm" />
       ) : null}
     </div>
   );

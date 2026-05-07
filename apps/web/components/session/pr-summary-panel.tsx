@@ -12,9 +12,9 @@ interface PrSummaryProps {
 }
 
 const statusConfig: Record<string, { color: string; label: string; dotColor: string }> = {
-  open: { color: "text-emerald-400", label: "Open", dotColor: "bg-emerald-400" },
+  open: { color: "text-accent-text", label: "Open", dotColor: "bg-accent" },
   merged: { color: "text-purple-400", label: "Merged", dotColor: "bg-purple-400" },
-  closed: { color: "text-red-400", label: "Closed", dotColor: "bg-red-400" },
+  closed: { color: "text-danger", label: "Closed", dotColor: "bg-red-400" },
 };
 
 export function PrSummaryPanel({ sessionId, repoPath, prNumber, prStatus, branch }: PrSummaryProps) {
@@ -53,7 +53,7 @@ export function PrSummaryPanel({ sessionId, repoPath, prNumber, prStatus, branch
           </svg>
           <Link
             href={prUrl}
-            className="truncate text-sm font-medium text-zinc-200 hover:text-emerald-400 transition"
+            className="truncate text-sm font-medium text-zinc-200 hover:text-accent-text transition"
           >
             PR #{prNumber}
           </Link>
@@ -72,7 +72,7 @@ export function PrSummaryPanel({ sessionId, repoPath, prNumber, prStatus, branch
               View Diff
             </Link>
             {reviewRequested ? (
-              <span className="text-xs text-emerald-400">Review started</span>
+              <span className="text-xs text-accent-text">Review started</span>
             ) : (
               <button
                 onClick={handleRequestReview}
@@ -97,7 +97,7 @@ export function PrSummaryPanel({ sessionId, repoPath, prNumber, prStatus, branch
       )}
 
       {error && (
-        <div className="mt-2 rounded border border-red-500/20 bg-red-500/10 px-2 py-1 text-xs text-red-400">
+        <div className="mt-2 rounded border border-red-500/20 bg-red-500/10 px-2 py-1 text-xs text-danger">
           {error}
         </div>
       )}

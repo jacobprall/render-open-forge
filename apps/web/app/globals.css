@@ -4,6 +4,81 @@
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, monospace;
   --color-scheme: dark;
+
+  /* Design tokens — wired to CSS custom properties so user-chosen
+     accent / secondary / tertiary colors cascade everywhere. */
+  --color-accent: var(--of-accent);
+  --color-accent-hover: var(--of-accent-hover);
+  --color-accent-bg: var(--of-accent-bg);
+  --color-accent-text: var(--of-accent-text);
+
+  --color-secondary: var(--of-secondary);
+  --color-secondary-hover: var(--of-secondary-hover);
+  --color-secondary-bg: var(--of-secondary-bg);
+  --color-secondary-text: var(--of-secondary-text);
+
+  --color-tertiary: var(--of-tertiary);
+  --color-tertiary-hover: var(--of-tertiary-hover);
+  --color-tertiary-bg: var(--of-tertiary-bg);
+  --color-tertiary-text: var(--of-tertiary-text);
+
+  --color-surface-0: var(--of-surface-0);
+  --color-surface-1: var(--of-surface-1);
+  --color-surface-2: var(--of-surface-2);
+  --color-surface-3: var(--of-surface-3);
+
+  --color-text-primary: var(--of-text-primary);
+  --color-text-secondary: var(--of-text-secondary);
+  --color-text-tertiary: var(--of-text-tertiary);
+
+  --color-stroke-subtle: var(--of-stroke-subtle);
+  --color-stroke-default: var(--of-stroke-default);
+
+  --color-success: var(--of-success);
+  --color-warning: var(--of-warning);
+  --color-danger: var(--of-danger);
+  --color-info: var(--of-info);
+}
+
+:root {
+  /* Surfaces */
+  --of-surface-0: oklch(0.145 0.005 285);   /* zinc-950 */
+  --of-surface-1: oklch(0.21 0.006 285);    /* zinc-900 */
+  --of-surface-2: oklch(0.274 0.006 285);   /* zinc-800 */
+  --of-surface-3: oklch(0.37 0.013 285);    /* zinc-700 */
+
+  /* Text */
+  --of-text-primary: oklch(0.92 0.004 285);   /* zinc-100 */
+  --of-text-secondary: oklch(0.55 0.014 285); /* zinc-400 */
+  --of-text-tertiary: oklch(0.45 0.014 285);  /* zinc-500 */
+
+  /* Strokes */
+  --of-stroke-subtle: oklch(0.274 0.006 285 / 0.5); /* zinc-800/50 */
+  --of-stroke-default: oklch(0.274 0.006 285);       /* zinc-800 */
+
+  /* Primary accent — emerald by default, user-configurable */
+  --of-accent: oklch(0.696 0.17 162);         /* emerald-500 */
+  --of-accent-hover: oklch(0.637 0.16 162);   /* emerald-600 */
+  --of-accent-bg: oklch(0.696 0.17 162 / 0.1);
+  --of-accent-text: oklch(0.765 0.155 162);   /* emerald-400 */
+
+  /* Secondary — blue by default, user-configurable */
+  --of-secondary: oklch(0.623 0.214 259);     /* blue-500 */
+  --of-secondary-hover: oklch(0.546 0.21 259); /* blue-600 */
+  --of-secondary-bg: oklch(0.623 0.214 259 / 0.1);
+  --of-secondary-text: oklch(0.707 0.165 254);/* blue-400 */
+
+  /* Tertiary — violet by default, user-configurable */
+  --of-tertiary: oklch(0.606 0.25 292);       /* violet-500 */
+  --of-tertiary-hover: oklch(0.541 0.24 292); /* violet-600 */
+  --of-tertiary-bg: oklch(0.606 0.25 292 / 0.1);
+  --of-tertiary-text: oklch(0.678 0.2 292);   /* violet-400 */
+
+  /* Semantic */
+  --of-success: oklch(0.765 0.155 162);
+  --of-warning: oklch(0.768 0.165 84);
+  --of-danger: oklch(0.704 0.191 22);
+  --of-info: oklch(0.707 0.165 254);
 }
 
 html {

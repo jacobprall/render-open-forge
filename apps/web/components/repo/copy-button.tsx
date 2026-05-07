@@ -24,7 +24,7 @@ export function CopyButton({ content }: { content: string }) {
       {copied ? (
         <span className="flex items-center gap-1">
           <svg
-            className="h-3.5 w-3.5 text-emerald-400"
+            className="h-3.5 w-3.5 text-accent-text"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={2}

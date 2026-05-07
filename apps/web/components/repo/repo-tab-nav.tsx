@@ -52,7 +52,7 @@ export function RepoTabNav({ basePath, tabs }: { basePath: string; tabs: RepoTab
             href={tab.href}
             className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition ${
               active
-                ? "border-emerald-500 text-emerald-400"
+                ? "border-accent text-accent-text"
                 : "border-transparent text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
             }`}
             aria-current={active ? "page" : undefined}

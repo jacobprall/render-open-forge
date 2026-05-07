@@ -2,20 +2,15 @@
 
 import Link from "next/link";
 import { useTransition, useState } from "react";
+import { Archive } from "lucide-react";
 import { archiveSessionAction } from "./actions";
+import { StatusBadge } from "@/components/primitives";
 import type { Session } from "@render-open-forge/db/schema";
 
-const statusColors: Record<string, string> = {
-  running: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  completed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  failed: "bg-red-500/10 text-red-400 border-red-500/20",
-  archived: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-};
-
 const prStatusStyles: Record<string, { bg: string; icon: string; label: string }> = {
-  open: { bg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: "M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z", label: "Open" },
+  open: { bg: "bg-success/10 text-success border-success/25", icon: "M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z", label: "Open" },
   merged: { bg: "bg-purple-500/10 text-purple-400 border-purple-500/20", icon: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218Z", label: "Merged" },
-  closed: { bg: "bg-red-500/10 text-red-400 border-red-500/20", icon: "M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", label: "Closed" },
+  closed: { bg: "bg-danger/10 text-danger border-danger/25", icon: "M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", label: "Closed" },
 };
 
 function PrBadge({ prNumber, prStatus, repoPath }: { prNumber: number; prStatus: string | null; repoPath: string }) {
@@ -101,17 +96,13 @@ export function SessionCard({ session }: { session: Session }) {
   return (
     <Link
       href={`/sessions/${session.id}`}
-      className="block rounded-lg border border-zinc-800 p-4 transition hover:border-zinc-600 hover:bg-zinc-900/50"
+      className="block rounded-lg border border-stroke-default p-4 transition hover:border-zinc-600 hover:bg-surface-1"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="truncate font-medium text-zinc-100">{session.title}</h3>
-            <span
-              className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-medium ${statusColors[session.status]}`}
-            >
-              {session.status}
-            </span>
+            <StatusBadge status={session.status} dot={false} />
             {session.prNumber != null && (
               <PrBadge
                 prNumber={session.prNumber}
@@ -135,9 +126,9 @@ export function SessionCard({ session }: { session: Session }) {
             </span>
             {(session.linesAdded || session.linesRemoved) ? (
               <span className="font-mono">
-                <span className="text-emerald-400">+{session.linesAdded ?? 0}</span>
+                <span className="text-success">+{session.linesAdded ?? 0}</span>
                 {" "}
-                <span className="text-red-400">-{session.linesRemoved ?? 0}</span>
+                <span className="text-danger">-{session.linesRemoved ?? 0}</span>
               </span>
             ) : null}
           </div>
@@ -148,7 +139,7 @@ export function SessionCard({ session }: { session: Session }) {
                   <button
                     onClick={handleConfirm}
                     disabled={isPending}
-                    className="rounded px-2 py-1 text-xs font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+                    className="rounded px-2 py-1 text-xs font-medium text-danger transition hover:bg-danger/10 disabled:opacity-50"
                   >
                     {isPending ? "Archiving…" : "Confirm"}
                   </button>
@@ -166,19 +157,7 @@ export function SessionCard({ session }: { session: Session }) {
                   title="Archive session"
                   className="rounded p-1 text-zinc-700 transition hover:bg-zinc-700/50 hover:text-zinc-400"
                 >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
-                    />
-                  </svg>
+                  <Archive className="h-4 w-4" />
                 </button>
               )}
             </div>
@@ -186,7 +165,7 @@ export function SessionCard({ session }: { session: Session }) {
         </div>
       </div>
       {error && (
-        <div className="mt-2 rounded border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs text-red-400">
+        <div className="mt-2 rounded border border-danger/20 bg-danger/10 px-3 py-1.5 text-xs text-danger">
           {error}
         </div>
       )}

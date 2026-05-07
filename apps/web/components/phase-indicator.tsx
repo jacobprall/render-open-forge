@@ -4,7 +4,7 @@ type Phase = (typeof phases)[number];
 const phaseConfig: Record<Phase, { label: string; color: string; bgColor: string }> = {
   understand: { label: "Understand", color: "text-purple-400", bgColor: "bg-purple-400" },
   spec: { label: "Spec", color: "text-amber-400", bgColor: "bg-amber-400" },
-  execute: { label: "Execute", color: "text-emerald-400", bgColor: "bg-emerald-400" },
+  execute: { label: "Execute", color: "text-accent-text", bgColor: "bg-accent" },
   verify: { label: "Verify", color: "text-cyan-400", bgColor: "bg-cyan-400" },
   deliver: { label: "Deliver", color: "text-blue-400", bgColor: "bg-blue-400" },
   complete: { label: "Complete", color: "text-zinc-400", bgColor: "bg-zinc-400" },

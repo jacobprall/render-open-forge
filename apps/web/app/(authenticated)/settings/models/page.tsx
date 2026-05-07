@@ -32,13 +32,13 @@ export default async function ModelsPage() {
 
   let selectedModel: string | null = null;
   try {
-    const [prefs] = await db
-      .select()
+    const [row] = await db
+      .select({ data: userPreferences.data })
       .from(userPreferences)
       .where(eq(userPreferences.userId, String(session.userId)))
       .limit(1);
-    if (prefs?.defaultModelId) {
-      selectedModel = prefs.defaultModelId;
+    if (row?.data?.defaultModelId) {
+      selectedModel = row.data.defaultModelId;
     }
   } catch {
     // DB might not be ready
@@ -87,7 +87,7 @@ export default async function ModelsPage() {
                         key={model.id}
                         className={`rounded-xl border p-4 transition ${
                           isDefault
-                            ? "border-emerald-500/40 bg-emerald-500/5"
+                            ? "border-accent/40 bg-accent-bg"
                             : "border-zinc-800 bg-zinc-900/50"
                         }`}
                       >
@@ -101,7 +101,7 @@ export default async function ModelsPage() {
                                 </span>
                               )}
                               {isDefault && (
-                                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                                <span className="rounded-full border border-accent/25 bg-accent-bg px-2 py-0.5 text-[10px] font-medium text-accent-text">
                                   Default
                                 </span>
                               )}

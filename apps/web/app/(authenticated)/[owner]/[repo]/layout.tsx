@@ -56,14 +56,14 @@ export default async function RepoLayout({
             <div className="flex items-center gap-1.5 text-lg">
               <Link
                 href={`/${owner}`}
-                className="font-medium text-emerald-400 hover:underline"
+                className="font-medium text-accent-text hover:underline"
               >
                 {owner}
               </Link>
               <span className="text-zinc-500">/</span>
               <Link
                 href={basePath}
-                className="font-semibold text-emerald-400 hover:underline"
+                className="font-semibold text-accent-text hover:underline"
               >
                 {repo}
               </Link>

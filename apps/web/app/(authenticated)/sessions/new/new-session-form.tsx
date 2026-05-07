@@ -213,7 +213,7 @@ export function NewSessionForm() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {error ? (
-          <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <div className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
             {error}
           </div>
         ) : null}
@@ -229,7 +229,7 @@ export function NewSessionForm() {
                 setSelectedRepo(e.target.value);
                 setInitialParamsApplied(false);
               }}
-              className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-accent focus:ring-1 focus:ring-accent"
               required
             >
               <option value="" className="bg-zinc-900 text-zinc-400">
@@ -253,7 +253,7 @@ export function NewSessionForm() {
                 setIsNewBranch((v) => !v);
                 setNewBranchName("");
               }}
-              className="text-xs text-emerald-400 transition hover:text-emerald-300"
+              className="text-xs text-accent-text transition hover:text-accent"
             >
               {isNewBranch ? "Use existing branch" : "+ New branch"}
             </button>
@@ -268,7 +268,7 @@ export function NewSessionForm() {
                 onFocus={(e) => e.target.select()}
                 placeholder="e.g. feature/my-branch"
                 autoFocus
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50"
                 disabled={!selectedRepo}
                 required
               />
@@ -283,7 +283,7 @@ export function NewSessionForm() {
               <select
                 value={selectedBranch}
                 onChange={(e) => setSelectedBranch(e.target.value)}
-                className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-accent focus:ring-1 focus:ring-accent"
                 disabled={!selectedRepo}
                 required
               >
@@ -317,7 +317,7 @@ export function NewSessionForm() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Leave blank — named automatically after your first message (Claude Haiku)"
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-accent focus:ring-1 focus:ring-accent"
           />
           <p className="mt-1.5 text-xs text-zinc-500">
             Sessions start as &quot;New session&quot; until you send a message; then we generate a short title with
@@ -329,7 +329,7 @@ export function NewSessionForm() {
           <label className="mb-2 block text-sm font-medium text-zinc-300">Skills for this session</label>
           <p className="mb-3 text-xs text-zinc-500">
             Toggle instructions merged into the agent system prompt. Manage personal skills in{" "}
-            <a href="/settings/skills" className="text-emerald-400 hover:text-emerald-300">
+            <a href="/settings/skills" className="text-accent-text hover:text-accent">
               Settings → Skills
             </a>
             .
@@ -376,7 +376,7 @@ export function NewSessionForm() {
                         onClick={() => toggleSkill({ source: s.source, slug: s.slug })}
                         className={`rounded-lg border px-3 py-2 text-left transition ${
                           on
-                            ? "border-emerald-500/60 bg-emerald-500/10"
+                            ? "border-accent/60 bg-accent-bg"
                             : "border-zinc-700 bg-zinc-900 hover:border-zinc-600"
                         }`}
                       >
@@ -407,7 +407,7 @@ export function NewSessionForm() {
           <button
             type="submit"
             disabled={isPending || !selectedRepo || !effectiveBranch}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? "Creating…" : "Create Session"}
           </button>

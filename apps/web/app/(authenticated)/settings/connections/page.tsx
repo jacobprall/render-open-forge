@@ -66,10 +66,10 @@ export default async function ConnectionsPage() {
 
       <div className="space-y-4">
         {/* Forgejo — always connected via login */}
-        <div className="rounded-xl border border-emerald-500/20 bg-zinc-900/50 p-6">
+        <div className="rounded-xl border border-accent/20 bg-zinc-900/50 p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="text-emerald-400">{forgejoIcon}</div>
+              <div className="text-accent-text">{forgejoIcon}</div>
               <div>
                 <h3 className="font-semibold text-zinc-100">Forgejo</h3>
                 <p className="text-sm text-zinc-400">
@@ -79,8 +79,8 @@ export default async function ConnectionsPage() {
             </div>
             <div className="text-right">
               <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span className="text-sm font-medium text-emerald-400">Connected</span>
+                <span className="h-2 w-2 rounded-full bg-accent" />
+                <span className="text-sm font-medium text-accent-text">Connected</span>
               </div>
               <p className="mt-0.5 text-xs text-zinc-500">{session.username}</p>
             </div>
@@ -108,8 +108,8 @@ export default async function ConnectionsPage() {
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <div className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                        <span className="text-sm font-medium text-emerald-400">Connected</span>
+                        <span className="h-2 w-2 rounded-full bg-accent" />
+                        <span className="text-sm font-medium text-accent-text">Connected</span>
                       </div>
                       {connection.remoteUsername && (
                         <p className="mt-0.5 text-xs text-zinc-500">
@@ -140,7 +140,7 @@ export default async function ConnectionsPage() {
 
       <p className="mt-6 text-xs text-zinc-600">
         External forge tokens are stored securely in the database. Manage your active mirrors in{" "}
-        <a href="/settings/mirrors" className="text-emerald-500 hover:underline">Mirror Settings</a>.
+        <a href="/settings/mirrors" className="text-accent-text hover:underline">Mirror Settings</a>.
       </p>
     </div>
   );

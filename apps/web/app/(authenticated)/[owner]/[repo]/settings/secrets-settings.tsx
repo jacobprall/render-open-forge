@@ -116,7 +116,7 @@ export function SecretsSettings({ owner, repo }: Props) {
                     type="button"
                     disabled={deleting === s.name}
                     onClick={() => void handleDelete(s.name)}
-                    className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-400 transition hover:border-red-500/40 hover:text-red-400 disabled:opacity-50"
+                    className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-400 transition hover:border-danger/40 hover:text-danger disabled:opacity-50"
                   >
                     {deleting === s.name ? "Deleting…" : "Delete"}
                   </button>
@@ -135,19 +135,19 @@ export function SecretsSettings({ owner, repo }: Props) {
                 placeholder="SECRET_NAME"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_"))}
-                className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100 placeholder-zinc-600 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100 placeholder-zinc-600 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
               <input
                 type="password"
                 placeholder="Value"
                 value={newValue}
                 onChange={(e) => setNewValue(e.target.value)}
-                className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
               <button
                 type="submit"
                 disabled={saving || !newName.trim() || !newValue}
-                className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
               >
                 {saving ? "Saving…" : "Add secret"}
               </button>
@@ -157,10 +157,10 @@ export function SecretsSettings({ owner, repo }: Props) {
       )}
 
       {message && (
-        <p className="mt-3 text-sm text-emerald-400" role="status">{message}</p>
+        <p className="mt-3 text-sm text-accent-text" role="status">{message}</p>
       )}
       {error && (
-        <p className="mt-3 text-sm text-red-400" role="alert">{error}</p>
+        <p className="mt-3 text-sm text-danger" role="alert">{error}</p>
       )}
     </div>
   )

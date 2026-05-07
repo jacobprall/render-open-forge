@@ -9,3 +9,4 @@ dist/
 .env.local
 *.log
 .DS_Store
+docs/e2e-agent-test.md

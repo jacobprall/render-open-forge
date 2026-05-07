@@ -57,7 +57,7 @@ export function NewPrForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
@@ -65,12 +65,12 @@ export function NewPrForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-zinc-300">
-            Head branch <span className="text-red-400">*</span>
+            Head branch <span className="text-danger">*</span>
           </label>
           <select
             value={head}
             onChange={(e) => setHead(e.target.value)}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">Select branch…</option>
             {branches
@@ -85,12 +85,12 @@ export function NewPrForm({
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-zinc-300">
-            Base branch <span className="text-red-400">*</span>
+            Base branch <span className="text-danger">*</span>
           </label>
           <select
             value={base}
             onChange={(e) => setBase(e.target.value)}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           >
             {branches.map((b) => (
               <option key={b} value={b}>
@@ -104,14 +104,14 @@ export function NewPrForm({
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-zinc-300">
-          Title <span className="text-red-400">*</span>
+          Title <span className="text-danger">*</span>
         </label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="What does this PR do?"
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
@@ -124,7 +124,7 @@ export function NewPrForm({
           onChange={(e) => setBody(e.target.value)}
           rows={6}
           placeholder="Add a description of your changes…"
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
@@ -132,7 +132,7 @@ export function NewPrForm({
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
         >
           {isPending && (
             <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">

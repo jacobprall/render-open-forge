@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import Image from "next/image";
+import { Building2 } from "lucide-react";
+import {
+  PageShell,
+  Input,
+  FormField,
+  Button,
+  Avatar,
+  EmptyState,
+  ListRow,
+} from "@/components/primitives";
 
 interface Org {
   id: number;
@@ -57,85 +66,81 @@ export default function OrgsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-6 text-2xl font-bold text-zinc-100">Organizations</h1>
-
+    <PageShell title="Organizations" narrow>
       <form
         onSubmit={handleCreate}
-        className="mb-8 rounded-lg border border-zinc-800 bg-zinc-900 p-4"
+        className="mb-8 rounded-lg border border-stroke-default bg-surface-1 p-4"
       >
-        <h2 className="mb-4 text-lg font-medium text-zinc-200">Create Organization</h2>
+        <h2 className="mb-4 text-lg font-medium text-text-primary">Create Organization</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-sm text-zinc-400">Login (required)</label>
-            <input
-              type="text"
+          <FormField label="Login" required>
+            <Input
               value={login}
               onChange={(e) => setLogin(e.target.value)}
               placeholder="my-org"
-              className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
             />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-zinc-400">Full Name</label>
-            <input
-              type="text"
+          </FormField>
+          <FormField label="Full Name">
+            <Input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="My Organization"
-              className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
             />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="mb-1 block text-sm text-zinc-400">Description</label>
-            <input
-              type="text"
+          </FormField>
+          <FormField label="Description" className="sm:col-span-2">
+            <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
-              className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
             />
-          </div>
+          </FormField>
         </div>
-        {error ? <p className="mt-2 text-sm text-red-400">{error}</p> : null}
-        <button
+        {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
+        <Button
           type="submit"
-          disabled={creating || !login.trim()}
-          className="mt-4 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+          variant="primary"
+          loading={creating}
+          disabled={!login.trim()}
+          className="mt-4"
         >
-          {creating ? "Creating..." : "Create Organization"}
-        </button>
+          Create Organization
+        </Button>
       </form>
 
       {loading ? (
-        <p className="text-sm text-zinc-400">Loading organizations...</p>
+        <p className="text-sm text-text-secondary">Loading organizations...</p>
       ) : orgs.length === 0 ? (
-        <p className="text-sm text-zinc-400">No organizations yet. Create one above.</p>
+        <EmptyState
+          icon={<Building2 className="h-6 w-6" />}
+          title="No organizations yet"
+          description="Create one above to get started."
+        />
       ) : (
         <div className="space-y-3">
           {orgs.map((org) => (
-            <div
+            <ListRow
               key={org.id}
-              className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4"
-            >
-              <Image
-                src={org.avatar_url}
-                alt={org.username}
-                width={40}
-                height={40}
-                className="h-10 w-10 rounded-full bg-zinc-700"
-              />
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-zinc-100">{org.full_name || org.username}</h3>
-                <p className="text-xs text-zinc-400">@{org.username}</p>
-                {org.description ? (
-                  <p className="mt-1 text-xs text-zinc-500">{org.description}</p>
-                ) : null}
-              </div>
-            </div>
+              icon={
+                <Avatar
+                  src={org.avatar_url}
+                  alt={org.username}
+                  fallback={org.full_name || org.username}
+                  size="lg"
+                />
+              }
+              title={org.full_name || org.username}
+              subtitle={
+                <>
+                  @{org.username}
+                  {org.description ? (
+                    <span className="text-text-tertiary"> &mdash; {org.description}</span>
+                  ) : null}
+                </>
+              }
+            />
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

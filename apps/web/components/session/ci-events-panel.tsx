@@ -72,7 +72,7 @@ export function CiEventsPanel({ events }: Props) {
                     href={ev.logsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ml-6 inline-block text-xs text-emerald-400 underline underline-offset-2 transition hover:text-emerald-300"
+                    className="ml-6 inline-block text-xs text-accent-text underline underline-offset-2 transition hover:text-accent"
                   >
                     View logs
                   </a>

@@ -58,7 +58,7 @@ export function FileEditor({
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        className="h-[500px] w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-4 py-3 font-mono text-sm text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+        className="h-[500px] w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-4 py-3 font-mono text-sm text-zinc-100 placeholder-zinc-500 focus:border-accent focus:outline-none"
         spellCheck={false}
       />
       <div className="flex items-end gap-4">
@@ -70,18 +70,18 @@ export function FileEditor({
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 focus:outline-none"
+            className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-accent focus:outline-none"
           />
         </div>
         <button
           onClick={handleSave}
           disabled={saving || !message.trim()}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save & Commit"}
         </button>
       </div>
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   );
 }

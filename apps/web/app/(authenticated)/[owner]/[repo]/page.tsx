@@ -107,7 +107,7 @@ export default async function RepoDetailPage({
         </div>
         <Link
           href={`/sessions/new?repo=${owner}/${repoName}`}
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500"
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
         >
           <svg
             className="h-4 w-4"
@@ -138,7 +138,7 @@ export default async function RepoDetailPage({
           <div className="flex items-center gap-2 text-sm text-zinc-400">
             <Link
               href={`/${owner}/${repoName}/commit/${latestCommit.sha}`}
-              className="font-mono text-xs text-emerald-400 hover:underline"
+              className="font-mono text-xs text-accent-text hover:underline"
             >
               {latestCommit.sha.slice(0, 7)}
             </Link>
@@ -181,7 +181,7 @@ export default async function RepoDetailPage({
             >
               {file.type === "dir" ? (
                 <svg
-                  className="h-4 w-4 shrink-0 text-emerald-400"
+                  className="h-4 w-4 shrink-0 text-accent-text"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}

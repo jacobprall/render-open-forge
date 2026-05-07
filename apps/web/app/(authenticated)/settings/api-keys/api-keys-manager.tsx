@@ -86,7 +86,7 @@ export function ApiKeysManager() {
     return <p className="text-sm text-zinc-500">Loading…</p>;
   }
   if (error) {
-    return <p className="text-sm text-red-400">Could not load API keys.</p>;
+    return <p className="text-sm text-danger">Could not load API keys.</p>;
   }
 
   return (
@@ -168,7 +168,7 @@ export function ApiKeysManager() {
           provider before they are stored.
         </p>
         {formError && (
-          <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <div className="mb-4 rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
             {formError}
           </div>
         )}
@@ -179,7 +179,7 @@ export function ApiKeysManager() {
               <select
                 value={provider}
                 onChange={(e) => setProvider(e.target.value as "anthropic" | "openai")}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               >
                 <option value="anthropic">Anthropic</option>
                 <option value="openai">OpenAI</option>
@@ -191,7 +191,7 @@ export function ApiKeysManager() {
                 value={scope}
                 onChange={(e) => setScope(e.target.value as "platform" | "user")}
                 disabled={!data.isAdmin}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50"
               >
                 <option value="user">Personal (this account)</option>
                 {data.isAdmin ? <option value="platform">Platform (all users)</option> : null}
@@ -208,7 +208,7 @@ export function ApiKeysManager() {
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder={provider === "anthropic" ? "Anthropic" : "OpenAI"}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
           <div>
@@ -218,7 +218,7 @@ export function ApiKeysManager() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               autoComplete="off"
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               required
               minLength={8}
             />
@@ -229,7 +229,7 @@ export function ApiKeysManager() {
           <button
             type="submit"
             disabled={saving || !data.encryptionConfigured}
-            className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save key"}
           </button>

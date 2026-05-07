@@ -70,7 +70,7 @@ export function ReadRenderer({
       status={derivedStatus}
     >
       {result?.error ? (
-        <span className="text-red-400">{result.error}</span>
+        <span className="text-danger">{result.error}</span>
       ) : result?.content != null ? (
         <pre className="text-xs whitespace-pre-wrap text-zinc-300">
           {result.content}
@@ -103,7 +103,7 @@ export function WriteRenderer({
       subtitle={filePath}
       status={derivedStatus}
     >
-      {result?.error && <span className="text-red-400">{result.error}</span>}
+      {result?.error && <span className="text-danger">{result.error}</span>}
       {result?.bytesWritten != null && (
         <span className="text-zinc-400">
           {result.bytesWritten} bytes written
@@ -143,7 +143,7 @@ export function EditRenderer({
       subtitle={filePath}
       status={derivedStatus}
     >
-      {result?.error && <span className="text-red-400">{result.error}</span>}
+      {result?.error && <span className="text-danger">{result.error}</span>}
       {result?.replacements != null && (
         <span className="text-zinc-400">
           {result.replacements} replacement
@@ -152,7 +152,7 @@ export function EditRenderer({
       )}
       {args?.oldString && (
         <div className="mt-1 space-y-1">
-          <pre className="text-xs bg-red-500/10 text-red-400 whitespace-pre-wrap px-1 rounded">
+          <pre className="text-xs bg-danger/10 text-danger whitespace-pre-wrap px-1 rounded">
             {`- ${args.oldString.length > 400 ? args.oldString.slice(0, 400) + "…" : args.oldString}`}
           </pre>
           <pre className="text-xs bg-emerald-500/10 text-emerald-400 whitespace-pre-wrap px-1 rounded">

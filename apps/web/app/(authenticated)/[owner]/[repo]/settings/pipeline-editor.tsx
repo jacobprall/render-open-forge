@@ -164,7 +164,7 @@ export function PipelineEditor({ owner, repo }: Props) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-400">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent-bg text-xs font-bold text-accent-text">
                       {idx + 1}
                     </span>
                     <span className="font-mono text-sm text-zinc-200">{step.role}</span>
@@ -176,14 +176,14 @@ export function PipelineEditor({ owner, repo }: Props) {
                     <button
                       type="button"
                       onClick={() => setEditingId(editingId === step.id ? null : step.id)}
-                      className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-400 transition hover:border-emerald-500/40 hover:text-emerald-400"
+                      className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-400 transition hover:border-accent/40 hover:text-accent-text"
                     >
                       {editingId === step.id ? "Close" : "Edit"}
                     </button>
                     <button
                       type="button"
                       onClick={() => removeStep(step.id)}
-                      className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-400 transition hover:border-red-500/40 hover:text-red-400"
+                      className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-400 transition hover:border-danger/40 hover:text-danger"
                     >
                       Delete
                     </button>
@@ -204,7 +204,7 @@ export function PipelineEditor({ owner, repo }: Props) {
                       <select
                         value={step.role}
                         onChange={(e) => updateStep(step.id, { role: e.target.value })}
-                        className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 focus:outline-none"
+                        className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-accent focus:outline-none"
                       >
                         <option value="understand">understand</option>
                         <option value="spec">spec</option>
@@ -219,7 +219,7 @@ export function PipelineEditor({ owner, repo }: Props) {
                         type="text"
                         value={step.model}
                         onChange={(e) => updateStep(step.id, { model: e.target.value })}
-                        className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-emerald-500 focus:outline-none"
+                        className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent focus:outline-none"
                       />
                     </div>
                     <div>
@@ -227,7 +227,7 @@ export function PipelineEditor({ owner, repo }: Props) {
                       <select
                         value={step.trigger}
                         onChange={(e) => updateStep(step.id, { trigger: e.target.value })}
-                        className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 focus:outline-none"
+                        className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-accent focus:outline-none"
                       >
                         <option value="user_message">user_message</option>
                         <option value="ci_failure">ci_failure</option>
@@ -253,7 +253,7 @@ export function PipelineEditor({ owner, repo }: Props) {
                           })
                         }
                         placeholder="file_edit, shell, search"
-                        className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-emerald-500 focus:outline-none"
+                        className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent focus:outline-none"
                       />
                     </div>
                   </div>
@@ -265,7 +265,7 @@ export function PipelineEditor({ owner, repo }: Props) {
           <button
             type="button"
             onClick={addStep}
-            className="mt-4 rounded-lg border border-dashed border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition hover:border-emerald-500/40 hover:text-emerald-400"
+            className="mt-4 rounded-lg border border-dashed border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition hover:border-accent/40 hover:text-accent-text"
           >
             + Add Step
           </button>
@@ -279,7 +279,7 @@ export function PipelineEditor({ owner, repo }: Props) {
                 onChange={(e) =>
                   setConfig((prev) => ({ ...prev, autoMerge: e.target.checked }))
                 }
-                className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500"
+                className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-accent-text focus:ring-accent"
               />
               <div>
                 <span className="text-sm font-medium text-zinc-200">Auto-merge</span>
@@ -308,7 +308,7 @@ export function PipelineEditor({ owner, repo }: Props) {
                     <button
                       type="button"
                       onClick={() => removeCheck(idx)}
-                      className="shrink-0 rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-400 transition hover:border-red-500/40 hover:text-red-400"
+                      className="shrink-0 rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-400 transition hover:border-danger/40 hover:text-danger"
                     >
                       Remove
                     </button>
@@ -323,20 +323,20 @@ export function PipelineEditor({ owner, repo }: Props) {
                 placeholder="Check name"
                 value={newCheckName}
                 onChange={(e) => setNewCheckName(e.target.value)}
-                className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-emerald-500 focus:outline-none"
+                className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent focus:outline-none"
               />
               <input
                 type="text"
                 placeholder="bun run test"
                 value={newCheckCmd}
                 onChange={(e) => setNewCheckCmd(e.target.value)}
-                className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100 placeholder-zinc-600 focus:border-emerald-500 focus:outline-none"
+                className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent focus:outline-none"
               />
               <button
                 type="button"
                 onClick={addCheck}
                 disabled={!newCheckName.trim() || !newCheckCmd.trim()}
-                className="shrink-0 rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-emerald-500/40 hover:text-emerald-400 disabled:opacity-50"
+                className="shrink-0 rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-accent/40 hover:text-accent-text disabled:opacity-50"
               >
                 Add
               </button>
@@ -349,7 +349,7 @@ export function PipelineEditor({ owner, repo }: Props) {
               type="button"
               disabled={saving}
               onClick={() => void handleSave()}
-              className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+              className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save Pipeline"}
             </button>
@@ -358,12 +358,12 @@ export function PipelineEditor({ owner, repo }: Props) {
       )}
 
       {message && (
-        <p className="mt-3 text-sm text-emerald-400" role="status">
+        <p className="mt-3 text-sm text-accent-text" role="status">
           {message}
         </p>
       )}
       {error && (
-        <p className="mt-3 text-sm text-red-400" role="alert">
+        <p className="mt-3 text-sm text-danger" role="alert">
           {error}
         </p>
       )}

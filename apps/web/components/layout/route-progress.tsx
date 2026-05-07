@@ -29,7 +29,7 @@ export function RouteProgress() {
       role="progressbar"
     >
       <div
-        className={`h-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] ${
+        className={`h-full bg-accent shadow-[0_0_8px_rgba(16,185,129,0.6)] ${
           state === "loading" ? "animate-route-progress" : "animate-route-complete"
         }`}
       />

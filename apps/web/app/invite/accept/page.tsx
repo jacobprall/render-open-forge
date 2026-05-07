@@ -16,7 +16,7 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <p className="text-zinc-400">Missing invite link. Ask your admin for a new invite.</p>
-        <Link href="/" className="mt-4 text-sm text-emerald-500 hover:underline">
+        <Link href="/" className="mt-4 text-sm text-accent-text hover:underline">
           Back to home
         </Link>
       </main>
@@ -30,7 +30,7 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
         <p className="text-center text-zinc-400">
           This invite link is invalid or has expired.
         </p>
-        <Link href="/" className="mt-4 text-sm text-emerald-500 hover:underline">
+        <Link href="/" className="mt-4 text-sm text-accent-text hover:underline">
           Back to home
         </Link>
       </main>
@@ -51,7 +51,7 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
         <p className="text-center text-zinc-400">
           This invite has already been used or does not exist.
         </p>
-        <Link href="/" className="mt-4 text-sm text-emerald-500 hover:underline">
+        <Link href="/" className="mt-4 text-sm text-accent-text hover:underline">
           Sign in
         </Link>
       </main>
@@ -62,7 +62,7 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <p className="text-center text-zinc-400">This invite has expired.</p>
-        <Link href="/" className="mt-4 text-sm text-emerald-500 hover:underline">
+        <Link href="/" className="mt-4 text-sm text-accent-text hover:underline">
           Back to home
         </Link>
       </main>
@@ -83,7 +83,7 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
         </p>
         <Link
           href="/"
-          className="mt-6 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+          className="mt-6 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
         >
           Sign in
         </Link>
@@ -102,7 +102,7 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
         <InvitePasswordForm token={raw} />
         <p className="mt-8 text-xs text-zinc-500">
           Wrong person?{" "}
-          <Link href="/" className="text-emerald-500 hover:underline">
+          <Link href="/" className="text-accent-text hover:underline">
             Back to home
           </Link>
         </p>

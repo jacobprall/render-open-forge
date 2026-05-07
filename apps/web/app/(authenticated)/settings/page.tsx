@@ -16,12 +16,12 @@ export default async function SettingsPage() {
   let prefs = null;
   try {
     const db = getDb();
-    const results = await db
-      .select()
+    const [row] = await db
+      .select({ data: userPreferences.data })
       .from(userPreferences)
       .where(eq(userPreferences.userId, String(session.userId)))
       .limit(1);
-    prefs = results[0] || null;
+    prefs = row?.data ?? null;
   } catch {
     // DB might not be ready
   }

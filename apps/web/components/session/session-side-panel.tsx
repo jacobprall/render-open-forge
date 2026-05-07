@@ -148,9 +148,9 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
                 <div className="mb-3 flex items-center justify-between text-xs text-zinc-400">
                   <span>{filesChanged.length} file{filesChanged.length !== 1 ? "s" : ""} changed</span>
                   <span className="font-mono">
-                    <span className="text-emerald-400">+{totalAdditions}</span>
+                    <span className="text-accent-text">+{totalAdditions}</span>
                     {" "}
-                    <span className="text-red-400">-{totalDeletions}</span>
+                    <span className="text-danger">-{totalDeletions}</span>
                   </span>
                 </div>
                 <div className="space-y-1">
@@ -163,9 +163,9 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
                         {file.path.split("/").pop()}
                       </span>
                       <span className="ml-2 shrink-0 font-mono">
-                        <span className="text-emerald-400">+{file.additions}</span>
+                        <span className="text-accent-text">+{file.additions}</span>
                         {" "}
-                        <span className="text-red-400">-{file.deletions}</span>
+                        <span className="text-danger">-{file.deletions}</span>
                       </span>
                     </div>
                   ))}
@@ -192,14 +192,14 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
               )}
               {ciStatus === "success" && (
                 <>
-                  <div className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                  <span className="text-sm text-emerald-400">Passed</span>
+                  <div className="h-2.5 w-2.5 rounded-full bg-accent" />
+                  <span className="text-sm text-accent-text">Passed</span>
                 </>
               )}
               {ciStatus === "failure" && (
                 <>
                   <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
-                  <span className="text-sm text-red-400">Failed</span>
+                  <span className="text-sm text-danger">Failed</span>
                 </>
               )}
             </div>
@@ -217,7 +217,7 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
                     {ev.status ? (
                       <span
                         className={`ml-2 ${
-                          ev.status === "success" ? "text-emerald-400" : ev.status === "running" ? "text-amber-400" : "text-red-400"
+                          ev.status === "success" ? "text-accent-text" : ev.status === "running" ? "text-warning" : "text-danger"
                         }`}
                       >
                         {ev.status}

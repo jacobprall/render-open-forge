@@ -33,8 +33,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           type={type ?? (variant === "search" ? "search" : "text")}
           className={cn(
-            "w-full rounded-md border border-zinc-700 bg-zinc-800 text-zinc-100 placeholder:text-zinc-500 transition-colors",
-            "focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500",
+            "w-full rounded-md border border-stroke-default bg-surface-2 text-text-primary placeholder:text-text-tertiary transition-colors",
+            "focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             variant === "search" ? "h-9 pl-9 pr-3 text-sm" : "h-9 px-3 text-sm",
             className

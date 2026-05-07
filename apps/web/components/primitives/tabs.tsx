@@ -92,7 +92,7 @@ export function Tabs({
       ))}
       <div
         ref={indicatorRef}
-        className="absolute bottom-0 h-0.5 bg-emerald-500 transition-all duration-200"
+        className="absolute bottom-0 h-0.5 bg-accent transition-all duration-200"
       />
     </div>
   );

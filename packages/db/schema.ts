@@ -504,19 +504,22 @@ export const llmApiKeys = pgTable(
 // User preferences
 // ---------------------------------------------------------------------------
 
+export interface UserPreferencesData {
+  defaultModelId?: string | null;
+  defaultSubagentModelId?: string | null;
+  defaultDiffMode?: "unified" | "split";
+  defaultWorkflowMode?: "full" | "standard" | "fast" | "yolo";
+  autoCommitPush?: boolean;
+  autoCreatePr?: boolean;
+  accentColor?: string | null;
+  secondaryColor?: string | null;
+  tertiaryColor?: string | null;
+}
+
 export const userPreferences = pgTable("user_preferences", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().unique(),
-  defaultModelId: text("default_model_id").default("anthropic/claude-sonnet-4-5"),
-  defaultSubagentModelId: text("default_subagent_model_id"),
-  defaultDiffMode: text("default_diff_mode", {
-    enum: ["unified", "split"],
-  }).default("unified"),
-  defaultWorkflowMode: text("default_workflow_mode", {
-    enum: ["full", "standard", "fast", "yolo"],
-  }).default("standard"),
-  autoCommitPush: boolean("auto_commit_push").notNull().default(false),
-  autoCreatePr: boolean("auto_create_pr").notNull().default(false),
+  data: jsonb("data").$type<UserPreferencesData>().notNull().default({}),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

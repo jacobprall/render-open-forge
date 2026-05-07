@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  Folder,
+  FolderOpen,
   MessageCircle,
   GitPullRequest,
   Settings,
@@ -13,19 +13,19 @@ import {
   ChevronRight,
   LogOut,
   Code,
-} from "@/components/icons";
+} from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useInboxCount } from "./use-inbox-count";
 
 interface NavItem {
   label: string;
   href: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  icon: React.ComponentType<{ className?: string }>;
   badgeKey?: string;
 }
 
 const navItems: NavItem[] = [
-  { label: "Repositories", href: "/repos", icon: Folder },
+  { label: "Repositories", href: "/repos", icon: FolderOpen },
   { label: "Sessions", href: "/sessions", icon: MessageCircle },
   { label: "Pull Requests", href: "/pulls", icon: GitPullRequest, badgeKey: "inbox" },
   { label: "Settings", href: "/settings", icon: Settings },
@@ -88,7 +88,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
             collapsed ? "justify-center" : "gap-2 px-4"
           }`}
         >
-          <Code className="h-5 w-5 shrink-0 text-emerald-500" />
+          <Code className="h-5 w-5 shrink-0 text-accent" />
           {!collapsed && (
             <span className="truncate text-sm font-semibold tracking-tight">
               OpenForge
@@ -110,19 +110,19 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
                 title={collapsed ? item.label : undefined}
                 className={`relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-zinc-800 text-emerald-400"
-                    : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
+                    ? "bg-surface-2 text-accent-text"
+                    : "text-text-secondary hover:bg-surface-1 hover:text-text-primary"
                 } ${collapsed ? "justify-center px-0" : ""}`}
               >
                 <Icon className="h-[18px] w-[18px] shrink-0" />
                 {!collapsed && <span className="flex-1">{item.label}</span>}
                 {badge > 0 && !collapsed && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500/20 px-1.5 text-[11px] font-semibold tabular-nums text-emerald-400">
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-bg px-1.5 text-[11px] font-semibold tabular-nums text-accent-text">
                     {badge > 99 ? "99+" : badge}
                   </span>
                 )}
                 {badge > 0 && collapsed && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-white">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-white">
                     {badge > 9 ? "9+" : badge}
                   </span>
                 )}

@@ -10,9 +10,9 @@ import { JobLogsPoller } from "@/components/actions/job-log-poller";
 const statusStyles: Record<string, string> = {
   pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   running: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  failure: "bg-red-500/10 text-red-400 border-red-500/20",
-  error: "bg-red-500/10 text-red-400 border-red-500/20",
+  success: "bg-accent-bg text-accent-text border-accent/20",
+  failure: "bg-danger/10 text-danger border-danger/20",
+  error: "bg-danger/10 text-danger border-danger/20",
 };
 
 export default async function CIRunDetailPage({
@@ -52,7 +52,7 @@ export default async function CIRunDetailPage({
             </p>
             <Link
               href={`/${owner}/${repo}/actions`}
-              className="mt-4 inline-block text-sm text-emerald-400 hover:text-emerald-300"
+              className="mt-4 inline-block text-sm text-accent-text hover:text-accent"
             >
               Back to Actions
             </Link>
@@ -123,7 +123,7 @@ function RunDetail({
           <p className="mt-1 text-sm font-medium">
             <Link
               href={`/sessions/${event.sessionId}`}
-              className="text-emerald-400 hover:text-emerald-300"
+              className="text-accent-text hover:text-accent"
             >
               {event.sessionId.slice(0, 8)}...
             </Link>
@@ -137,7 +137,7 @@ function RunDetail({
                 href={event.logsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-emerald-400 hover:text-emerald-300"
+                className="text-accent-text hover:text-accent"
               >
                 View in Forgejo ↗
               </a>

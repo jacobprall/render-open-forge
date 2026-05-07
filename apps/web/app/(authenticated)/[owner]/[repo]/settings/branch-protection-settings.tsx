@@ -115,7 +115,7 @@ export function BranchProtectionSettings(props: Props) {
         <div className="mt-4 flex flex-wrap items-center gap-3">
           {protectedDefault ? (
             <>
-              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300">
+              <span className="rounded-full bg-accent-bg px-2.5 py-1 text-xs font-medium text-accent">
                 {defaultBranch} is protected
               </span>
               <button
@@ -131,7 +131,7 @@ export function BranchProtectionSettings(props: Props) {
             <button
               type="button"
               disabled={busy}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               onClick={() => void enable()}
             >
               Protect {defaultBranch}
@@ -141,12 +141,12 @@ export function BranchProtectionSettings(props: Props) {
       )}
 
       {message && (
-        <p className="mt-3 text-sm text-emerald-400" role="status">
+        <p className="mt-3 text-sm text-accent-text" role="status">
           {message}
         </p>
       )}
       {error && (
-        <p className="mt-3 text-sm text-red-400" role="alert">
+        <p className="mt-3 text-sm text-danger" role="alert">
           {error}
         </p>
       )}

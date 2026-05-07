@@ -51,7 +51,7 @@ import { isDeliverComplete, transitionToComplete } from "./lib/deliver";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MAX_STEPS = 30;
+const MAX_STEPS = 50;
 const RUN_STATUS_TTL = 3600;
 const EVENT_STREAM_TTL = 86_400; // 24h
 
@@ -273,7 +273,7 @@ async function runTurn(params: {
     ? thinkingType === "adaptive"
       ? {
           anthropic: {
-            thinking: { type: "adaptive" as const },
+            thinking: { type: "adaptive" as const, budget_tokens: 16000 },
             output_config: { effort: "high" as const },
           },
         }

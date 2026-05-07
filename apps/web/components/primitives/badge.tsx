@@ -5,19 +5,19 @@ function cn(...classes: (string | undefined | null | false)[]) {
 }
 
 const variantStyles = {
-  success: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
-  failure: "bg-red-500/15 text-red-400 border-red-500/25",
-  pending: "bg-amber-500/15 text-amber-400 border-amber-500/25",
-  info: "bg-blue-500/15 text-blue-400 border-blue-500/25",
-  neutral: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25",
+  success: "bg-success/15 text-success border-success/25",
+  failure: "bg-danger/15 text-danger border-danger/25",
+  pending: "bg-warning/15 text-warning border-warning/25",
+  info: "bg-info/15 text-info border-info/25",
+  neutral: "bg-zinc-500/15 text-text-secondary border-stroke-subtle",
 } as const;
 
 const dotStyles = {
-  success: "bg-emerald-400",
-  failure: "bg-red-400",
-  pending: "bg-amber-400",
-  info: "bg-blue-400",
-  neutral: "bg-zinc-400",
+  success: "bg-success",
+  failure: "bg-danger",
+  pending: "bg-warning",
+  info: "bg-info",
+  neutral: "bg-text-tertiary",
 } as const;
 
 type BadgeVariant = keyof typeof variantStyles;

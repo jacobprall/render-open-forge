@@ -9,9 +9,9 @@ import { relativeTime } from "@/lib/utils";
 const statusStyles: Record<string, string> = {
   pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   running: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  failure: "bg-red-500/10 text-red-400 border-red-500/20",
-  error: "bg-red-500/10 text-red-400 border-red-500/20",
+  success: "bg-accent-bg text-accent-text border-accent/20",
+  failure: "bg-danger/10 text-danger border-danger/20",
+  error: "bg-danger/10 text-danger border-danger/20",
 };
 
 export default async function ActionsPage({
@@ -96,7 +96,7 @@ export default async function ActionsPage({
                   <td className="px-4 py-3">
                     <Link
                       href={`/${owner}/${repo}/actions/${event.runId ?? event.id}`}
-                      className="font-medium text-zinc-200 hover:text-emerald-400"
+                      className="font-medium text-zinc-200 hover:text-accent-text"
                     >
                       {event.workflowName ?? "Workflow"}
                     </Link>

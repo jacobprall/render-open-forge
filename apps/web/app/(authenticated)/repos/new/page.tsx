@@ -94,9 +94,9 @@ export default async function NewRepoPage({
 
       {/* Error */}
       {errorMessage && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3">
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-danger/20 bg-danger/10 px-4 py-3">
           <svg
-            className="mt-0.5 h-4 w-4 shrink-0 text-red-400"
+            className="mt-0.5 h-4 w-4 shrink-0 text-danger"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={2}
@@ -120,7 +120,7 @@ export default async function NewRepoPage({
             htmlFor="name"
             className="mb-2 block text-sm font-medium text-zinc-200"
           >
-            Repository name <span className="text-red-400">*</span>
+            Repository name <span className="text-danger">*</span>
           </label>
           <div className="flex items-center gap-2">
             <span className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-400">
@@ -134,7 +134,7 @@ export default async function NewRepoPage({
               required
               pattern="[a-zA-Z0-9_.\-]+"
               placeholder="my-project"
-              className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25"
+              className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-accent/50 focus:ring-1 focus:ring-accent/25"
             />
           </div>
           <p className="mt-1.5 text-xs text-zinc-500">
@@ -156,7 +156,7 @@ export default async function NewRepoPage({
             name="description"
             type="text"
             placeholder="A short description of your repository"
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25"
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-accent/50 focus:ring-1 focus:ring-accent/25"
           />
         </div>
 
@@ -174,7 +174,7 @@ export default async function NewRepoPage({
             id="default_branch"
             name="default_branch"
             defaultValue="main"
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25"
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-accent/50 focus:ring-1 focus:ring-accent/25"
           >
             <option value="main">main</option>
             <option value="master">master</option>
@@ -191,7 +191,7 @@ export default async function NewRepoPage({
             <input
               type="checkbox"
               name="private"
-              className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-emerald-500 focus:ring-emerald-500/25"
+              className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-accent-text focus:ring-accent/25"
             />
             <div>
               <div className="flex items-center gap-2">
@@ -229,7 +229,7 @@ export default async function NewRepoPage({
               type="checkbox"
               name="auto_init"
               defaultChecked
-              className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-emerald-500 focus:ring-emerald-500/25"
+              className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-accent-text focus:ring-accent/25"
             />
             <div>
               <div className="flex items-center gap-2">
@@ -270,7 +270,7 @@ export default async function NewRepoPage({
           </Link>
           <button
             type="submit"
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-accent-hover"
           >
             <svg
               className="h-4 w-4"

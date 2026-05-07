@@ -4,13 +4,13 @@ import React from "react";
 
 const variantStyles = {
   primary:
-    "bg-emerald-500 text-white hover:bg-emerald-600 active:bg-emerald-700 focus-visible:ring-emerald-500/50",
+    "bg-accent text-white hover:bg-accent-hover active:brightness-90 focus-visible:ring-accent/50",
   secondary:
-    "bg-zinc-800 text-zinc-100 hover:bg-zinc-700 active:bg-zinc-600 border border-zinc-700 focus-visible:ring-zinc-500/50",
+    "bg-surface-2 text-text-primary hover:bg-surface-3 active:brightness-90 border border-stroke-default focus-visible:ring-surface-3/50",
   ghost:
-    "bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 active:bg-zinc-700 focus-visible:ring-zinc-500/50",
+    "bg-transparent text-text-secondary hover:bg-surface-1 hover:text-text-primary active:bg-surface-2 focus-visible:ring-surface-3/50",
   danger:
-    "bg-red-500 text-white hover:bg-red-600 active:bg-red-700 focus-visible:ring-red-500/50",
+    "bg-danger text-white hover:brightness-110 active:brightness-90 focus-visible:ring-danger/50",
 } as const;
 
 const sizeStyles = {

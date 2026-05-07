@@ -70,7 +70,7 @@ export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) 
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-zinc-200">{model.label}</span>
                 {model.id === value ? (
-                  <svg className="h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-3.5 w-3.5 text-accent-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : null}

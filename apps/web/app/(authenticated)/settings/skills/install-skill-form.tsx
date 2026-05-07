@@ -62,12 +62,12 @@ export function InstallSkillForm() {
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://github.com/user/repo/blob/main/SKILL.md"
           required
-          className="flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 outline-none transition focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30"
+          className="flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 outline-none transition focus:border-accent/50 focus:ring-1 focus:ring-accent/30"
         />
         <button
           type="submit"
           disabled={isPending || !url.trim()}
-          className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+          className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
         >
           {isPending ? "Installing\u2026" : "Install"}
         </button>
@@ -76,8 +76,8 @@ export function InstallSkillForm() {
         <div
           className={`mt-2 rounded-lg border px-3 py-2 text-xs ${
             result.type === "success"
-              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-              : "border-red-500/20 bg-red-500/10 text-red-400"
+              ? "border-accent/20 bg-accent-bg text-accent-text"
+              : "border-danger/20 bg-danger/10 text-danger"
           }`}
         >
           {result.message}

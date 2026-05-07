@@ -23,19 +23,19 @@ const actionConfig: Record<string, { icon: string; label: string; color: string;
   opened: {
     icon: "M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z",
     label: "PR Opened",
-    color: "text-emerald-400",
+    color: "text-accent-text",
     description: "Ready for review",
   },
   ci_passed: {
     icon: "M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z",
     label: "CI Passed",
-    color: "text-emerald-400",
+    color: "text-accent-text",
     description: "All checks passing — ready to merge",
   },
   ci_failed: {
     icon: "M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z",
     label: "CI Failed",
-    color: "text-red-400",
+    color: "text-danger",
     description: "Checks failing — needs fix",
   },
   commented: {
@@ -65,7 +65,7 @@ const actionConfig: Record<string, { icon: string; label: string; color: string;
   closed: {
     icon: "M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z",
     label: "Closed",
-    color: "text-red-400",
+    color: "text-danger",
     description: "PR closed without merge",
   },
 };
@@ -117,7 +117,7 @@ export function InboxView({ initialItems }: { initialItems: InboxItem[] }) {
   if (items.length === 0) {
     return (
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-6 py-16 text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent-bg">
           <svg className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
           </svg>
@@ -198,7 +198,7 @@ function InboxCard({
         <div className="mt-1">
           <Link
             href={prUrl}
-            className="text-sm font-medium text-zinc-200 hover:text-emerald-400 transition"
+            className="text-sm font-medium text-zinc-200 hover:text-accent-text transition"
           >
             {item.title ?? `PR #${item.prNumber}`}
           </Link>

@@ -113,7 +113,7 @@ export function BranchSelector({
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Find a branch…"
               autoFocus
-              className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200 placeholder-zinc-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200 placeholder-zinc-500 outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
           </div>
           <div className="max-h-64 overflow-y-auto py-1">
@@ -128,7 +128,7 @@ export function BranchSelector({
                   onClick={() => handleSelect(branch.name)}
                   className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition hover:bg-zinc-800 ${
                     branch.name === currentBranch
-                      ? "text-emerald-400"
+                      ? "text-accent-text"
                       : "text-zinc-300"
                   }`}
                 >

@@ -160,7 +160,7 @@ export default function ImportPage() {
             }}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeProvider === p.id
-                ? "bg-emerald-600 text-white"
+                ? "bg-accent text-white"
                 : "border border-zinc-700 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100"
             }`}
           >
@@ -177,8 +177,8 @@ export default function ImportPage() {
               key={r.name}
               className={`flex items-center justify-between rounded-lg border px-4 py-2 text-sm ${
                 r.ok
-                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
-                  : "border-red-500/20 bg-red-500/10 text-red-300"
+                  ? "border-accent/20 bg-accent-bg text-accent"
+                  : "border-danger/20 bg-danger/10 text-red-300"
               }`}
             >
               <span>{r.name}</span>
@@ -189,7 +189,7 @@ export default function ImportPage() {
       )}
 
       {error && (
-        <div className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="mb-6 rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-red-300">
           {error}
           {error.includes("Connect") && (
             <Link href="/settings/connections" className="ml-2 underline hover:text-red-200">
@@ -201,7 +201,7 @@ export default function ImportPage() {
 
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-emerald-500" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-accent" />
           <span className="ml-3 text-sm text-zinc-400">Loading repositories...</span>
         </div>
       )}
@@ -215,7 +215,7 @@ export default function ImportPage() {
               placeholder="Search repositories..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25"
+              className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-accent/50 focus:ring-1 focus:ring-accent/25"
             />
             <button
               onClick={toggleAll}
@@ -234,7 +234,7 @@ export default function ImportPage() {
                 key={repo.full_name}
                 className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition ${
                   selected.has(repo.full_name)
-                    ? "border-emerald-500/40 bg-emerald-500/5"
+                    ? "border-accent/40 bg-accent-bg"
                     : "border-zinc-800 hover:border-zinc-700"
                 }`}
               >
@@ -242,7 +242,7 @@ export default function ImportPage() {
                   type="checkbox"
                   checked={selected.has(repo.full_name)}
                   onChange={() => toggleSelect(repo.full_name)}
-                  className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-emerald-500 focus:ring-emerald-500/25"
+                  className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-accent-text focus:ring-accent/25"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -278,7 +278,7 @@ export default function ImportPage() {
               <button
                 onClick={handleImport}
                 disabled={importing}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
               >
                 {importing ? (
                   <>
@@ -302,7 +302,7 @@ export default function ImportPage() {
       {!loading && !error && repos.length === 0 && !data[activeProvider] && (
         <p className="py-12 text-center text-sm text-zinc-500">
           Connect your {activeProvider === "github" ? "GitHub" : "GitLab"} account in{" "}
-          <Link href="/settings/connections" className="text-emerald-400 hover:underline">
+          <Link href="/settings/connections" className="text-accent-text hover:underline">
             Settings
           </Link>{" "}
           to import repositories.

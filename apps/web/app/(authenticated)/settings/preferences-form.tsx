@@ -3,15 +3,8 @@
 import { useState, useTransition } from "react";
 import useSWR from "swr";
 import { savePreferencesAction } from "./actions";
-
-interface Prefs {
-  defaultModelId: string | null;
-  defaultSubagentModelId: string | null;
-  defaultDiffMode: string | null;
-  defaultWorkflowMode: string | null;
-  autoCommitPush: boolean;
-  autoCreatePr: boolean;
-}
+import { AVAILABLE_COLORS } from "@/components/providers/theme-provider";
+import type { UserPreferencesData } from "@render-open-forge/db/schema";
 
 interface ModelOption {
   id: string;
@@ -39,7 +32,7 @@ function ModelSelect({
       name={name}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
     >
       {placeholder && <option value="">{placeholder}</option>}
       {loading && <option disabled>Loading models…</option>}
@@ -58,7 +51,58 @@ async function modelsFetcher(url: string): Promise<ModelOption[]> {
   return data.models ?? [];
 }
 
-export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
+const COLOR_SWATCHES: Record<string, string> = {
+  emerald: "bg-emerald-500",
+  blue: "bg-blue-500",
+  violet: "bg-violet-500",
+  rose: "bg-rose-500",
+  amber: "bg-amber-500",
+  cyan: "bg-cyan-500",
+  orange: "bg-orange-500",
+  pink: "bg-pink-500",
+  teal: "bg-teal-500",
+  indigo: "bg-indigo-500",
+};
+
+function ColorPicker({
+  label,
+  description,
+  name,
+  value,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  name: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-zinc-300">{label}</label>
+      <p className="mb-3 text-xs text-zinc-500">{description}</p>
+      <input type="hidden" name={name} value={value} />
+      <div className="flex flex-wrap gap-2">
+        {AVAILABLE_COLORS.map((color) => (
+          <button
+            key={color}
+            type="button"
+            onClick={() => onChange(color)}
+            className={`h-8 w-8 rounded-full transition-all ${COLOR_SWATCHES[color] ?? "bg-zinc-600"} ${
+              value === color
+                ? "ring-2 ring-white ring-offset-2 ring-offset-zinc-900 scale-110"
+                : "hover:scale-110 opacity-70 hover:opacity-100"
+            }`}
+            aria-label={color}
+            title={color.charAt(0).toUpperCase() + color.slice(1)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function PreferencesForm({ prefs }: { prefs: UserPreferencesData | null }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -68,6 +112,9 @@ export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
   });
   const [defaultModelId, setDefaultModelId] = useState(prefs?.defaultModelId || "");
   const [subagentModelId, setSubagentModelId] = useState(prefs?.defaultSubagentModelId || "");
+  const [accentColor, setAccentColor] = useState(prefs?.accentColor || "emerald");
+  const [secondaryColor, setSecondaryColor] = useState(prefs?.secondaryColor || "blue");
+  const [tertiaryColor, setTertiaryColor] = useState(prefs?.tertiaryColor || "violet");
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -91,7 +138,7 @@ export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
         </div>
       )}
       {success && (
-        <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
+        <div className="mb-4 rounded-lg border border-accent/20 bg-accent-bg px-4 py-3 text-sm text-accent-text">
           Preferences saved successfully.
         </div>
       )}
@@ -137,7 +184,7 @@ export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
             {(["unified", "split"] as const).map((mode) => (
               <label
                 key={mode}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-sm transition has-checked:border-emerald-500 has-checked:bg-emerald-500/10"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-sm transition has-checked:border-accent has-checked:bg-accent-bg"
               >
                 <input
                   type="radio"
@@ -160,7 +207,7 @@ export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
           <select
             name="defaultWorkflowMode"
             defaultValue={prefs?.defaultWorkflowMode || "standard"}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="full">Full — All phases including spec review</option>
             <option value="standard">Standard — Balanced execution</option>
@@ -180,7 +227,7 @@ export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
               type="checkbox"
               name="autoCommitPush"
               defaultChecked={prefs?.autoCommitPush ?? false}
-              className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
+              className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-accent focus:ring-accent focus:ring-offset-0"
             />
           </label>
 
@@ -193,9 +240,35 @@ export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
               type="checkbox"
               name="autoCreatePr"
               defaultChecked={prefs?.autoCreatePr ?? false}
-              className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
+              className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-accent focus:ring-accent focus:ring-offset-0"
             />
           </label>
+        </div>
+
+        {/* Theme Colors */}
+        <div className="space-y-5 rounded-lg border border-zinc-800 bg-zinc-900/30 p-5">
+          <h3 className="text-sm font-semibold text-zinc-200">Theme Colors</h3>
+          <ColorPicker
+            label="Accent"
+            description="Primary brand color used for buttons, links, and focus rings"
+            name="accentColor"
+            value={accentColor}
+            onChange={setAccentColor}
+          />
+          <ColorPicker
+            label="Secondary"
+            description="Used for secondary actions and informational highlights"
+            name="secondaryColor"
+            value={secondaryColor}
+            onChange={setSecondaryColor}
+          />
+          <ColorPicker
+            label="Tertiary"
+            description="Used for tags, categories, and decorative accents"
+            name="tertiaryColor"
+            value={tertiaryColor}
+            onChange={setTertiaryColor}
+          />
         </div>
 
         {/* Submit */}
@@ -203,7 +276,7 @@ export function PreferencesForm({ prefs }: { prefs: Prefs | null }) {
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
           >
             {isPending && (
               <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">

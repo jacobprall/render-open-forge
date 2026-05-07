@@ -17,11 +17,11 @@ interface Mirror {
 const directionLabels: Record<string, { label: string; color: string }> = {
   pull: { label: "Pull", color: "text-blue-400" },
   push: { label: "Push", color: "text-amber-400" },
-  bidirectional: { label: "Bidirectional", color: "text-emerald-400" },
+  bidirectional: { label: "Bidirectional", color: "text-accent-text" },
 };
 
 const statusIndicators: Record<string, { dot: string; label: string }> = {
-  active: { dot: "bg-emerald-500", label: "Active" },
+  active: { dot: "bg-accent", label: "Active" },
   paused: { dot: "bg-zinc-500", label: "Paused" },
   error: { dot: "bg-red-500", label: "Error" },
 };
@@ -147,14 +147,14 @@ export default function MirrorsPage() {
         </div>
         <Link
           href="/repos/import"
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
         >
           Import & Mirror
         </Link>
       </div>
 
       {bannerError && (
-        <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="mb-4 rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
           {bannerError}
           {fetchError ? (
             <button
@@ -178,7 +178,7 @@ export default function MirrorsPage() {
 
       {loading && (
         <div className="flex items-center justify-center py-16">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-emerald-500" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-accent" />
           <span className="ml-3 text-sm text-zinc-400">Loading mirrors...</span>
         </div>
       )}
@@ -201,11 +201,11 @@ export default function MirrorsPage() {
           <p className="text-sm text-zinc-400">No mirrors configured yet.</p>
           <p className="mt-1 text-xs text-zinc-500">
             Import repositories from{" "}
-            <Link href="/settings/connections" className="text-emerald-400 hover:underline">
+            <Link href="/settings/connections" className="text-accent-text hover:underline">
               connected accounts
             </Link>{" "}
             to set up mirrors, or{" "}
-            <Link href="/repos/import" className="text-emerald-400 hover:underline">
+            <Link href="/repos/import" className="text-accent-text hover:underline">
               import repos
             </Link>{" "}
             with mirroring enabled.
@@ -232,7 +232,7 @@ export default function MirrorsPage() {
                     <div className="flex items-center gap-2.5">
                       <Link
                         href={`/${mirror.forgejoRepoPath}`}
-                        className="truncate text-sm font-semibold text-zinc-100 hover:text-emerald-400"
+                        className="truncate text-sm font-semibold text-zinc-100 hover:text-accent-text"
                       >
                         {mirror.forgejoRepoPath}
                       </Link>

@@ -35,7 +35,7 @@ export function SignInForm() {
   }
 
   const inputClass =
-    "w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none";
+    "w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:border-accent focus:outline-none";
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-xs space-y-3">
@@ -55,15 +55,15 @@ export function SignInForm() {
         onChange={(e) => setPassword(e.target.value)}
         className={inputClass}
       />
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
       <button
         type="submit"
         disabled={loading || !email || !password}
-        className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+        className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
       >
         {loading ? "Signing in…" : "Sign in"}
       </button>
-      <p className="text-center text-xs text-zinc-500">
+      <p className="text-center text-xs text-text-tertiary">
         New users need an invite link from an administrator.
       </p>
     </form>

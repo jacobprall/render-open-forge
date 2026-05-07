@@ -8,9 +8,9 @@ import { relativeTime } from "@/lib/utils";
 import { ArchiveButton } from "./archive-button";
 
 const statusColors: Record<string, string> = {
-  running: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  running: "bg-accent-bg text-accent-text border-accent/20",
   completed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  failed: "bg-red-500/10 text-red-400 border-red-500/20",
+  failed: "bg-danger/10 text-danger border-danger/20",
   archived: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
 };
 
@@ -53,7 +53,7 @@ export default async function RepoSessionsPage({
         </h2>
         <Link
           href={`/sessions/new?repo=${repoPath}`}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-500"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white transition hover:bg-accent-hover"
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -67,7 +67,7 @@ export default async function RepoSessionsPage({
           <p className="text-sm text-zinc-500">No sessions yet for this repository.</p>
           <Link
             href={`/sessions/new?repo=${repoPath}`}
-            className="mt-3 inline-flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm text-accent-text hover:text-accent"
           >
             Create one
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -110,9 +110,9 @@ export default async function RepoSessionsPage({
                   <div className="flex items-center gap-2 shrink-0 ml-4">
                     {(s.linesAdded || s.linesRemoved) ? (
                       <span className="text-[11px] font-mono tabular-nums">
-                        <span className="text-emerald-400/70">+{s.linesAdded ?? 0}</span>
+                        <span className="text-accent-text/70">+{s.linesAdded ?? 0}</span>
                         {" "}
-                        <span className="text-red-400/70">-{s.linesRemoved ?? 0}</span>
+                        <span className="text-danger/70">-{s.linesRemoved ?? 0}</span>
                       </span>
                     ) : null}
                     {s.prNumber && (

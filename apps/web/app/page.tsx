@@ -97,9 +97,9 @@ export default async function Home() {
       {/* Nav */}
       <nav className="flex items-center justify-between border-b border-zinc-800/50 px-6 py-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-bg">
             <svg
-              className="h-5 w-5 text-emerald-500"
+              className="h-5 w-5 text-accent-text"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={2}
@@ -124,7 +124,7 @@ export default async function Home() {
       {/* Hero */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-24">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-sm text-emerald-400">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent-bg px-4 py-1.5 text-sm text-accent-text">
             <svg
               className="h-4 w-4"
               fill="none"
@@ -143,7 +143,7 @@ export default async function Home() {
           <h1 className="text-5xl font-bold tracking-tight sm:text-6xl">
             Code, build &amp; ship
             <br />
-            <span className="text-emerald-500">with AI at the core</span>
+            <span className="text-accent-text">with AI at the core</span>
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-zinc-400">
             A self-hosted platform that combines Git hosting, CI/CD pipelines,
@@ -162,7 +162,7 @@ export default async function Home() {
               key={feature.title}
               className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 transition hover:border-zinc-700"
             >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-accent-bg text-accent-text">
                 {feature.icon}
               </div>
               <h3 className="text-lg font-semibold">{feature.title}</h3>

@@ -50,7 +50,7 @@ export default async function CommitsPage({
               <div className="min-w-0 flex-1">
                 <Link
                   href={`/${owner}/${repo}/commit/${commit.sha}`}
-                  className="text-sm font-medium text-zinc-200 hover:text-emerald-400 hover:underline"
+                  className="text-sm font-medium text-zinc-200 hover:text-accent-text hover:underline"
                 >
                   {commit.message.split("\n")[0]}
                 </Link>
@@ -65,7 +65,7 @@ export default async function CommitsPage({
               <div className="flex shrink-0 items-center gap-2">
                 <Link
                   href={`/${owner}/${repo}/commit/${commit.sha}`}
-                  className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 font-mono text-xs text-emerald-400 transition hover:border-zinc-700 hover:bg-zinc-800"
+                  className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 font-mono text-xs text-accent-text transition hover:border-zinc-700 hover:bg-zinc-800"
                 >
                   {commit.sha.slice(0, 7)}
                 </Link>

@@ -168,19 +168,19 @@ export function PRComments({
       {/* Post new comment */}
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
         <textarea
-          className="w-full resize-none rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+          className="w-full resize-none rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-500 focus:border-accent focus:outline-none"
           rows={3}
           placeholder="Add a comment…"
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
         />
         <div className="mt-2 flex items-center justify-between">
-          {error ? <p className="text-xs text-red-400">{error}</p> : null}
+          {error ? <p className="text-xs text-danger">{error}</p> : null}
           <button
             type="button"
             onClick={() => void post()}
             disabled={posting || !newComment.trim()}
-            className="ml-auto rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+            className="ml-auto rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
             {posting ? "Posting…" : "Comment"}
           </button>

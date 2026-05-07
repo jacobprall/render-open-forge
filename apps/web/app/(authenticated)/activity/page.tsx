@@ -5,7 +5,8 @@ import { getDb } from "@/lib/db";
 import { ciEvents, agentRuns, sessions } from "@render-open-forge/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { relativeTime } from "@/lib/utils";
-import Link from "next/link";
+import { CirclePlay, Bot, Terminal } from "lucide-react";
+import { PageShell, StatusBadge, EmptyState, ListRow } from "@/components/primitives";
 
 export const metadata: Metadata = { title: "Activity" };
 
@@ -17,6 +18,12 @@ interface ActivityItem {
   createdAt: Date;
   link?: string;
 }
+
+const typeIcons: Record<string, React.ReactNode> = {
+  ci: <CirclePlay className="h-4 w-4" />,
+  agent: <Bot className="h-4 w-4" />,
+  session: <Terminal className="h-4 w-4" />,
+};
 
 export default async function ActivityPage() {
   const session = await getSession();
@@ -84,65 +91,32 @@ export default async function ActivityPage() {
   items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   const display = items.slice(0, 50);
 
-  const typeIcons: Record<string, string> = {
-    ci: "CI",
-    agent: "AG",
-    session: "SS",
-  };
-
-  const statusColors: Record<string, string> = {
-    success: "text-emerald-400",
-    completed: "text-emerald-400",
-    running: "text-blue-400",
-    failed: "text-red-400",
-    error: "text-red-400",
-    failure: "text-red-400",
-  };
-
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-6 text-2xl font-bold text-zinc-100">Activity</h1>
-
+    <PageShell title="Activity" narrow>
       {display.length === 0 ? (
-        <p className="text-sm text-zinc-400">No recent activity.</p>
+        <EmptyState
+          icon={<CirclePlay className="h-5 w-5" />}
+          title="No recent activity"
+          description="Your CI events, agent runs, and sessions will appear here."
+        />
       ) : (
         <div className="space-y-2">
           {display.map((item) => (
-            <div
+            <ListRow
               key={item.id}
-              className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3"
-            >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-zinc-800 text-[10px] font-bold text-zinc-400">
-                {typeIcons[item.type]}
-              </span>
-              <div className="flex-1 min-w-0">
-                {item.link ? (
-                  <Link
-                    href={item.link}
-                    className="truncate text-sm text-zinc-200 hover:text-emerald-400"
-                  >
-                    {item.description}
-                  </Link>
-                ) : (
-                  <span className="truncate text-sm text-zinc-200">
-                    {item.description}
-                  </span>
-                )}
-              </div>
-              {item.status && (
-                <span
-                  className={`text-xs font-medium ${statusColors[item.status] || "text-zinc-400"}`}
-                >
-                  {item.status}
+              href={item.link}
+              icon={typeIcons[item.type]}
+              title={item.description}
+              meta={item.status ? <StatusBadge status={item.status} /> : undefined}
+              trailing={
+                <span className="text-xs text-text-tertiary">
+                  {relativeTime(item.createdAt)}
                 </span>
-              )}
-              <span className="shrink-0 text-xs text-zinc-500">
-                {relativeTime(item.createdAt)}
-              </span>
-            </div>
+              }
+            />
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

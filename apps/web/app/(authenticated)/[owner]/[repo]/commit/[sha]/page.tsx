@@ -90,7 +90,7 @@ export default async function CommitDetailPage({
         </p>
         <Link
           href={`/${owner}/${repo}/commits/${commit.sha}`}
-          className="mt-2 inline-block text-sm text-emerald-400 hover:underline"
+          className="mt-2 inline-block text-sm text-accent-text hover:underline"
         >
           ← Back to commits
         </Link>

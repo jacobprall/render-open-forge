@@ -23,7 +23,7 @@ export default function RepoError({
         </button>
         <Link
           href="/repos"
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
         >
           All repositories
         </Link>

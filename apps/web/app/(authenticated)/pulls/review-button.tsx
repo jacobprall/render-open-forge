@@ -28,7 +28,7 @@ export function ReviewButton({ sessionId }: { sessionId: string }) {
 
   if (done) {
     return (
-      <span className="text-xs text-emerald-400 font-medium px-2 py-1">
+      <span className="text-xs text-accent-text font-medium px-2 py-1">
         Review started
       </span>
     );
@@ -44,7 +44,7 @@ export function ReviewButton({ sessionId }: { sessionId: string }) {
         {isPending ? "Starting..." : "Agent Review"}
       </button>
       {error && (
-        <div className="absolute right-0 top-full mt-1 z-10 whitespace-nowrap rounded border border-red-500/20 bg-zinc-900 px-2 py-1 text-xs text-red-400">
+        <div className="absolute right-0 top-full mt-1 z-10 whitespace-nowrap rounded border border-danger/20 bg-zinc-900 px-2 py-1 text-xs text-danger">
           {error}
         </div>
       )}

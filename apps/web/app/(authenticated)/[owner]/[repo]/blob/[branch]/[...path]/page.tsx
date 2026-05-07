@@ -62,7 +62,7 @@ export default async function BlobPage({
       <nav className="flex flex-wrap items-center gap-1 text-sm">
         <Link
           href={`/${owner}/${repo}`}
-          className="text-emerald-400 hover:underline"
+          className="text-accent-text hover:underline"
         >
           {repo}
         </Link>
@@ -72,7 +72,7 @@ export default async function BlobPage({
             {crumb.href ? (
               <Link
                 href={crumb.href}
-                className="text-emerald-400 hover:underline"
+                className="text-accent-text hover:underline"
               >
                 {crumb.label}
               </Link>
