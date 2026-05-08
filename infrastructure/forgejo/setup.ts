@@ -10,6 +10,8 @@
  * Run with: bun run infrastructure/forgejo/setup.ts
  */
 
+export {};
+
 const FORGEJO_URL = process.env.FORGEJO_INTERNAL_URL || "http://localhost:3000";
 const ADMIN_USER = process.env.FORGEJO_ADMIN_USER || "forge-admin";
 const ADMIN_PASSWORD = process.env.FORGEJO_ADMIN_PASSWORD || "admin-password-change-me";
@@ -56,11 +58,20 @@ async function createUser(username: string, password: string, email: string, isA
       login_name: username,
       source_id: 0,
       visibility: "public",
+      is_admin: isAdmin,
     }),
   });
 
   if (res.status === 422) {
     console.log(`User ${username} already exists`);
+    if (isAdmin) {
+      await apiRequest(`/admin/users/${username}`, {
+        method: "PATCH",
+        token: adminToken,
+        body: JSON.stringify({ is_admin: true, login_name: username, source_id: 0 }),
+      });
+      console.log(`  → Promoted ${username} to admin`);
+    }
     return;
   }
   if (!res.ok) {
@@ -71,11 +82,28 @@ async function createUser(username: string, password: string, email: string, isA
 }
 
 async function createToken(username: string, password: string, tokenName: string): Promise<string> {
+  const authHeader = `Basic ${btoa(`${username}:${password}`)}`;
+
+  // Delete any existing token with this name so we can recreate it
+  const listRes = await fetch(`${FORGEJO_URL}/api/v1/users/${username}/tokens`, {
+    headers: { Authorization: authHeader },
+  });
+  if (listRes.ok) {
+    const tokens = await listRes.json() as { id: number; name: string }[];
+    const existing = tokens.find((t) => t.name === tokenName);
+    if (existing) {
+      await fetch(`${FORGEJO_URL}/api/v1/users/${username}/tokens/${existing.id}`, {
+        method: "DELETE",
+        headers: { Authorization: authHeader },
+      });
+    }
+  }
+
   const res = await fetch(`${FORGEJO_URL}/api/v1/users/${username}/tokens`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Basic ${btoa(`${username}:${password}`)}`,
+      Authorization: authHeader,
     },
     body: JSON.stringify({
       name: tokenName,
@@ -128,15 +156,20 @@ async function main() {
   try {
     adminToken = await createToken(ADMIN_USER, ADMIN_PASSWORD, "setup-script");
     console.log("Admin token created");
-  } catch {
-    console.log("Admin may not exist yet — creating via install API or manual step needed");
-    console.log("For first run, create admin via: forgejo admin user create --admin ...");
+  } catch (err) {
+    console.error(`Failed to authenticate as "${ADMIN_USER}" at ${FORGEJO_URL}`);
+    console.error(`  Error: ${err instanceof Error ? err.message : err}`);
+    console.error(`\nPossible causes:`);
+    console.error(`  1. User "${ADMIN_USER}" doesn't exist — create via Render Shell:`);
+    console.error(`     su -c 'forgejo admin user create --admin --username ${ADMIN_USER} --password <password> --email <email>' git`);
+    console.error(`  2. Wrong password — check FORGEJO_ADMIN_PASSWORD`);
+    console.error(`  3. Wrong URL — check FORGEJO_INTERNAL_URL (currently: ${FORGEJO_URL})`);
     process.exit(1);
   }
 
-  // Step 2: Create agent service account
+  // Step 2: Create agent service account (admin so it can push to any repo)
   console.log("\n--- Step 2: Agent service account ---");
-  await createUser(AGENT_USER, AGENT_PASSWORD, "agent@openforge.local", false);
+  await createUser(AGENT_USER, AGENT_PASSWORD, "agent@openforge.local", true);
   const agentToken = await createToken(AGENT_USER, AGENT_PASSWORD, "agent-service");
   console.log(`Agent token: ${agentToken}`);
   console.log(`  → Set FORGEJO_AGENT_TOKEN=${agentToken} in your .env`);
