@@ -1,10 +1,26 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { createForgeProvider } from "@/lib/forgejo/client";
 import { createMirror } from "@/lib/sync/mirror-engine";
 import { syncConnections } from "@render-open-forge/db";
 import { eq, and } from "drizzle-orm";
+import { logger } from "@render-open-forge/shared";
+
+const importRepoBodySchema = z.object({
+  clone_addr: z.string().url(),
+  repo_name: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-zA-Z0-9-]+$/),
+  repo_owner: z.string().optional(),
+  mirror: z.boolean().optional(),
+  service: z.enum(["git", "github", "gitlab", "gitea", "forgejo"]).optional(),
+  auth_token: z.string().optional(),
+  sync_connection_id: z.string().optional(),
+});
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -12,34 +28,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: {
-    clone_addr: string;
-    repo_name: string;
-    repo_owner?: string;
-    mirror?: boolean;
-    service?: string;
-    auth_token?: string;
-    sync_connection_id?: string;
-  };
-
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  if (!body.clone_addr || !body.repo_name) {
+  const parsed = importRepoBodySchema.safeParse(raw);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Missing required fields: clone_addr, repo_name" },
+      { error: "Invalid input", details: parsed.error.flatten() },
       { status: 400 },
     );
   }
 
-  const validServices = ["git", "github", "gitlab", "gitea", "forgejo"] as const;
-  type ServiceType = (typeof validServices)[number];
-  const service = validServices.includes(body.service as ServiceType)
-    ? (body.service as ServiceType)
-    : undefined;
+  const body = parsed.data;
+  const service = body.service;
 
   const forge = createForgeProvider(session.forgejoToken);
   const repoOwner = body.repo_owner ?? session.username;
@@ -73,10 +78,27 @@ export async function POST(req: Request) {
         const forgejoUrl = process.env.FORGEJO_INTERNAL_URL || "http://localhost:3000";
         const agentToken = process.env.FORGEJO_AGENT_TOKEN;
         if (agentToken) {
-          fetch(`${forgejoUrl}/api/v1/repos/${owner}/${repoName}/mirror-sync`, {
-            method: "POST",
-            headers: { Authorization: `token ${agentToken}` },
-          }).catch(() => {});
+          after(async () => {
+            try {
+              const res = await fetch(
+                `${forgejoUrl}/api/v1/repos/${owner}/${repoName}/mirror-sync`,
+                {
+                  method: "POST",
+                  headers: { Authorization: `token ${agentToken}` },
+                },
+              );
+              if (!res.ok) {
+                logger.error("mirror-sync failed after import", {
+                  repo: repo.fullName,
+                  status: res.status,
+                });
+              }
+            } catch (err) {
+              logger.errorWithCause(err, "mirror-sync failed after import", {
+                repo: repo.fullName,
+              });
+            }
+          });
         }
       }
     }
@@ -104,15 +126,23 @@ export async function POST(req: Request) {
       }
 
       if (connectionId) {
-        await createMirror(db, {
-          userId: String(session.userId),
-          syncConnectionId: connectionId,
-          forgejoRepoPath: repo.fullName,
-          remoteRepoUrl: body.clone_addr,
-          direction: "pull",
-        }).catch(() => {
-          // Mirror creation is best-effort during import.
-          // The repo is already imported at this point.
+        const userId = String(session.userId);
+        const forgejoRepoPath = repo.fullName;
+        const remoteRepoUrl = body.clone_addr;
+        after(async () => {
+          try {
+            await createMirror(db, {
+              userId,
+              syncConnectionId: connectionId,
+              forgejoRepoPath,
+              remoteRepoUrl,
+              direction: "pull",
+            });
+          } catch (err) {
+            logger.errorWithCause(err, "createMirror failed after import", {
+              repo: forgejoRepoPath,
+            });
+          }
         });
       }
     }

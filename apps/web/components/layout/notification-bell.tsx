@@ -7,7 +7,17 @@ import type { Notification } from "@/lib/notifications";
 async function notificationsFetcher(url: string): Promise<Notification[]> {
   const res = await fetch(url);
   if (!res.ok) return [];
-  return res.json() as Promise<Notification[]>;
+  const json: unknown = await res.json();
+  if (Array.isArray(json)) return json as Notification[];
+  if (json && typeof json === "object" && "notifications" in json) {
+    const n = (json as { notifications: unknown }).notifications;
+    return Array.isArray(n) ? (n as Notification[]) : [];
+  }
+  if (json && typeof json === "object" && "data" in json) {
+    const d = (json as { data: unknown }).data;
+    return Array.isArray(d) ? (d as Notification[]) : [];
+  }
+  return [];
 }
 
 export function NotificationBell() {

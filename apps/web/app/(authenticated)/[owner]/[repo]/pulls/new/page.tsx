@@ -17,6 +17,7 @@ export default async function NewPullRequestPage({
   const forge = createForgeProvider(session.forgejoToken);
   let branches;
   let repoData;
+
   try {
     [branches, repoData] = await Promise.all([
       forge.branches.list(owner, repo),

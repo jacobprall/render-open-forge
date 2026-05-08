@@ -1,13 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { sessions, chats, chatMessages, agentRuns } from "@render-open-forge/db";
 import { eq, and, desc, asc, count } from "drizzle-orm";
-import { enqueueJob, ensureConsumerGroup, resolveLlmApiKeys } from "@render-open-forge/shared";
+import { resolveLlmApiKeys } from "@render-open-forge/shared";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
+import { enqueueAgentMessage } from "@/lib/sessions/enqueue-message";
 import { createForgeProvider } from "@/lib/forgejo/client";
 import { resolveSkillsForSessionRow } from "@/lib/skills/resolve-for-session";
 import { validateModelOrThrow } from "@/lib/models/anthropic-models";
+
+const postMessageBodySchema = z.object({
+  content: z.string().min(1).max(100_000),
+  modelId: z.string().optional(),
+});
 
 export async function POST(
   req: NextRequest,
@@ -40,13 +47,18 @@ export async function POST(
   }
 
   const body = await req.json();
-  const content = body.content;
-  if (!content || typeof content !== "string") {
-    return NextResponse.json({ error: "Content is required" }, { status: 400 });
+  const parsed = postMessageBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid input", details: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
 
+  const { content, modelId: rawModelId } = parsed.data;
+
   const requestedModelId: string | undefined =
-    typeof body.modelId === "string" && body.modelId.trim() ? body.modelId.trim() : undefined;
+    rawModelId && rawModelId.trim() ? rawModelId.trim() : undefined;
   if (requestedModelId) {
     try {
       const keys = await resolveLlmApiKeys(db, String(userSession.userId));
@@ -147,8 +159,6 @@ export async function POST(
   if (isRedisConfigured()) {
     const redis = createRedisClient("chat-enqueue");
     try {
-      await ensureConsumerGroup(redis);
-
       const rows = await db
         .select({
           role: chatMessages.role,
@@ -170,7 +180,8 @@ export async function POST(
         sessionRow.forgeUsername ?? userSession.username,
       );
 
-      await enqueueJob(redis, {
+      await enqueueAgentMessage({
+        redis,
         runId,
         chatId: chatRow.id,
         sessionId: id,
@@ -181,7 +192,6 @@ export async function POST(
         projectContext: sessionRow.projectContext,
         modelId,
         requestId,
-        maxRetries: 3,
       });
     } finally {
       redis.disconnect();
@@ -196,13 +206,15 @@ export async function POST(
     .where(eq(chatMessages.chatId, chatRow.id));
 
   if (msgCount <= 1) {
-    const origin = req.nextUrl.origin;
-    fetch(`${origin}/api/sessions/${id}/auto-title`, {
-      method: "POST",
-      headers: {
-        cookie: req.headers.get("cookie") ?? "",
-      },
-    }).catch(() => {});
+    const userId = String(userSession.userId);
+    after(async () => {
+      try {
+        const { generateAutoTitle } = await import("@/lib/sessions/auto-title");
+        await generateAutoTitle(id, userId);
+      } catch (err) {
+        console.error("[auto-title] Failed:", err);
+      }
+    });
   }
 
   return NextResponse.json({ success: true, messageId, runId });

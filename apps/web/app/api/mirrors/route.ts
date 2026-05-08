@@ -1,17 +1,35 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { createMirror, listMirrors } from "@/lib/sync/mirror-engine";
+import { paginationSchema, paginatedResponse } from "@/lib/api/pagination";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const paginationParsed = paginationSchema.safeParse(
+    Object.fromEntries(request.nextUrl.searchParams),
+  );
+  if (!paginationParsed.success) {
+    return NextResponse.json(
+      { error: "Invalid pagination", details: paginationParsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+  const params = paginationParsed.data;
+
   const db = getDb();
-  const items = await listMirrors(db, String(session.userId));
-  return NextResponse.json({ mirrors: items });
+  const rows = await listMirrors(db, String(session.userId), params);
+  const page = paginatedResponse(rows, params);
+
+  return NextResponse.json({
+    mirrors: page.data,
+    data: page.data,
+    pagination: page.pagination,
+  });
 }
 
 export async function POST(req: Request) {

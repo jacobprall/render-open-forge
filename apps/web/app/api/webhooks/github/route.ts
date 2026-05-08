@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
 import { logger } from "@render-open-forge/shared";
 import { mirrors, sessions } from "@render-open-forge/db";
@@ -10,11 +11,29 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  const secret = process.env.GITHUB_WEBHOOK_SECRET;
+  if (!secret) {
+    logger.warn("github webhook: GITHUB_WEBHOOK_SECRET not configured", {});
+    return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+  }
+
+  const rawBody = await req.text();
+  const signature256 = req.headers.get("x-hub-signature-256");
+  const expected = `sha256=${crypto.createHmac("sha256", secret).update(rawBody).digest("hex")}`;
+
+  if (
+    !signature256 ||
+    signature256.length !== expected.length ||
+    !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature256))
+  ) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
   const event = req.headers.get("x-github-event");
   let payload: Record<string, unknown>;
 
   try {
-    payload = (await req.json()) as Record<string, unknown>;
+    payload = JSON.parse(rawBody) as Record<string, unknown>;
   } catch {
     logger.warn("github webhook: invalid JSON", {});
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
@@ -36,6 +55,11 @@ export async function POST(req: Request) {
   return NextResponse.json({ received: true });
 }
 
+/**
+ * Dispatches agent triggers for new PR/issue comments. Valid webhook HMAC
+ * verification is the authorization gate for these requests; comment author is
+ * logged only for audit.
+ */
 async function handleCommentEvent(
   event: string,
   payload: Record<string, unknown>,
@@ -47,6 +71,17 @@ async function handleCommentEvent(
   const action = payload.action as string | undefined;
   if (action !== "created") return;
 
+  const comment = payload.comment as Record<string, unknown> | undefined;
+  const commentUser = comment?.user as Record<string, unknown> | undefined;
+  const commentAuthor =
+    typeof commentUser?.login === "string" ? commentUser.login : "";
+
+  logger.info("github webhook comment event", {
+    repo: repoFullName,
+    event,
+    commentAuthor,
+  });
+
   const db = getDb();
 
   const remoteUrl = `https://github.com/${repoFullName}.git`;
@@ -57,7 +92,6 @@ async function handleCommentEvent(
 
   if (matchingMirrors.length === 0) return;
 
-  const comment = payload.comment as Record<string, unknown> | undefined;
   const body = typeof comment?.body === "string" ? comment.body : "";
 
   const issue = payload.issue as Record<string, unknown> | undefined;

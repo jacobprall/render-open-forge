@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { logger } from "@render-open-forge/shared";
 import { mirrors, sessions } from "@render-open-forge/db";
 import { getDb } from "@/lib/db";
@@ -15,7 +15,10 @@ function verifyGitLabSignature(
   tokenHeader: string | null,
 ): boolean {
   const secret = process.env.GITLAB_WEBHOOK_SECRET;
-  if (!secret) return true; // no secret configured = allow all (dev mode)
+  if (!secret) {
+    logger.warn("gitlab webhook: GITLAB_WEBHOOK_SECRET not configured", {});
+    return false;
+  }
   if (!tokenHeader) return false;
   return crypto.timingSafeEqual(
     Buffer.from(secret),
@@ -93,6 +96,14 @@ async function handleNoteEvent(
   const mr = payload.merge_request as Record<string, unknown> | undefined;
   const mrIid = mr?.iid as number | undefined;
 
+  const user = payload.user as Record<string, unknown> | undefined;
+  const auditCommentAuthor =
+    typeof user?.username === "string"
+      ? user.username
+      : typeof user?.name === "string"
+        ? user.name
+        : "";
+
   await dispatchToMirroredSessions({
     repoFullName,
     httpUrl,
@@ -102,6 +113,7 @@ async function handleNoteEvent(
       ? ((attrs.position as Record<string, unknown>)?.new_path as string) ?? ""
       : "",
     body,
+    auditCommentAuthor,
   });
 }
 
@@ -123,6 +135,14 @@ async function handleMergeRequestEvent(
   // For now, we only trigger on "open" (for PR review agent trigger)
   if (action !== "open") return;
 
+  const user = payload.user as Record<string, unknown> | undefined;
+  const auditCommentAuthor =
+    typeof user?.username === "string"
+      ? user.username
+      : typeof user?.name === "string"
+        ? user.name
+        : "";
+
   await dispatchToMirroredSessions({
     repoFullName,
     httpUrl,
@@ -130,6 +150,7 @@ async function handleMergeRequestEvent(
     prNumber: mrIid,
     path: "",
     body: typeof attrs?.description === "string" ? attrs.description : "",
+    auditCommentAuthor,
   });
 }
 
@@ -142,9 +163,22 @@ interface DispatchParams {
   prNumber?: number;
   path: string;
   body: string;
+  /** Logged for audit only; `x-gitlab-token` verification is the authorization gate. */
+  auditCommentAuthor?: string;
 }
 
+/**
+ * Enqueues agent jobs for mirrors matching the repo URL. GitLab webhook secret
+ * verification is the authorization gate for these requests; comment author is
+ * logged only for audit.
+ */
 async function dispatchToMirroredSessions(params: DispatchParams) {
+  logger.info("gitlab webhook mirror dispatch", {
+    repo: params.repoFullName,
+    event: params.eventLabel,
+    commentAuthor: params.auditCommentAuthor ?? "",
+  });
+
   const db = getDb();
 
   // GitLab remote URLs can be stored with or without .git suffix.
@@ -153,50 +187,53 @@ async function dispatchToMirroredSessions(params: DispatchParams) {
     params.httpUrl.endsWith(".git") ? params.httpUrl.slice(0, -4) : `${params.httpUrl}.git`,
   ].filter(Boolean);
 
-  let matchingMirrors: (typeof mirrors.$inferSelect)[] = [];
-  for (const url of candidates) {
-    const found = await db
-      .select()
-      .from(mirrors)
-      .where(eq(mirrors.remoteRepoUrl, url));
-    matchingMirrors.push(...found);
-  }
+  if (candidates.length === 0) return;
+
+  const matchingMirrors = await db
+    .select()
+    .from(mirrors)
+    .where(inArray(mirrors.remoteRepoUrl, candidates));
 
   if (matchingMirrors.length === 0) return;
+
+  const mirrorsWithSession = matchingMirrors.filter((m) => m.sessionId);
+  const sessionIds = [...new Set(mirrorsWithSession.map((m) => m.sessionId!))];
+
+  const sessionRows =
+    sessionIds.length > 0
+      ? await db.select().from(sessions).where(inArray(sessions.id, sessionIds))
+      : [];
+
+  const sessionById = new Map(sessionRows.map((s) => [s.id, s]));
 
   const redis = createRedisClient("gitlab-webhook");
 
   try {
-    for (const mirror of matchingMirrors) {
-      if (!mirror.sessionId) continue;
+    await Promise.all(
+      mirrorsWithSession.map(async (mirror) => {
+        const session = mirror.sessionId ? sessionById.get(mirror.sessionId) : undefined;
+        if (!session || session.status !== "running") return;
 
-      const [session] = await db
-        .select()
-        .from(sessions)
-        .where(eq(sessions.id, mirror.sessionId))
-        .limit(1);
+        const ctx = [
+          `GitLab ${params.eventLabel} on ${params.repoFullName}${params.prNumber ? ` MR !${params.prNumber}` : ""}.`,
+          params.path ? `File: ${params.path}` : "",
+          params.body ? `Comment:\n${params.body}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n");
 
-      if (!session || session.status !== "running") continue;
-
-      const ctx = [
-        `GitLab ${params.eventLabel} on ${params.repoFullName}${params.prNumber ? ` MR !${params.prNumber}` : ""}.`,
-        params.path ? `File: ${params.path}` : "",
-        params.body ? `Comment:\n${params.body}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n\n");
-
-      await enqueueSessionTriggerJob(db, redis, {
-        sessionId: session.id,
-        userId: session.userId,
-        trigger: "review_comment",
-        fixContext: ctx,
-      }).catch((err) =>
-        logger.errorWithCause(err, "enqueue gitlab webhook job failed", {
+        await enqueueSessionTriggerJob(db, redis, {
           sessionId: session.id,
-        }),
-      );
-    }
+          userId: session.userId,
+          trigger: "review_comment",
+          fixContext: ctx,
+        }).catch((err) =>
+          logger.errorWithCause(err, "enqueue gitlab webhook job failed", {
+            sessionId: session.id,
+          }),
+        );
+      }),
+    );
   } finally {
     redis.disconnect();
   }

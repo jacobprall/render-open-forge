@@ -1,49 +1,47 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
+import { z } from "zod";
+import { ApiError, withApiHandler } from "@/lib/api";
 import { createForgeProvider } from "@/lib/forgejo/client";
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ org: string }> },
-) {
-  const auth = await getSession();
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+const postBodySchema = z.object({
+  name: z.string().min(1),
+  value: z.string().min(1),
+});
 
-  const { org } = await params;
+export const GET = withApiHandler({}, async ({ session, params }) => {
+  const auth = session!;
+  const { org } = params;
+
   const forge = createForgeProvider(auth.forgejoToken);
 
   try {
     const secrets = await forge.orgs.secrets.list(org);
     return NextResponse.json({ secrets });
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to list org secrets" },
-      { status: 502 },
+    throw new ApiError(
+      "UPSTREAM_ERROR",
+      e instanceof Error ? e.message : "Failed to list org secrets",
+      502,
     );
   }
-}
+});
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ org: string }> },
-) {
-  const auth = await getSession();
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const POST = withApiHandler(
+  { bodySchema: postBodySchema },
+  async ({ session, params, body }) => {
+    const auth = session!;
+    const { org } = params;
 
-  const { org } = await params;
-  const { name, value } = (await req.json()) as { name: string; value: string };
-  if (!name || !value) {
-    return NextResponse.json({ error: "name and value required" }, { status: 400 });
-  }
-
-  const forge = createForgeProvider(auth.forgejoToken);
-  try {
-    await forge.orgs.secrets.set(org, name, value);
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to create org secret" },
-      { status: 502 },
-    );
-  }
-}
+    const forge = createForgeProvider(auth.forgejoToken);
+    try {
+      await forge.orgs.secrets.set(org, body.name, body.value);
+      return NextResponse.json({ ok: true });
+    } catch (e) {
+      throw new ApiError(
+        "UPSTREAM_ERROR",
+        e instanceof Error ? e.message : "Failed to create org secret",
+        502,
+      );
+    }
+  },
+);

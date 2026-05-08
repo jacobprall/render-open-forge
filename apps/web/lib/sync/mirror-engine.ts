@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { mirrors, syncConnections } from "@render-open-forge/db";
 import type { ForgeDb } from "@/lib/db";
 import { getAgentForgeProvider } from "@/lib/forgejo/client";
@@ -277,6 +277,7 @@ export async function deleteMirror(db: ForgeDb, mirrorId: string): Promise<void>
 export async function listMirrors(
   db: ForgeDb,
   userId: string,
+  pagination?: { limit: number; offset: number },
 ): Promise<Array<typeof mirrors.$inferSelect>> {
   const userConnections = await db
     .select({ id: syncConnections.id })
@@ -285,10 +286,22 @@ export async function listMirrors(
 
   if (userConnections.length === 0) return [];
 
-  const connectionIds = new Set(userConnections.map((c) => c.id));
-  const allMirrors = await db.select().from(mirrors);
+  const q = db
+    .select()
+    .from(mirrors)
+    .where(
+      inArray(
+        mirrors.syncConnectionId,
+        userConnections.map((c) => c.id),
+      ),
+    )
+    .orderBy(desc(mirrors.createdAt));
 
-  return allMirrors.filter((m) => connectionIds.has(m.syncConnectionId));
+  if (pagination) {
+    return q.limit(pagination.limit + 1).offset(pagination.offset);
+  }
+
+  return q;
 }
 
 /**

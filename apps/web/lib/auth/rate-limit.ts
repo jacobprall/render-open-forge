@@ -3,6 +3,23 @@ const rateLimitStore = new Map<
   { count: number; resetAt: number }
 >();
 
+let cleanupIntervalStarted = false;
+
+/** Removes expired rate-limit entries so the Map does not grow without bound. */
+export function cleanupExpiredEntries(): void {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore) {
+    if (now >= entry.resetAt) {
+      rateLimitStore.delete(key);
+    }
+  }
+}
+
+if (typeof setInterval === "function" && !cleanupIntervalStarted) {
+  cleanupIntervalStarted = true;
+  setInterval(cleanupExpiredEntries, 60_000);
+}
+
 export interface RateLimitResult {
   allowed: boolean;
   remaining: number;

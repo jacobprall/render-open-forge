@@ -36,6 +36,7 @@ declare module "@auth/core/jwt" {
     forgejoToken?: string;
     forgejoUserId?: number;
     forgejoUsername?: string;
+    isAdmin?: boolean;
   }
 }
 
@@ -76,6 +77,7 @@ const config: NextAuthConfig = {
         token.forgejoToken = accessToken;
         token.forgejoUserId = user.forgejoUserId ?? undefined;
         token.forgejoUsername = user.forgejoUsername ?? undefined;
+        token.isAdmin = user.isAdmin ?? false;
       }
       return token;
     },
@@ -85,17 +87,7 @@ const config: NextAuthConfig = {
       session.forgejoToken = token.forgejoToken ?? "";
       session.forgejoUserId = token.forgejoUserId ?? 0;
       session.forgejoUsername = token.forgejoUsername ?? "";
-      if (token.sub) {
-        const db = getDb();
-        const [row] = await db
-          .select({ isAdmin: users.isAdmin })
-          .from(users)
-          .where(eq(users.id, token.sub))
-          .limit(1);
-        session.isAdmin = row?.isAdmin ?? false;
-      } else {
-        session.isAdmin = false;
-      }
+      session.isAdmin = token.isAdmin ?? false;
       return session;
     },
   },

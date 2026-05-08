@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {
+  checkRateLimit,
+  getRateLimitHeaders,
+  type RateLimitResult,
+} from "@/lib/auth/rate-limit";
 
 const RATE_LIMIT_MAX = 100;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const STREAM_PATHS = ["/api/chat", "/api/agent/stream"];
-
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 function getRateLimitKey(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -13,52 +16,66 @@ function getRateLimitKey(request: NextRequest): string {
   return `rl:${ip}`;
 }
 
-function checkRateLimit(key: string): {
-  allowed: boolean;
-  remaining: number;
-  resetAt: number;
-} {
-  const now = Date.now();
-  const entry = rateLimitStore.get(key);
-
-  if (!entry || now >= entry.resetAt) {
-    const resetAt = now + RATE_LIMIT_WINDOW_MS;
-    rateLimitStore.set(key, { count: 1, resetAt });
-    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetAt };
+function requiresApiCsrfProtection(pathname: string, method: string): boolean {
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    return false;
   }
-
-  if (entry.count >= RATE_LIMIT_MAX) {
-    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
+  if (!pathname.startsWith("/api/")) {
+    return false;
   }
+  if (pathname.startsWith("/api/webhooks/")) {
+    return false;
+  }
+  if (pathname.startsWith("/api/auth/")) {
+    return false;
+  }
+  return true;
+}
 
-  entry.count++;
-  return {
-    allowed: true,
-    remaining: RATE_LIMIT_MAX - entry.count,
-    resetAt: entry.resetAt,
-  };
+function originMatchesHost(origin: string | null, host: string | null): boolean {
+  if (!origin || !host) {
+    return false;
+  }
+  try {
+    return new URL(origin).host.toLowerCase() === host.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
+function passesApiCsrfProtection(request: NextRequest): boolean {
+  if (request.headers.has("x-requested-with")) {
+    return true;
+  }
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("host");
+  return originMatchesHost(origin, host);
 }
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const method = request.method;
 
-  // Apply rate limiting to API routes (skip stream endpoints)
+  let rateLimitPassed: RateLimitResult | null = null;
+
   if (pathname.startsWith("/api/")) {
     const isStream = STREAM_PATHS.some((p) => pathname.startsWith(p));
     if (!isStream) {
       const key = getRateLimitKey(request);
-      const result = checkRateLimit(key);
+      const result = checkRateLimit(
+        key,
+        RATE_LIMIT_MAX,
+        RATE_LIMIT_WINDOW_MS,
+      );
 
       if (!result.allowed) {
+        const rlHeaders = getRateLimitHeaders(result);
         return NextResponse.json(
           { error: "Too many requests" },
           {
             status: 429,
             headers: {
-              "X-RateLimit-Remaining": "0",
-              "X-RateLimit-Reset": String(
-                Math.ceil(result.resetAt / 1000),
-              ),
+              ...rlHeaders,
               "Retry-After": String(
                 Math.ceil((result.resetAt - Date.now()) / 1000),
               ),
@@ -66,22 +83,19 @@ export function middleware(request: NextRequest) {
           },
         );
       }
+      rateLimitPassed = result;
+    }
 
-      const response = NextResponse.next();
-      response.headers.set(
-        "X-RateLimit-Remaining",
-        String(result.remaining),
-      );
-      response.headers.set(
-        "X-RateLimit-Reset",
-        String(Math.ceil(result.resetAt / 1000)),
-      );
-      return response;
+    if (requiresApiCsrfProtection(pathname, method)) {
+      if (!passesApiCsrfProtection(request)) {
+        return NextResponse.json(
+          { error: "CSRF validation failed" },
+          { status: 403 },
+        );
+      }
     }
   }
 
-  // CSRF validation for mutating non-API routes
-  const method = request.method;
   if (
     ["POST", "PUT", "PATCH", "DELETE"].includes(method) &&
     !pathname.startsWith("/api/")
@@ -105,7 +119,14 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  if (rateLimitPassed) {
+    const rlHeaders = getRateLimitHeaders(rateLimitPassed);
+    for (const [k, v] of Object.entries(rlHeaders)) {
+      response.headers.set(k, v);
+    }
+  }
+  return response;
 }
 
 export const config = {

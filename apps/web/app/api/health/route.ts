@@ -27,13 +27,18 @@ async function checkPostgres(): Promise<HealthCheck> {
 async function checkRedis(): Promise<HealthCheck> {
   const start = Date.now();
   try {
-    const url = process.env.REDIS_URL;
-    if (!url) return { status: "error", error: "REDIS_URL not configured" };
-    // Simple TCP check — attempt connection
-    const { default: Redis } = await import("ioredis");
-    const redis = new Redis(url, { connectTimeout: 3000, lazyConnect: true });
-    await redis.ping();
-    await redis.quit();
+    const { getSharedRedisClient, isRedisConfigured } = await import("@/lib/redis");
+    if (!isRedisConfigured()) {
+      return { status: "error", error: "REDIS_URL not configured" };
+    }
+    const redis = getSharedRedisClient();
+    const PING_MS = 3000;
+    const ping = redis.ping();
+    const timeout = new Promise<never>((_, reject) => {
+      const t = setTimeout(() => reject(new Error("Redis ping timeout")), PING_MS);
+      t.unref?.();
+    });
+    await Promise.race([ping, timeout]);
     return { status: "ok", latencyMs: Date.now() - start };
   } catch (err) {
     return {
