@@ -425,7 +425,8 @@ export class ForgejoClient {
 
   authenticatedCloneUrl(owner: string, repo: string): string {
     const url = new URL(this.baseUrl);
-    return `${url.protocol}//agent:${this.token}@${url.host}/${owner}/${repo}.git`;
+    const username = process.env.FORGEJO_AGENT_USER || "openforge-agent";
+    return `${url.protocol}//${username}:${this.token}@${url.host}/${owner}/${repo}.git`;
   }
 
   plainCloneUrl(owner: string, repo: string): string {
