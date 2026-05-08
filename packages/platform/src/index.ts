@@ -135,7 +135,7 @@ export { RedisCacheAdapter, MemoryCacheAdapter } from "./interfaces/cache";
 
 // CI dispatcher
 export type { CIDispatcher, CIJobInput, CIDispatchResult } from "./interfaces/ci-dispatcher";
-export { RenderWorkflowsDispatcher, NoopCIDispatcher } from "./interfaces/ci-dispatcher";
+export { RenderWorkflowsDispatcher, NoopCIDispatcher, LocalCIDispatcher } from "./interfaces/ci-dispatcher";
 
 // Notification sink
 export type { NotificationSink, NotificationPayload, NotificationLevel } from "./interfaces/notification-sink";

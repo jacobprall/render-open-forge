@@ -49,6 +49,7 @@ export interface WriteAgentConfigParams {
   path?: string;
   sha?: string;
   message?: string;
+  branch?: string;
 }
 
 export interface TestResultsResult {
@@ -282,10 +283,12 @@ export class RepoService {
           content: params.content,
           message: commitMessage,
           sha,
+          branch: params.branch,
         })
       : await forge.files.createFile(owner, repo, filePath, {
           content: params.content,
           message: commitMessage,
+          branch: params.branch,
         });
 
     return { ok: true, file };

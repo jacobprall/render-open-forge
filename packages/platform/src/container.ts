@@ -16,7 +16,7 @@ import type { StorageAdapter } from "./interfaces/storage";
 import type { CacheAdapter } from "./interfaces/cache";
 import { RedisCacheAdapter } from "./interfaces/cache";
 import type { CIDispatcher } from "./interfaces/ci-dispatcher";
-import { RenderWorkflowsDispatcher } from "./interfaces/ci-dispatcher";
+import { RenderWorkflowsDispatcher, LocalCIDispatcher } from "./interfaces/ci-dispatcher";
 import type { NotificationSink } from "./interfaces/notification-sink";
 import { ConsoleSink } from "./interfaces/notification-sink";
 import type { AuthProvider } from "./interfaces/auth-provider";
@@ -106,7 +106,7 @@ export function createPlatform(config: PlatformConfig): PlatformContainer {
   const queue: QueueAdapter = new RedisQueueAdapter(config.redis);
   const events: EventBus = new RedisEventBus(config.redis);
   const cache: CacheAdapter = config.cache ?? new RedisCacheAdapter(config.redis);
-  const ciDispatcher: CIDispatcher = config.ciDispatcher ?? new RenderWorkflowsDispatcher();
+  const ciDispatcher: CIDispatcher = config.ciDispatcher ?? defaultCIDispatcher();
   const notificationSink: NotificationSink = config.notificationSink ?? new ConsoleSink();
   return buildContainer(db, queue, events, cache, config.storage, ciDispatcher, notificationSink, config.authProvider);
 }
@@ -133,9 +133,20 @@ export function createPlatformFromInstances(inst: PlatformInstances): PlatformCo
   const queue: QueueAdapter = new RedisQueueAdapter(inst.redis);
   const events: EventBus = new RedisEventBus(inst.redis);
   const cache: CacheAdapter = inst.cache ?? new RedisCacheAdapter(inst.redis);
-  const ciDispatcher: CIDispatcher = inst.ciDispatcher ?? new RenderWorkflowsDispatcher();
+  const ciDispatcher: CIDispatcher = inst.ciDispatcher ?? defaultCIDispatcher();
   const notificationSink: NotificationSink = inst.notificationSink ?? new ConsoleSink();
   return buildContainer(inst.db, queue, events, cache, inst.storage, ciDispatcher, notificationSink, inst.authProvider);
+}
+
+// ---------------------------------------------------------------------------
+// CI dispatcher selection
+// ---------------------------------------------------------------------------
+
+function defaultCIDispatcher(): CIDispatcher {
+  if (process.env.CI_RUNNER_MODE === "local") {
+    return new LocalCIDispatcher();
+  }
+  return new RenderWorkflowsDispatcher();
 }
 
 // ---------------------------------------------------------------------------
@@ -163,7 +174,7 @@ function buildContainer(
   const notifications = new NotificationService(db);
   const invites = new InviteService(db);
   const mirrors = new MirrorService(db);
-  const ci = new CIService(db, queue, events);
+  const ci = new CIService(db, queue, events, ciDispatcher);
   const webhooks = new WebhookService(db, queue, events, ci);
 
   return {

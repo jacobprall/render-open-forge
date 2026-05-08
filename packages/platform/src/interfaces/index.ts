@@ -17,7 +17,7 @@ export type {
 export type { CacheAdapter } from "./cache";
 export { RedisCacheAdapter, MemoryCacheAdapter } from "./cache";
 export type { CIDispatcher, CIJobInput, CIDispatchResult } from "./ci-dispatcher";
-export { RenderWorkflowsDispatcher, NoopCIDispatcher } from "./ci-dispatcher";
+export { RenderWorkflowsDispatcher, NoopCIDispatcher, LocalCIDispatcher } from "./ci-dispatcher";
 export type {
   NotificationSink,
   NotificationPayload,

@@ -17,6 +17,7 @@ import type { ResolvedSkill } from "@openforge/skills";
 import type { PlatformDb } from "../interfaces/database";
 import type { QueueAdapter } from "../interfaces/queue";
 import type { EventBus } from "../interfaces/events";
+import type { CIDispatcher, CIJobInput } from "../interfaces/ci-dispatcher";
 import { getDefaultForgeProvider } from "../forge/factory";
 import type { ForgeProvider } from "../forge/provider";
 
@@ -108,6 +109,7 @@ export class CIService {
     private db: PlatformDb,
     private queue: QueueAdapter,
     private events: EventBus,
+    private ciDispatcher?: CIDispatcher,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -282,21 +284,26 @@ export class CIService {
             });
           });
 
-        const input = {
-          cloneUrl,
+        const input: CIJobInput = {
+          ciEventId,
+          repoCloneUrl: cloneUrl,
           branch,
           commitSha,
           workflowName: workflow.name,
           jobs: workflow.jobs.map((j) => ({
             name: j.name,
-            steps: j.steps,
+            steps: j.steps.map((s) => ({ name: s.name ?? s.run.slice(0, 60), run: s.run })),
           })),
           callbackUrl,
-          callbackSecret,
-          ciEventId,
+          callbackSecret: callbackSecret ?? "",
         };
 
-        await dispatchToRenderWorkflows(input);
+        if (this.ciDispatcher) {
+          const result = await this.ciDispatcher.dispatch(input);
+          if (!result.ok) throw new Error(result.error);
+        } else {
+          await dispatchToRenderWorkflows(input as unknown as Record<string, unknown>);
+        }
 
         results.push({ ciEventId, dispatched: true });
       } catch (err) {

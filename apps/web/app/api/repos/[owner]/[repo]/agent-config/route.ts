@@ -30,7 +30,7 @@ export async function POST(
   const auth = await requireAuth();
   const { owner, repo } = await params;
 
-  let body: { content: string; path?: string; sha?: string; message?: string };
+  let body: { content: string; path?: string; sha?: string; message?: string; branch?: string };
   try {
     body = await req.json();
   } catch {
@@ -43,6 +43,7 @@ export async function POST(
       path: body.path,
       sha: body.sha,
       message: body.message,
+      branch: body.branch,
     });
     return NextResponse.json(result);
   } catch (e) {

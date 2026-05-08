@@ -286,7 +286,21 @@ export class ForgejoClient {
   }
 
   async listPullReviewComments(owner: string, repo: string, number: number): Promise<Array<Record<string, unknown>>> {
-    return this.request(`/repos/${owner}/${repo}/pulls/${number}/comments`);
+    const reviews: Array<Record<string, unknown>> = await this.request(`/repos/${owner}/${repo}/pulls/${number}/reviews`);
+    const allComments: Array<Record<string, unknown>> = [];
+    for (const review of reviews) {
+      const reviewId = review.id;
+      if (reviewId == null) continue;
+      try {
+        const comments: Array<Record<string, unknown>> = await this.request(
+          `/repos/${owner}/${repo}/pulls/${number}/reviews/${reviewId}/comments`,
+        );
+        allComments.push(...comments);
+      } catch {
+        // Review may have no comments endpoint; skip
+      }
+    }
+    return allComments;
   }
 
   async listIssueComments(owner: string, repo: string, issueIndex: number): Promise<Array<Record<string, unknown>>> {
@@ -303,12 +317,12 @@ export class ForgejoClient {
     return this.request(`/repos/${owner}/${repo}/pulls/${number}/comments`, { method: "POST", body: JSON.stringify(payload) });
   }
 
-  async resolveReviewComment(owner: string, repo: string, commentId: number): Promise<void> {
-    return this.request(`/repos/${owner}/${repo}/pulls/comments/${commentId}/resolve`, { method: "POST" });
+  async resolveReviewComment(_owner: string, _repo: string, _commentId: number): Promise<void> {
+    throw new Error("Comment resolution is not supported by this Forgejo version");
   }
 
-  async unresolveReviewComment(owner: string, repo: string, commentId: number): Promise<void> {
-    return this.request(`/repos/${owner}/${repo}/pulls/comments/${commentId}/unresolve`, { method: "POST" });
+  async unresolveReviewComment(_owner: string, _repo: string, _commentId: number): Promise<void> {
+    throw new Error("Comment resolution is not supported by this Forgejo version");
   }
 
   async requestPullReviewers(owner: string, repo: string, number: number, reviewers: string[]): Promise<unknown> {
