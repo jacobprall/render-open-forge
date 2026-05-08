@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { ciResultPayloadSchema } from "@render-open-forge/platform/services";
+import { ciResultPayloadSchema } from "@openforge/platform/services";
 import { getPlatform } from "../platform";
 
 export const ciRoutes = new Hono();

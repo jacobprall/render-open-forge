@@ -14,7 +14,8 @@ function deriveKeyMaterial(): Buffer {
   if (/^[0-9a-fA-F]{64}$/.test(raw)) {
     return Buffer.from(raw, "hex");
   }
-  return scryptSync(raw, "open-forge-llm-api-key-v1", 32);
+  const salt = process.env.ENCRYPTION_SALT?.trim() || "open-forge-llm-api-key-v1";
+  return scryptSync(raw, salt, 32);
 }
 
 /** True when an encryption secret is present (hex 64 or any passphrase for scrypt fallback). */

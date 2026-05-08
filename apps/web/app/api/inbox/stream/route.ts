@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
-import { prEvents } from "@render-open-forge/db";
+import { prEvents } from "@openforge/db";
 import { eq, and, sql } from "drizzle-orm";
 
 const HEARTBEAT_INTERVAL_MS = 15_000;

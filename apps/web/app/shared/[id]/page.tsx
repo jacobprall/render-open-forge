@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db";
-import { sessions, chats, chatMessages } from "@render-open-forge/db";
+import { sessions, chats, chatMessages } from "@openforge/db";
 import { eq, asc } from "drizzle-orm";
 import Link from "next/link";
 
@@ -71,7 +71,7 @@ export default async function SharedSessionPage({
               href="/"
               className="text-sm text-zinc-400 hover:text-zinc-200"
             >
-              render-open-forge
+              OpenForge
             </Link>
             <span className="text-zinc-600">/</span>
             <span className="text-sm text-zinc-400">shared session</span>

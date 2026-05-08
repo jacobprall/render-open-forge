@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
-import { syncConnections } from "@render-open-forge/db";
+import { syncConnections } from "@openforge/db";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { getValidGitHubToken } from "@/lib/sync/github";

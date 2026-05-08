@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { resolveLlmApiKeys } from "@render-open-forge/platform";
-import { userPreferences } from "@render-open-forge/db/schema";
+import { resolveLlmApiKeys } from "@openforge/platform";
+import { userPreferences } from "@openforge/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { fetchModelsForSession, type ModelSummary } from "@/lib/models/anthropic-models";

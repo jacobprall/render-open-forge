@@ -1,4 +1,4 @@
-import type { StreamEvent } from "@render-open-forge/shared/lib/stream-types";
+import type { StreamEvent } from "@openforge/shared/lib/stream-types";
 
 export type AssistantTextPart = {
   type: "text";

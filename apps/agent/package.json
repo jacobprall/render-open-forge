@@ -1,5 +1,5 @@
 {
-  "name": "@render-open-forge/agent",
+  "name": "@openforge/agent",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,11 +12,11 @@
   "dependencies": {
     "@ai-sdk/anthropic": "catalog:",
     "@ai-sdk/openai": "catalog:",
-    "@render-open-forge/db": "workspace:*",
-    "@render-open-forge/sandbox": "workspace:*",
-    "@render-open-forge/platform": "workspace:*",
-    "@render-open-forge/shared": "workspace:*",
-    "@render-open-forge/skills": "workspace:*",
+    "@openforge/db": "workspace:*",
+    "@openforge/sandbox": "workspace:*",
+    "@openforge/platform": "workspace:*",
+    "@openforge/shared": "workspace:*",
+    "@openforge/skills": "workspace:*",
     "ai": "catalog:",
     "drizzle-orm": "^0.45.1",
     "ioredis": "^5.9.2",

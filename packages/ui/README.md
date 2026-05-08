@@ -1,4 +1,4 @@
-# @render-open-forge/ui
+# @openforge/ui
 
 Client-side React hooks and utilities shared across the web app. This package contains browser-only code — no server-side logic.
 
@@ -24,16 +24,16 @@ Provided as React context providers with companion consumer hooks:
 ## Package Exports
 
 ```
-@render-open-forge/ui            — all hooks and lib re-exports
-@render-open-forge/ui/hooks/*    — individual hook files (e.g. hooks/reasoning-context)
-@render-open-forge/ui/lib/*      — individual lib files (e.g. lib/diff)
+@openforge/ui            — all hooks and lib re-exports
+@openforge/ui/hooks/*    — individual hook files (e.g. hooks/reasoning-context)
+@openforge/ui/lib/*      — individual lib files (e.g. lib/diff)
 ```
 
 ## Usage
 
 ```tsx
-import { ReasoningProvider, useReasoningContext } from "@render-open-forge/ui";
-import { createUnifiedDiff } from "@render-open-forge/ui/lib/diff";
+import { ReasoningProvider, useReasoningContext } from "@openforge/ui";
+import { createUnifiedDiff } from "@openforge/ui/lib/diff";
 ```
 
 Peer dependency: **React 18 or 19**.

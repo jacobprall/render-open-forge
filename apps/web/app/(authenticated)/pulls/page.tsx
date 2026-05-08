@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
-import { sessions, prEvents } from "@render-open-forge/db";
+import { sessions, prEvents } from "@openforge/db";
 import { eq, desc, isNotNull, and, sql } from "drizzle-orm";
 import Link from "next/link";
 import { ArrowRight, GitPullRequest } from "lucide-react";

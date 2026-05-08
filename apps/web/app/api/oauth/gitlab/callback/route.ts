@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq, and } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { syncConnections } from "@render-open-forge/db";
+import { syncConnections } from "@openforge/db";
 import { getSession } from "@/lib/auth/session";
 
 const gitlabUrl = (process.env.GITLAB_URL || "https://gitlab.com").replace(/\/$/, "");

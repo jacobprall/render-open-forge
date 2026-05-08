@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
-import { sessions, chats } from "@render-open-forge/db";
+import { sessions, chats } from "@openforge/db";
 import { eq, and, desc } from "drizzle-orm";
 import {
   readRunEventHistoryDetailed,
   readRunEventPayloadsAfterId,
-} from "@render-open-forge/platform";
+} from "@openforge/platform";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
 import { subscribeToRun } from "@/lib/sse/shared-subscriber";
 import {

@@ -5,8 +5,8 @@
  * decoupled from any specific forge implementation.
  */
 
-import type { ForgeProvider } from "@render-open-forge/platform/forge";
-import type { SandboxAdapter } from "@render-open-forge/sandbox";
+import type { ForgeProvider } from "@openforge/platform/forge";
+import type { SandboxAdapter } from "@openforge/sandbox";
 
 export type { SandboxAdapter };
 

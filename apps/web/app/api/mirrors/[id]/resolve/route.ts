@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
 import { isPlatformError } from "@/lib/api/errors";
-import type { ConflictStrategy } from "@render-open-forge/platform/services";
+import type { ConflictStrategy } from "@openforge/platform/services";
 
 const VALID_STRATEGIES: ConflictStrategy[] = ["force-push", "manual", "rebase"];
 

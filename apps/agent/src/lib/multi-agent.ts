@@ -1,9 +1,9 @@
 import type Redis from "ioredis";
 import { nanoid } from "nanoid";
 import { eq } from "drizzle-orm";
-import type { ResolvedSkill } from "@render-open-forge/skills";
-import { sessions, agentRuns, chats } from "@render-open-forge/db";
-import { enqueueJob, ensureConsumerGroup, publishRunEvent } from "@render-open-forge/platform";
+import type { ResolvedSkill } from "@openforge/skills";
+import { sessions, agentRuns, chats } from "@openforge/db";
+import { enqueueJob, ensureConsumerGroup, publishRunEvent } from "@openforge/platform";
 
 export type AgentRole = "spec" | "implement" | "review" | "merge";
 

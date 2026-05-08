@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { logger } from "@render-open-forge/shared";
+import { logger } from "@openforge/shared";
 import { getPlatform } from "@/lib/platform";
 import { isPlatformError } from "@/lib/api/errors";
 

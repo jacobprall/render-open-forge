@@ -1,5 +1,5 @@
 {
-  "name": "@render-open-forge/sandbox",
+  "name": "@openforge/sandbox",
   "version": "0.0.1",
   "private": true,
   "type": "module",

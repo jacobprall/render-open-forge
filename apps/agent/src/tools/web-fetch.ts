@@ -36,7 +36,7 @@ export function webFetchTool() {
     inputSchema: webFetchInputSchema,
     execute: async ({ url, method = "GET", headers, body }) => {
       try {
-        const safeUrl = assertSafeHttpUrl(url);
+        const safeUrl = await assertSafeHttpUrl(url);
         let currentUrl = safeUrl.toString();
         let res: Response | undefined;
 
@@ -55,7 +55,7 @@ export function webFetchTool() {
               return { success: false as const, error: "Too many redirects" };
             }
             currentUrl = new URL(loc, currentUrl).toString();
-            assertSafeHttpUrl(currentUrl);
+            await assertSafeHttpUrl(currentUrl);
             continue;
           }
           break;

@@ -3,7 +3,7 @@ import Image from "next/image";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
-import { userPreferences } from "@render-open-forge/db/schema";
+import { userPreferences } from "@openforge/db/schema";
 import { eq } from "drizzle-orm";
 import { PreferencesForm } from "./preferences-form";
 

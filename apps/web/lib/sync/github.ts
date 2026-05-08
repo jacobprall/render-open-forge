@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { syncConnections } from "@render-open-forge/db";
+import { syncConnections } from "@openforge/db";
 import type { ForgeDb } from "@/lib/db";
 
 export async function refreshGitHubToken(refreshToken: string): Promise<{

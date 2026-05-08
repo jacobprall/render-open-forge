@@ -1,7 +1,7 @@
 "use server";
 
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { AppError } from "@openforge/shared";
 import { revalidatePath } from "next/cache";
 
 export async function archiveSessionAction(sessionId: string): Promise<{ error?: string }> {

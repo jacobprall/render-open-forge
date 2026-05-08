@@ -1,5 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
-import { agentRuns, ciEvents, sessions } from "@render-open-forge/db";
+import { agentRuns, ciEvents, sessions } from "@openforge/db";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
 

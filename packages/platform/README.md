@@ -1,11 +1,11 @@
-# @render-open-forge/platform
+# @openforge/platform
 
 Framework-agnostic service layer for the OpenForge monorepo. Extracts all business logic into injectable, testable services so every app (web, gateway, agent) shares the same core through a single `PlatformContainer`.
 
 ## Quick Start
 
 ```typescript
-import { createPlatform } from "@render-open-forge/platform";
+import { createPlatform } from "@openforge/platform";
 
 const platform = await createPlatform();
 const sessions = await platform.sessions.list(authContext);
@@ -59,7 +59,7 @@ Pluggable adapters live in `src/interfaces/` and allow swapping infrastructure w
 
 ## Data Access
 
-Services receive an injected Drizzle `db` instance directly — there is no repository abstraction layer. The database schema is defined in `@render-open-forge/db`.
+Services receive an injected Drizzle `db` instance directly — there is no repository abstraction layer. The database schema is defined in `@openforge/db`.
 
 ## Architecture
 
@@ -70,22 +70,22 @@ Services receive an injected Drizzle `db` instance directly — there is no repo
        │                │                │
        ▼                ▼                ▼
 ┌─────────────────────────────────────────────────┐
-│          @render-open-forge/platform            │
+│          @openforge/platform            │
 │  PlatformContainer { services + adapters }      │
 └──────────────────────┬──────────────────────────┘
                        │
           ┌────────────┼────────────┐
           ▼            ▼            ▼
-   ┌────────────┐ ┌────────┐ ┌──────────┐
-   │ @r-o-f/db  │ │ Redis  │ │ Storage  │
-   └────────────┘ └────────┘ └──────────┘
+   ┌─────────────────┐ ┌────────┐ ┌──────────┐
+   │   @openforge/db │ │ Redis  │ │ Storage  │
+   └─────────────────┘ └────────┘ └──────────┘
 ```
 
 ## Example: Reusing Existing Connections (Next.js)
 
 ```typescript
-import { createPlatformFromInstances } from "@render-open-forge/platform";
-import { db } from "@render-open-forge/db";
+import { createPlatformFromInstances } from "@openforge/platform";
+import { db } from "@openforge/db";
 import { redis } from "./redis";
 
 const platform = await createPlatformFromInstances({ db, redis });
@@ -93,8 +93,8 @@ const platform = await createPlatformFromInstances({ db, redis });
 
 ## Development
 
-This package is part of the `render-open-forge` monorepo. Build with:
+This package is part of the `openforge` monorepo. Build with:
 
 ```bash
-pnpm --filter @render-open-forge/platform build
+pnpm --filter @openforge/platform build
 ```

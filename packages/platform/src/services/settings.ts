@@ -1,10 +1,10 @@
 import { and, eq } from "drizzle-orm";
-import { llmApiKeys } from "@render-open-forge/db/schema";
+import { llmApiKeys } from "@openforge/db/schema";
 import {
   InsufficientPermissionsError,
   SessionNotFoundError,
   ValidationError,
-} from "@render-open-forge/shared";
+} from "@openforge/shared";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
 import { encryptLlmApiKey, isLlmKeyEncryptionConfigured } from "../auth/encryption";

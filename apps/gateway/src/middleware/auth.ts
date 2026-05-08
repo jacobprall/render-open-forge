@@ -10,9 +10,10 @@
 
 import { createMiddleware } from "hono/factory";
 import type { Context } from "hono";
+import { createHash } from "node:crypto";
 import { eq, and } from "drizzle-orm";
-import { users, accounts } from "@render-open-forge/db";
-import type { AuthContext } from "@render-open-forge/platform";
+import { users, accounts, apiKeys } from "@openforge/db";
+import type { AuthContext } from "@openforge/platform";
 import { getPlatform } from "../platform";
 
 export type GatewayEnv = {
@@ -33,13 +34,16 @@ function extractToken(c: Context): string | null {
     : header.trim();
 }
 
+function hashApiKey(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
 /**
  * Middleware: require a valid API key in the Authorization header.
  *
- * For the initial implementation we use a simple shared secret
- * (`GATEWAY_API_SECRET`) that maps to the admin user. This will be
- * replaced with per-user API key table lookups once the key management
- * surface is exposed through the gateway itself.
+ * Resolution order:
+ * 1. GATEWAY_API_SECRET shared secret (admin fallback for bootstrapping)
+ * 2. Per-user hashed key lookup in the `api_keys` table
  */
 export const requireApiAuth = createMiddleware<GatewayEnv>(async (c, next) => {
   const token = extractToken(c);
@@ -99,9 +103,55 @@ async function resolveAdminAuth(): Promise<AuthContext | null> {
 }
 
 async function resolveApiKeyAuth(
-  _token: string,
+  token: string,
 ): Promise<AuthContext | null> {
-  // TODO: Look up hashed token in an api_keys table, resolve to user.
-  // For now, only the shared GATEWAY_API_SECRET is supported.
-  return null;
+  const db = getPlatform().db;
+  const hashed = hashApiKey(token);
+
+  const [keyRow] = await db
+    .select({ userId: apiKeys.userId, expiresAt: apiKeys.expiresAt })
+    .from(apiKeys)
+    .where(eq(apiKeys.hashedKey, hashed))
+    .limit(1);
+
+  if (!keyRow) return null;
+
+  if (keyRow.expiresAt && keyRow.expiresAt < new Date()) {
+    return null;
+  }
+
+  const [user] = await db
+    .select({
+      id: users.id,
+      forgejoUsername: users.forgejoUsername,
+      isAdmin: users.isAdmin,
+    })
+    .from(users)
+    .where(eq(users.id, keyRow.userId))
+    .limit(1);
+
+  if (!user) return null;
+
+  const [account] = await db
+    .select({ accessToken: accounts.access_token })
+    .from(accounts)
+    .where(
+      and(eq(accounts.userId, user.id), eq(accounts.provider, "forgejo")),
+    )
+    .limit(1);
+
+  if (!account?.accessToken) return null;
+
+  // Update last_used_at in background
+  db.update(apiKeys)
+    .set({ lastUsedAt: new Date() })
+    .where(eq(apiKeys.hashedKey, hashed))
+    .catch(() => {});
+
+  return {
+    userId: user.id,
+    username: user.forgejoUsername ?? "unknown",
+    forgeToken: account.accessToken,
+    isAdmin: user.isAdmin ?? false,
+  };
 }

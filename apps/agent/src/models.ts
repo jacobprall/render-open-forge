@@ -1,8 +1,8 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
-import { MODEL_DEFS } from "@render-open-forge/shared";
-import type { ResolvedLlmKeys } from "@render-open-forge/platform";
+import { MODEL_DEFS } from "@openforge/shared";
+import type { ResolvedLlmKeys } from "@openforge/platform";
 
 export type ThinkingType = "adaptive" | "enabled";
 

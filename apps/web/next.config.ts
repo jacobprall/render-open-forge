@@ -24,9 +24,9 @@ const forgejoHost = (() => {
 
 const nextConfig: NextConfig = {
   transpilePackages: [
-    "@render-open-forge/db",
-    "@render-open-forge/shared",
-    "@render-open-forge/skills",
+    "@openforge/db",
+    "@openforge/shared",
+    "@openforge/skills",
   ],
   images: {
     remotePatterns: [

@@ -1,19 +1,13 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { getSandboxContext, isForgeAgentContext } from "../context/agent-context";
+import { rewriteForSandbox } from "../sandbox-url";
 
 const gitInputSchema = z.object({
   args: z.array(z.string()).describe("Git command arguments (e.g. ['status'] or ['add', '-A'])"),
 });
 
 const GIT_COMMANDS_NEEDING_AUTH = new Set(["push", "fetch", "pull"]);
-
-function rewriteForSandbox(url: string): string {
-  const sandboxUrl = process.env.FORGEJO_SANDBOX_URL;
-  if (!sandboxUrl) return url;
-  const internalUrl = process.env.FORGEJO_INTERNAL_URL ?? process.env.FORGEJO_URL ?? "http://localhost:3000";
-  return url.replace(new URL(internalUrl).host, new URL(sandboxUrl).host);
-}
 
 export function gitTool() {
   return tool({

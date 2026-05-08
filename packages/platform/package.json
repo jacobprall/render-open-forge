@@ -1,5 +1,5 @@
 {
-  "name": "@render-open-forge/platform",
+  "name": "@openforge/platform",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -24,9 +24,9 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3",
     "@aws-sdk/s3-request-presigner": "^3",
-    "@render-open-forge/db": "workspace:*",
-    "@render-open-forge/shared": "workspace:*",
-    "@render-open-forge/skills": "workspace:*",
+    "@openforge/db": "workspace:*",
+    "@openforge/shared": "workspace:*",
+    "@openforge/skills": "workspace:*",
     "@renderinc/sdk": "^0.5.0",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.1",

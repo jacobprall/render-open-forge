@@ -1,5 +1,5 @@
 {
-  "name": "@render-open-forge/shared",
+  "name": "@openforge/shared",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@render-open-forge/db": "workspace:*",
+    "@openforge/db": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

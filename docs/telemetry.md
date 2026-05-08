@@ -48,7 +48,7 @@ A new `packages/telemetry` package owns all OTel SDK initialization. Every servi
 | Variable | Default | Notes |
 |----------|---------|-------|
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4500` | Points to the Hono gateway in dev. |
-| `OTEL_SERVICE_NAME` | (required per service) | `forge-web`, `forge-gateway`, `forge-agent`, `forge-ci`, `forge-sandbox` |
+| `OTEL_SERVICE_NAME` | (required per service) | `openforge-web`, `openforge-gateway`, `openforge-agent`, `openforge-ci`, `openforge-sandbox` |
 | `OTEL_ENABLED` | `true` | Set to `false` to disable telemetry entirely (e.g., in tests). |
 
 ### 3. OTel SDK packages
@@ -184,9 +184,9 @@ While we're at it, the Prometheus scrape endpoint (`/metrics`) and the aggregate
 
 #### `apps/gateway` (Hono on Bun/Node)
 
-- Call `setupTelemetry({ serviceName: 'forge-gateway' })` at startup.
+- Call `setupTelemetry({ serviceName: 'openforge-gateway' })` at startup.
 - The gateway itself is instrumented: incoming OTLP requests get their own spans (meta-telemetry), plus any proxied or orchestrated requests.
-- The OTLP receiver routes do **not** re-export their own ingested spans to avoid infinite loops. The `ingestSpans` function skips writing spans whose `service_name` is `forge-gateway` and `name` starts with `POST /v1/` (or we simply disable the exporter for those code paths).
+- The OTLP receiver routes do **not** re-export their own ingested spans to avoid infinite loops. The `ingestSpans` function skips writing spans whose `service_name` is `openforge-gateway` and `name` starts with `POST /v1/` (or we simply disable the exporter for those code paths).
 
 #### `apps/web` (Next.js on Node)
 
@@ -197,20 +197,20 @@ While we're at it, the Prometheus scrape endpoint (`/metrics`) and the aggregate
 
 #### `apps/agent` (Bun worker)
 
-- Call `setupTelemetry({ serviceName: 'forge-agent' })` at the top of `src/worker.ts`.
+- Call `setupTelemetry({ serviceName: 'openforge-agent' })` at the top of `src/worker.ts`.
 - Manual spans for: job processing (`processJob`), agent turns (`runAgentTurn`), LLM API calls, tool executions, sandbox HTTP calls.
 - Propagate `traceId` through the job payload so agent traces link to the web app trace that enqueued the job.
 - Metrics: `agent.jobs.active` gauge, `agent.job.duration_ms` histogram, `agent.llm.tokens` counter (input/output), `agent.tool.calls` counter by tool name.
 
 #### `apps/ci-runner` (Bun worker)
 
-- Call `setupTelemetry({ serviceName: 'forge-ci' })` at entrypoint.
+- Call `setupTelemetry({ serviceName: 'openforge-ci' })` at entrypoint.
 - Manual spans for: task execution, git clone, step execution, result callback.
 - Metrics: `ci.runs.total` counter, `ci.step.duration_ms` histogram.
 
 #### `packages/sandbox` (Bun HTTP server)
 
-- Call `setupTelemetry({ serviceName: 'forge-sandbox' })` at the top of `server/server.ts`.
+- Call `setupTelemetry({ serviceName: 'openforge-sandbox' })` at the top of `server/server.ts`.
 - Manual spans for: incoming tool requests (file read/write, shell exec, grep, git), per-command shell execution.
 - Metrics: `sandbox.requests.total` counter, `sandbox.shell.duration_ms` histogram.
 
@@ -258,7 +258,7 @@ Added to `.env.example`, `docker-compose.yml`, and `render.yaml`:
 ```bash
 # Telemetry
 OTEL_ENABLED=true
-OTEL_SERVICE_NAME=forge-web          # per service
+OTEL_SERVICE_NAME=openforge-web          # per service
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4500  # gateway base URL in dev
 OTEL_INGEST_SECRET=dev-otel-secret   # shared secret for OTLP receiver auth
 OTEL_RETENTION_SPANS_DAYS=7
@@ -281,7 +281,7 @@ jaeger:
 
 ### 13. Render deployment changes
 
-In `render.yaml`, the gateway is deployed as `forge-gateway` (web service on Bun). All other services set `OTEL_EXPORTER_OTLP_ENDPOINT` to the gateway's internal URL (`http://forge-gateway:4500`). The `OTEL_INGEST_SECRET` is generated on `forge-gateway` and shared to other services via `fromService` references.
+In `render.yaml`, the gateway is deployed as `openforge-gateway` (web service on Bun). All other services set `OTEL_EXPORTER_OTLP_ENDPOINT` to the gateway's internal URL (`http://openforge-gateway:4500`). The `OTEL_INGEST_SECRET` is generated on `openforge-gateway` and shared to other services via `fromService` references.
 
 ## File manifest
 
@@ -303,7 +303,7 @@ In `render.yaml`, the gateway is deployed as `forge-gateway` (web service on Bun
 | Modify | `apps/ci-runner` entrypoint | Add `setupTelemetry` call |
 | Modify | `packages/sandbox/server/server.ts` | Add `setupTelemetry` call |
 | Modify | `docker-compose.yml` | Add `OTEL_*` env vars to services |
-| Modify | `render.yaml` | Add `forge-gateway` service + `OTEL_*` env vars to all services |
+| Modify | `render.yaml` | Add `openforge-gateway` service + `OTEL_*` env vars to all services |
 | Modify | `.env.example` | Document new env vars |
 | Remove | `apps/web/app/api/metrics/route.ts` | Replaced by gateway `/metrics` |
 | Remove | `apps/web/app/api/health/route.ts` | Replaced by gateway `/health` (or kept as thin proxy) |

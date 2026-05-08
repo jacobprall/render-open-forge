@@ -1,4 +1,4 @@
-# @render-open-forge/shared
+# @openforge/shared
 
 Lightweight shared types, error classes, constants, and stream event definitions used across all packages and apps in the monorepo.
 
@@ -10,9 +10,9 @@ This is intentionally minimal — a leaf package providing pure types and utilit
 
 | Import path | Use case |
 |---|---|
-| `@render-open-forge/shared` | Server-safe — full export surface |
-| `@render-open-forge/shared/client` | Client-safe — no `node:*`, Redis, or server-only modules. Use from `"use client"` components. |
-| `@render-open-forge/shared/lib/*` | Direct lib imports (e.g. `shared/lib/stream-types`) |
+| `@openforge/shared` | Server-safe — full export surface |
+| `@openforge/shared/client` | Client-safe — no `node:*`, Redis, or server-only modules. Use from `"use client"` components. |
+| `@openforge/shared/lib/*` | Direct lib imports (e.g. `shared/lib/stream-types`) |
 
 ## What's Included
 
@@ -26,6 +26,6 @@ This is intentionally minimal — a leaf package providing pure types and utilit
 ## Dependencies
 
 - `zod` — schema validation
-- `@render-open-forge/db` — type imports only (Drizzle schema types)
+- `@openforge/db` — type imports only (Drizzle schema types)
 
 No database connections, no Redis, no network calls at runtime.

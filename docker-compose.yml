@@ -107,7 +107,7 @@ services:
       - SANDBOX_SHARED_SECRET=dev-sandbox-secret
       - SANDBOX_SESSION_SECRET=dev-session-secret
       - SANDBOX_GIT_USER_NAME=Forge Agent
-      - SANDBOX_GIT_USER_EMAIL=agent@render-open-forge.dev
+      - SANDBOX_GIT_USER_EMAIL=agent@openforge.dev
     ports:
       - "3001:3001"
     volumes:

@@ -1,4 +1,4 @@
-# @render-open-forge/db
+# @openforge/db
 
 Shared [Drizzle ORM](https://orm.drizzle.team/) schema for the monorepo. All Postgres tables, column definitions, indexes, and TypeScript types live here so every app works against a single source of truth.
 
@@ -21,10 +21,10 @@ The schema is defined in `schema.ts` using `drizzle-orm/pg-core`. Major tables:
 
 ```ts
 // schema + all table objects and inferred types
-import { users, sessions, type Session, type NewSession } from "@render-open-forge/db/schema";
+import { users, sessions, type Session, type NewSession } from "@openforge/db/schema";
 
 // re-exports everything from schema
-import * as schema from "@render-open-forge/db";
+import * as schema from "@openforge/db";
 ```
 
 Each table has `Select` and `Insert` types (e.g. `Session` / `NewSession`).

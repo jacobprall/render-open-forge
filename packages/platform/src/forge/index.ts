@@ -2,8 +2,8 @@
  * Barrel export for the forge abstraction layer.
  *
  * Usage:
- *   import { createForgeProvider, getDefaultForgeProvider } from "@render-open-forge/platform/forge";
- *   import type { ForgeProvider, ForgeRepo, ForgePullRequest } from "@render-open-forge/platform/forge";
+ *   import { createForgeProvider, getDefaultForgeProvider } from "@openforge/platform/forge";
+ *   import type { ForgeProvider, ForgeRepo, ForgePullRequest } from "@openforge/platform/forge";
  */
 
 // Normalized types

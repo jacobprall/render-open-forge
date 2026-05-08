@@ -12,8 +12,8 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import type { AuthContext } from "@render-open-forge/platform";
-import type { PlatformContainer } from "@render-open-forge/platform/container";
+import type { AuthContext } from "@openforge/platform";
+import type { PlatformContainer } from "@openforge/platform/container";
 import { getPlatform } from "../platform";
 
 // ---------------------------------------------------------------------------
@@ -35,7 +35,7 @@ function errorResult(message: string) {
 
 export function createMcpServer(auth: AuthContext): McpServer {
   const server = new McpServer(
-    { name: "render-open-forge", version: "1.0.0" },
+    { name: "openforge", version: "1.0.0" },
     {
       instructions:
         "This MCP server exposes the Render Open Forge platform. " +

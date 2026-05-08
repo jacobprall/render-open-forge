@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import useSWR from "swr";
 import { savePreferencesAction } from "./actions";
 import { AVAILABLE_COLORS } from "@/components/providers/theme-provider";
-import type { UserPreferencesData } from "@render-open-forge/db/schema";
+import type { UserPreferencesData } from "@openforge/db/schema";
 
 interface ModelOption {
   id: string;

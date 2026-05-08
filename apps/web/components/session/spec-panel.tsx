@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/primitives/button";
 import { Badge } from "@/components/primitives/badge";
-import type { Spec } from "@render-open-forge/db/schema";
-import type { ActiveSkillRef } from "@render-open-forge/skills";
+import type { Spec } from "@openforge/db/schema";
+import type { ActiveSkillRef } from "@openforge/skills";
 
 interface Props {
   sessionId: string;

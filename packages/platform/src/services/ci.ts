@@ -2,8 +2,8 @@ import { timingSafeEqual } from "crypto";
 import { asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import YAML from "yaml";
-import { agentRuns, chatMessages, chats, ciEvents, sessions } from "@render-open-forge/db";
-import { logger, ValidationError } from "@render-open-forge/shared";
+import { agentRuns, chatMessages, chats, ciEvents, sessions } from "@openforge/db";
+import { logger, ValidationError } from "@openforge/shared";
 import {
   ensureUserSkillsRepo,
   getBuiltinRaw,
@@ -12,8 +12,8 @@ import {
   resolveActiveSkills,
   REPO_SKILLS_PATH,
   skillMarkdownToResolved,
-} from "@render-open-forge/skills";
-import type { ResolvedSkill } from "@render-open-forge/skills";
+} from "@openforge/skills";
+import type { ResolvedSkill } from "@openforge/skills";
 import type { PlatformDb } from "../interfaces/database";
 import type { QueueAdapter } from "../interfaces/queue";
 import type { EventBus } from "../interfaces/events";
@@ -608,7 +608,7 @@ async function getRenderWorkflowClient(): Promise<import("@renderinc/sdk").Rende
 
 async function dispatchToRenderWorkflows(input: Record<string, unknown>): Promise<void> {
   const render = await getRenderWorkflowClient();
-  const workflowSlug = process.env.RENDER_CI_WORKFLOW_SLUG ?? "forge-ci";
+  const workflowSlug = process.env.RENDER_CI_WORKFLOW_SLUG ?? "openforge-ci";
   await render.workflows.startTask(`${workflowSlug}/runCIJob`, [input]);
 }
 

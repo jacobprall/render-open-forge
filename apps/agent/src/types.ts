@@ -1,5 +1,5 @@
-import type { StreamEvent } from "@render-open-forge/shared";
-import type { ResolvedSkill } from "@render-open-forge/skills";
+import type { StreamEvent } from "@openforge/shared";
+import type { ResolvedSkill } from "@openforge/skills";
 
 export type { StreamEvent, ResolvedSkill };
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { invites, users } from "@render-open-forge/db/schema";
+import { invites, users } from "@openforge/db/schema";
 import { verifyInviteToken } from "@/lib/auth/invite-tokens";
 import { InvitePasswordForm } from "./invite-password-form";
 

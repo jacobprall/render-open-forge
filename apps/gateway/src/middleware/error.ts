@@ -4,7 +4,7 @@
  */
 
 import type { Context } from "hono";
-import { AppError, logger } from "@render-open-forge/shared";
+import { AppError, logger } from "@openforge/shared";
 
 export function onError(err: Error, c: Context): Response {
   if (err instanceof AppError) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { logger } from "@render-open-forge/shared";
-import { ciResultPayloadSchema } from "@render-open-forge/platform/services";
+import { logger } from "@openforge/shared";
+import { ciResultPayloadSchema } from "@openforge/platform/services";
 import { getPlatform } from "@/lib/platform";
 import { isPlatformError } from "@/lib/api/errors";
 

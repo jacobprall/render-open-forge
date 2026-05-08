@@ -1,6 +1,6 @@
 # Gateway
 
-Headless REST and MCP API for the Render Open Forge platform. The gateway exposes the same platform services as the web frontend, but without a browser — suitable for CLI tools, CI pipelines, MCP clients (Claude Desktop, Cursor), and custom integrations.
+Headless REST and MCP API for the OpenForge platform. The gateway exposes the same platform services as the web frontend, but without a browser — suitable for CLI tools, CI pipelines, MCP clients (Claude Desktop, Cursor), and custom integrations.
 
 ## Running locally
 
@@ -26,7 +26,7 @@ The server starts on port `4100` by default (override with `GATEWAY_PORT`).
 | `DATABASE_URL` | Yes | Postgres connection string |
 | `REDIS_URL` | Yes | Redis connection string (used for streaming / pub-sub) |
 | `GATEWAY_API_SECRET` | Yes | Shared secret for admin-level bearer authentication |
-| `FORGEJO_INTERNAL_URL` | Yes | Internal URL of the Forgejo instance (e.g. `http://forge-forgejo:3000`) |
+| `FORGEJO_INTERNAL_URL` | Yes | Internal URL of the Forgejo instance (e.g. `http://openforge-forgejo:3000`) |
 | `FORGEJO_AGENT_TOKEN` | Yes | Forgejo API token used by the platform for automated git operations |
 | `FORGEJO_WEBHOOK_SECRET` | No | HMAC secret used to verify incoming Forgejo webhooks |
 | `CI_RUNNER_SECRET` | No | Secret used by the CI runner to authenticate `/api/ci/results` callbacks |

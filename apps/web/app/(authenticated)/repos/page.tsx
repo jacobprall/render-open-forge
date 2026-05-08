@@ -5,7 +5,7 @@ import { createForgeProvider } from "@/lib/forgejo/client";
 import Link from "next/link";
 import { Suspense } from "react";
 import { RepoSearch } from "./search";
-import type { ForgeRepo } from "@render-open-forge/platform/forge/types";
+import type { ForgeRepo } from "@openforge/platform/forge/types";
 import {
   PageShell,
   StatusBadge,

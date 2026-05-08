@@ -1,4 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function isAuthorizedObservabilityRequest(req: NextRequest): boolean {
+  const secret = process.env.OBSERVABILITY_SECRET;
+  if (!secret) return true; // no secret configured — allow (dev mode)
+  const auth = req.headers.get("authorization");
+  return auth === `Bearer ${secret}`;
+}
 
 type CheckStatus = "ok" | "error";
 
@@ -67,7 +77,10 @@ async function checkForgejo(): Promise<HealthCheck> {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAuthorizedObservabilityRequest(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const [postgres, redis, forgejo] = await Promise.all([
     checkPostgres(),
     checkRedis(),

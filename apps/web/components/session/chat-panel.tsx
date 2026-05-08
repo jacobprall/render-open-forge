@@ -10,9 +10,9 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import { useEventSource } from "@/hooks/use-event-source";
-import type { StreamEvent } from "@render-open-forge/shared";
-import type { AssistantPart } from "@render-open-forge/ui";
-import { appendStreamEvent } from "@render-open-forge/ui";
+import type { StreamEvent } from "@openforge/shared";
+import type { AssistantPart } from "@openforge/ui";
+import { appendStreamEvent } from "@openforge/ui";
 
 const Markdown = dynamic(
   () => import("@/components/markdown").then((m) => ({ default: m.Markdown })),

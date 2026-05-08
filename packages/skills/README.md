@@ -1,4 +1,4 @@
-# @render-open-forge/skills
+# @openforge/skills
 
 Skill system for OpenForge's AI agent. Handles skill types, resolution, parsing, provisioning, and ships a set of built-in skills.
 
@@ -23,7 +23,7 @@ Skills are loaded from three sources (defined by `SkillSource`):
 | Source | Location | Description |
 |--------|----------|-------------|
 | **builtin** | `packages/skills/builtins/` | Ship with the platform; available to every user |
-| **user** | Per-user Forgejo repo (`forge-skills`) | Personal skills synced across all projects |
+| **user** | Per-user Forgejo repo (`openforge-skills`) | Personal skills synced across all projects |
 | **repo** | `.forge/skills/*.md` in any project repo | Project-specific skills, version-controlled with the code |
 
 ## Built-in skills

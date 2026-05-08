@@ -7,32 +7,37 @@ import {
   prEvents,
   sessions,
   specs,
-} from "@render-open-forge/db";
-import type { CiEvent, SessionPhase } from "@render-open-forge/db";
+} from "@openforge/db";
+import type { CiEvent, SessionPhase } from "@openforge/db";
 import {
   SessionNotFoundError,
   ValidationError,
-  InsufficientPermissionsError,
   logger,
-} from "@render-open-forge/shared";
-import {
-  ensureUserSkillsRepo,
-  getBuiltinRaw,
-  listMdSlugsInRepoPath,
-  normalizeActiveSkills,
-  resolveActiveSkills,
-  REPO_SKILLS_PATH,
-  skillMarkdownToResolved,
-} from "@render-open-forge/skills";
-import type { ResolvedSkill, ActiveSkillRef } from "@render-open-forge/skills";
+} from "@openforge/shared";
+import type { ActiveSkillRef } from "@openforge/skills";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
 import type { QueueAdapter } from "../interfaces/queue";
 import type { EventBus } from "../interfaces/events";
 import { getDefaultForgeProvider } from "../forge/factory";
-import type { ForgeProvider } from "../forge/provider";
 import { resolveLlmApiKeys } from "../auth/api-key-resolver";
 import { askUserReplyQueueKey } from "../events/run-stream";
+import { resolveSkillsForSession } from "./session-skills";
+import { validateModel } from "./session-model-validation";
+import { generateAutoTitle as generateAutoTitleImpl } from "./session-auto-title";
+import {
+  DEFAULT_MODEL_ID,
+  startAgentJob,
+  enqueueSessionTriggerJob,
+  getOrCreateChatId,
+} from "./session-agent-jobs";
+
+// ---------------------------------------------------------------------------
+// Re-exports from sub-modules (preserves the public API surface)
+// ---------------------------------------------------------------------------
+
+export type { AutoTitleResult } from "./session-auto-title";
+export type { AgentTrigger } from "./session-agent-jobs";
 
 // ---------------------------------------------------------------------------
 // Parameter types
@@ -70,18 +75,6 @@ export interface ReviewJobParams {
   fixContext?: string;
 }
 
-export type AutoTitleResult =
-  | { ok: true; title: string }
-  | { ok: false; reason: "no-api-key" | "not-found" | "no-chat" };
-
-export type AgentTrigger =
-  | "user_message"
-  | "ci_failure"
-  | "review_comment"
-  | "pr_opened"
-  | "pr_merged"
-  | "workflow_run";
-
 // ---------------------------------------------------------------------------
 // Valid session phases
 // ---------------------------------------------------------------------------
@@ -95,8 +88,6 @@ const VALID_PHASES: SessionPhase[] = [
   "complete",
   "failed",
 ];
-
-const DEFAULT_MODEL_ID = "anthropic/claude-sonnet-4-5";
 
 // ---------------------------------------------------------------------------
 // SessionService
@@ -204,7 +195,7 @@ export class SessionService {
     if (requestedModelId) {
       try {
         const keys = await resolveLlmApiKeys(this.db, auth.userId);
-        const vr = await this.validateModel(requestedModelId, keys);
+        const vr = await validateModel(requestedModelId, keys);
         if (!vr.ok) {
           throw new ValidationError(vr.error, { details: { available: vr.available } });
         }
@@ -304,7 +295,7 @@ export class SessionService {
     }));
 
     const forge = getDefaultForgeProvider(auth.forgeToken);
-    const resolvedSkills = await this.resolveSkillsForSession(
+    const resolvedSkills = await resolveSkillsForSession(
       sessionRow,
       forge,
       sessionRow.forgeUsername ?? auth.username,
@@ -439,16 +430,14 @@ export class SessionService {
       throw new ValidationError("No active agent run — cannot deliver reply");
     }
 
-    // When runId is explicitly provided, validate it belongs to this session
-    if (!explicitRunId) {
-      const [run] = await this.db
-        .select({ id: agentRuns.id })
-        .from(agentRuns)
-        .where(and(eq(agentRuns.id, effectiveRunId), eq(agentRuns.sessionId, sessionId)))
-        .limit(1);
-      if (!run) {
-        throw new ValidationError("Invalid run context");
-      }
+    // Validate the run belongs to this session
+    const [run] = await this.db
+      .select({ id: agentRuns.id })
+      .from(agentRuns)
+      .where(and(eq(agentRuns.id, effectiveRunId), eq(agentRuns.sessionId, sessionId)))
+      .limit(1);
+    if (!run) {
+      throw new ValidationError("Invalid run context");
     }
 
     const key = askUserReplyQueueKey(effectiveRunId, toolCallId);
@@ -578,7 +567,7 @@ export class SessionService {
       throw new SessionNotFoundError("Spec not found");
     }
 
-    const chatId = await this.getOrCreateChatId(sessionId, sessionRow.title);
+    const chatId = await getOrCreateChatId(this.db, sessionId, sessionRow.title);
 
     try {
       if (action === "approve") {
@@ -599,7 +588,7 @@ export class SessionService {
           ],
         });
 
-        const runId = await this.startAgentJob({
+        const runId = await startAgentJob(this.db, this.queue, {
           sessionRow,
           chatId,
           authUserId: auth.userId,
@@ -633,7 +622,7 @@ export class SessionService {
         ],
       });
 
-      const runId = await this.startAgentJob({
+      const runId = await startAgentJob(this.db, this.queue, {
         sessionRow,
         chatId,
         authUserId: auth.userId,
@@ -654,99 +643,11 @@ export class SessionService {
   // generateAutoTitle — POST /api/sessions/[id]/auto-title
   // -------------------------------------------------------------------------
 
-  async generateAutoTitle(sessionId: string, userId: string): Promise<AutoTitleResult> {
-    const keys = await resolveLlmApiKeys(this.db, userId);
-    const apiKey = keys.anthropic;
-    if (!apiKey) {
-      return { ok: false, reason: "no-api-key" };
-    }
-
-    const [sessionRow] = await this.db
-      .select()
-      .from(sessions)
-      .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId)))
-      .limit(1);
-
-    if (!sessionRow) {
-      return { ok: false, reason: "not-found" };
-    }
-
-    const [chatRow] = await this.db
-      .select()
-      .from(chats)
-      .where(eq(chats.sessionId, sessionId))
-      .limit(1);
-
-    if (!chatRow) {
-      return { ok: false, reason: "no-chat" };
-    }
-
-    const msgs = await this.db
-      .select()
-      .from(chatMessages)
-      .where(eq(chatMessages.chatId, chatRow.id))
-      .orderBy(asc(chatMessages.createdAt))
-      .limit(6);
-
-    const textParts = msgs
-      .flatMap((m) => {
-        const parts = m.parts as Array<{ type: string; text?: string }>;
-        return parts
-          .filter((p) => p.type === "text" && p.text)
-          .map((p) => `${m.role}: ${p.text}`);
-      })
-      .slice(0, 4);
-
-    if (textParts.length === 0) {
-      return { ok: true, title: sessionRow.title };
-    }
-
-    const conversation = textParts.join("\n").slice(0, 2000);
-
-    try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 30,
-          messages: [
-            {
-              role: "user",
-              content: `Generate a short title (3-6 words, no quotes) for this coding session:\n\n${conversation}`,
-            },
-          ],
-        }),
-        signal: AbortSignal.timeout(8_000),
-      });
-
-      if (!res.ok) {
-        console.error("[auto-title] Anthropic API error:", res.status);
-        return { ok: true, title: sessionRow.title };
-      }
-
-      const body = (await res.json()) as {
-        content?: Array<{ type: string; text?: string }>;
-      };
-      const raw = body.content?.[0]?.text?.trim();
-      if (!raw) {
-        return { ok: true, title: sessionRow.title };
-      }
-
-      const title = raw.replace(/^["']|["']$/g, "").slice(0, 80);
-
-      await this.db.update(sessions).set({ title }).where(eq(sessions.id, sessionId));
-      await this.db.update(chats).set({ title }).where(eq(chats.sessionId, sessionId));
-
-      return { ok: true, title };
-    } catch (err) {
-      console.error("[auto-title] Failed:", err);
-      return { ok: true, title: sessionRow.title };
-    }
+  async generateAutoTitle(
+    sessionId: string,
+    userId: string,
+  ): Promise<import("./session-auto-title").AutoTitleResult> {
+    return generateAutoTitleImpl(this.db, sessionId, userId);
   }
 
   // -------------------------------------------------------------------------
@@ -798,7 +699,7 @@ export class SessionService {
       `If everything looks good, approve the PR. Otherwise, leave constructive inline comments.`,
     ].join("\n");
 
-    const result = await this.enqueueSessionTriggerJob({
+    const result = await enqueueSessionTriggerJob(this.db, this.queue, {
       sessionRow,
       userId: auth.userId,
       trigger: "review_comment",
@@ -821,333 +722,5 @@ export class SessionService {
     });
 
     return result;
-  }
-
-  // =========================================================================
-  // Private helpers
-  // =========================================================================
-
-  /** Resolve the forge provider to use for user-scoped forge API calls. */
-  private forgeForUser(forgeToken: string): ForgeProvider {
-    return getDefaultForgeProvider(forgeToken);
-  }
-
-  /**
-   * Load ordered skill bodies for an agent job.
-   * Mirrors the logic in apps/web/lib/skills/resolve-for-session.ts.
-   */
-  private async resolveSkillsForSession(
-    sessionRow: {
-      forgejoRepoPath: string;
-      branch: string;
-      activeSkills: Array<{ source: "builtin" | "user" | "repo"; slug: string }> | null | undefined;
-    },
-    forge: ForgeProvider,
-    forgeUsername: string,
-  ): Promise<ResolvedSkill[]> {
-    if (forgeUsername) {
-      await ensureUserSkillsRepo(forge, forgeUsername);
-    }
-
-    const [owner, repo] = sessionRow.forgejoRepoPath.split("/");
-    const repoSlugs =
-      owner && repo
-        ? await listMdSlugsInRepoPath(forge, owner, repo, REPO_SKILLS_PATH, sessionRow.branch)
-        : [];
-
-    const active = normalizeActiveSkills(sessionRow.activeSkills, repoSlugs);
-    const resolved = await resolveActiveSkills(forge, {
-      activeSkills: active,
-      forgeUsername,
-      projectRepoPath: sessionRow.forgejoRepoPath,
-      ref: sessionRow.branch,
-    });
-
-    if (resolved.length === 0) {
-      const fallback = getBuiltinRaw("implementation");
-      if (fallback) {
-        return [skillMarkdownToResolved("builtin", "implementation", fallback)];
-      }
-    }
-
-    return resolved;
-  }
-
-  /**
-   * Collect model-level messages from chat rows for context continuity.
-   * Returns undefined if any assistant row lacks modelMessages (graceful degradation).
-   */
-  private collectModelMessages(
-    rows: Array<{ role: string; parts: unknown; modelMessages: unknown }>,
-  ): unknown[] | undefined {
-    const out: unknown[] = [];
-    for (const row of rows) {
-      if (row.role === "user") {
-        const parts = row.parts as Array<{ type: string; text?: string }>;
-        out.push({ role: "user", content: parts?.[0]?.text ?? JSON.stringify(parts) });
-        continue;
-      }
-      const sdkMsgs = row.modelMessages as unknown[] | null;
-      if (sdkMsgs && Array.isArray(sdkMsgs) && sdkMsgs.length > 0) {
-        out.push(...sdkMsgs);
-      } else {
-        return undefined;
-      }
-    }
-    if (out.length === 0) return undefined;
-    return out;
-  }
-
-  /** Get or create the most recent chat row for a session, returning its id. */
-  private async getOrCreateChatId(sessionId: string, title: string): Promise<string> {
-    const [existing] = await this.db
-      .select({ id: chats.id })
-      .from(chats)
-      .where(eq(chats.sessionId, sessionId))
-      .orderBy(desc(chats.createdAt))
-      .limit(1);
-    if (existing) return existing.id;
-    const id = crypto.randomUUID();
-    await this.db.insert(chats).values({ id, sessionId, title });
-    return id;
-  }
-
-  /**
-   * Create an agent run, set it as the chat's active run, and enqueue the job.
-   * Used by spec approve/reject to re-launch the agent with synthetic context.
-   */
-  private async startAgentJob(params: {
-    sessionRow: typeof sessions.$inferSelect;
-    chatId: string;
-    authUserId: string;
-    authUsername: string;
-    forgeToken: string;
-    projectConfigPatch?: Record<string, unknown>;
-    fixContext?: string;
-  }): Promise<string> {
-    const { sessionRow, chatId, authUserId, authUsername, forgeToken, projectConfigPatch, fixContext } =
-      params;
-
-    const rows = await this.db
-      .select()
-      .from(chatMessages)
-      .where(eq(chatMessages.chatId, chatId))
-      .orderBy(asc(chatMessages.createdAt));
-
-    const messages = rows.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.parts,
-    }));
-
-    const modelMessages = this.collectModelMessages(rows);
-    const runId = crypto.randomUUID();
-    const requestId = crypto.randomUUID();
-
-    const baseConfig =
-      typeof sessionRow.projectConfig === "object" && sessionRow.projectConfig !== null
-        ? ({ ...(sessionRow.projectConfig as object) } as Record<string, unknown>)
-        : {};
-    Object.assign(baseConfig, projectConfigPatch ?? {});
-
-    const sessionForResolve = {
-      ...sessionRow,
-      projectConfig: Object.keys(baseConfig).length ? baseConfig : sessionRow.projectConfig,
-    };
-    const forge = this.forgeForUser(forgeToken);
-    const resolvedSkills = await this.resolveSkillsForSession(
-      sessionForResolve,
-      forge,
-      authUsername,
-    );
-
-    await this.db.insert(agentRuns).values({
-      id: runId,
-      chatId,
-      sessionId: sessionRow.id,
-      userId: authUserId,
-      modelId: DEFAULT_MODEL_ID,
-      status: "queued",
-      trigger: "user_message",
-      createdAt: new Date(),
-    });
-
-    await this.db
-      .update(chats)
-      .set({ activeRunId: runId, updatedAt: new Date() })
-      .where(eq(chats.id, chatId));
-
-    await this.queue.ensureGroup();
-    await this.queue.enqueue({
-      runId,
-      chatId,
-      sessionId: sessionRow.id,
-      userId: authUserId,
-      messages,
-      modelMessages,
-      resolvedSkills,
-      projectConfig: Object.keys(baseConfig).length ? baseConfig : undefined,
-      projectContext: sessionRow.projectContext ?? undefined,
-      modelId: DEFAULT_MODEL_ID,
-      fixContext,
-      requestId,
-      maxRetries: 3,
-      trigger: "user_message",
-    });
-
-    return runId;
-  }
-
-  /**
-   * Enqueue an agent job triggered by a non-user-message event (CI, review, etc.).
-   * Mirrors the logic in apps/web/lib/agent/enqueue-session-job.ts.
-   */
-  private async enqueueSessionTriggerJob(params: {
-    sessionRow: typeof sessions.$inferSelect;
-    userId: string;
-    chatTitle?: string;
-    trigger: Exclude<AgentTrigger, "user_message">;
-    fixContext: string;
-    modelId?: string;
-  }): Promise<{ runId: string; chatId: string } | null> {
-    const { sessionRow, userId, trigger, fixContext, modelId } = params;
-
-    if (trigger === "ci_failure") {
-      const attempts = sessionRow.ciFixAttempts ?? 0;
-      const max = sessionRow.maxCiFixAttempts ?? 3;
-      if (attempts >= max) return null;
-      await this.db
-        .update(sessions)
-        .set({ ciFixAttempts: attempts + 1, updatedAt: new Date() })
-        .where(eq(sessions.id, sessionRow.id));
-    }
-
-    const chatId = await this.getOrCreateChatId(
-      sessionRow.id,
-      params.chatTitle ?? sessionRow.title,
-    );
-
-    await this.db.insert(chatMessages).values({
-      id: crypto.randomUUID(),
-      chatId,
-      role: "user",
-      parts: [{ type: "text", text: fixContext }],
-    });
-
-    const rows = await this.db
-      .select()
-      .from(chatMessages)
-      .where(eq(chatMessages.chatId, chatId))
-      .orderBy(asc(chatMessages.createdAt));
-
-    const messages = rows.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.parts,
-    }));
-
-    const modelMessages = this.collectModelMessages(rows);
-    const runId = crypto.randomUUID();
-
-    // Use the agent's forge token (no user OAuth token for webhook-triggered jobs)
-    const forge = getDefaultForgeProvider(
-      process.env.FORGEJO_AGENT_TOKEN ?? "",
-    );
-    const resolvedSkills = await this.resolveSkillsForSession(
-      sessionRow,
-      forge,
-      sessionRow.forgeUsername ?? "",
-    );
-
-    const effectiveModelId = modelId ?? DEFAULT_MODEL_ID;
-
-    await this.db.insert(agentRuns).values({
-      id: runId,
-      chatId,
-      sessionId: sessionRow.id,
-      userId,
-      modelId: effectiveModelId,
-      status: "queued",
-      trigger,
-      createdAt: new Date(),
-    });
-
-    await this.db
-      .update(chats)
-      .set({ activeRunId: runId, updatedAt: new Date() })
-      .where(eq(chats.id, chatId));
-
-    await this.db
-      .update(sessions)
-      .set({ lastActivityAt: new Date(), updatedAt: new Date() })
-      .where(eq(sessions.id, sessionRow.id));
-
-    await this.queue.ensureGroup();
-    await this.queue.enqueue({
-      runId,
-      chatId,
-      sessionId: sessionRow.id,
-      userId,
-      messages,
-      modelMessages,
-      resolvedSkills,
-      projectConfig: sessionRow.projectConfig,
-      projectContext: sessionRow.projectContext ?? undefined,
-      modelId: effectiveModelId,
-      fixContext,
-      trigger,
-      maxRetries: 3,
-    });
-
-    return { runId, chatId };
-  }
-
-  /**
-   * Validate that a model ID is known and the user has credentials for its provider.
-   * Returns ok: true if valid, or ok: false with a human-readable error and available list.
-   *
-   * This mirrors validateModelOrThrow from apps/web/lib/models/anthropic-models.ts but
-   * avoids importing a Next.js-coupled module from the platform layer.
-   */
-  private async validateModel(
-    modelId: string,
-    keys: { anthropic?: string; openai?: string },
-  ): Promise<{ ok: true } | { ok: false; error: string; available: string[] }> {
-    if (modelId.startsWith("openai/")) {
-      if (!keys.openai) {
-        return {
-          ok: false,
-          error: "No OpenAI API key configured. Add one in Settings → API Keys or set OPENAI_API_KEY.",
-          available: [],
-        };
-      }
-      return { ok: true };
-    }
-
-    // For Anthropic, attempt a live catalog check
-    if (keys.anthropic) {
-      try {
-        const res = await fetch("https://api.anthropic.com/v1/models?limit=100", {
-          headers: {
-            "x-api-key": keys.anthropic,
-            "anthropic-version": "2023-06-01",
-          },
-          signal: AbortSignal.timeout(10_000),
-        });
-        if (res.ok) {
-          const body = (await res.json()) as { data?: Array<{ id: string }> };
-          const ids = (body.data ?? []).map((m) => {
-            const provider = "anthropic";
-            const normalized = m.id.replace(/-\d{8}$/, "");
-            return `${provider}/${normalized}`;
-          });
-          if (ids.length > 0 && !ids.includes(modelId)) {
-            return { ok: false, error: `Unknown model: ${modelId}`, available: ids };
-          }
-        }
-      } catch {
-        // Catalog fetch failed — allow the requested model through
-      }
-    }
-
-    return { ok: true };
   }
 }

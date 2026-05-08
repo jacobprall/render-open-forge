@@ -1,5 +1,5 @@
-import { MODEL_DEFS } from "@render-open-forge/shared";
-import type { ResolvedLlmKeys } from "@render-open-forge/platform";
+import { MODEL_DEFS } from "@openforge/shared";
+import type { ResolvedLlmKeys } from "@openforge/platform";
 
 export interface AnthropicModelInfo {
   id: string;

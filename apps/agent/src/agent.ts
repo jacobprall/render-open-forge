@@ -2,15 +2,15 @@ import { generateText, stepCountIs, type LanguageModel, type ModelMessage, type 
 import type Redis from "ioredis";
 import { desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { agentRuns, chats, chatMessages, specs, sessions, prEvents } from "@render-open-forge/db";
-import { AppError } from "@render-open-forge/shared";
-import { resolveLlmApiKeys, type ResolvedLlmKeys, type PlatformContainer, type PlatformDb, type EventBus } from "@render-open-forge/platform";
-import { getDefaultForgeProvider, type ForgeProvider } from "@render-open-forge/platform/forge";
+import { agentRuns, chats, chatMessages, specs, sessions, prEvents } from "@openforge/db";
+import { AppError } from "@openforge/shared";
+import { resolveLlmApiKeys, type ResolvedLlmKeys, type PlatformContainer, type PlatformDb, type EventBus } from "@openforge/platform";
+import { getDefaultForgeProvider, type ForgeProvider } from "@openforge/platform/forge";
 import {
   SharedHttpSandboxProvider,
   type SandboxAdapter,
   type SandboxSessionAuth,
-} from "@render-open-forge/sandbox";
+} from "@openforge/sandbox";
 import type { ForgeAgentContext } from "./context/agent-context";
 import { jobMessagesToModelMessages, sanitizeMessages } from "./messages";
 import { buildAgentSystemPrompt } from "./system-prompt";
@@ -43,6 +43,7 @@ import {
 import { getModel, getModelDef } from "./models";
 import type { AgentJob, StreamEvent } from "./types";
 import { isDeliverComplete, transitionToComplete } from "./lib/deliver";
+import { rewriteForSandbox } from "./sandbox-url";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -82,17 +83,6 @@ function getForgeProvider(): ForgeProvider {
   return getDefaultForgeProvider(token);
 }
 
-/**
- * Replace the host-side Forgejo URL with the Docker-internal service name
- * so git commands running inside the sandbox container can reach Forgejo.
- */
-function rewriteForSandbox(url: string): string {
-  const sandboxUrl = process.env.FORGEJO_SANDBOX_URL;
-  if (!sandboxUrl) return url;
-  const internalUrl = process.env.FORGEJO_INTERNAL_URL ?? process.env.FORGEJO_URL ?? "http://localhost:3000";
-  return url.replace(new URL(internalUrl).host, new URL(sandboxUrl).host);
-}
-
 let _sandboxProvider: SharedHttpSandboxProvider | null = null;
 let _sandboxProviderCreatedAt = 0;
 const SANDBOX_PROVIDER_MAX_AGE_MS = 10 * 60 * 1000; // 10 min
@@ -107,7 +97,7 @@ function getSandboxProvider(): SharedHttpSandboxProvider {
   const secret = process.env.SANDBOX_SHARED_SECRET;
   const sessionSecret = process.env.SANDBOX_SESSION_SECRET;
   const sessionAuth: SandboxSessionAuth | undefined = sessionSecret
-    ? { secret: sessionSecret, userId: "forge-agent" }
+    ? { secret: sessionSecret, userId: "openforge-agent" }
     : undefined;
   _sandboxProvider = new SharedHttpSandboxProvider(host, secret, sessionAuth);
   _sandboxProviderCreatedAt = now;
@@ -252,48 +242,45 @@ async function persistSubmittedSpec(db: PlatformDb, sessionId: string, spec: Sub
 
 // ─── Core turn execution ─────────────────────────────────────────────────────
 
-async function runTurn(params: {
-  job: AgentJob;
-  redis: Redis;
-  events: EventBus;
-  db: PlatformDb;
-  adapter: SandboxAdapter;
-  llmKeys: ResolvedLlmKeys;
-}): Promise<{
-  text: string;
-  assistantParts: AssistantPart[];
-  responseMessages: ModelMessage[];
-  usage: { promptTokens?: number; completionTokens?: number };
-  hitStepLimit: boolean;
-}> {
-  const { job, redis, events, db, adapter, llmKeys } = params;
+function buildProviderOptions(job: AgentJob, llmKeys: ResolvedLlmKeys) {
   const modelDef = getModelDef(job.modelId);
-  const model = getModel(job.modelId, llmKeys);
   const isAnthropic = modelDef.provider === "anthropic";
-
   const thinkingType = isAnthropic ? modelDef.thinkingType : undefined;
-  const thinkingOptions = thinkingType
-    ? thinkingType === "adaptive"
-      ? {
-          anthropic: {
-            thinking: { type: "adaptive" as const, budget_tokens: 16000 },
-            output_config: { effort: "high" as const },
-          },
-        }
-      : {
-          anthropic: {
-            thinking: { type: "enabled" as const, budget_tokens: 8000 },
-          },
-        }
-    : undefined;
 
+  if (!thinkingType) return undefined;
+  return thinkingType === "adaptive"
+    ? {
+        anthropic: {
+          thinking: { type: "adaptive" as const, budget_tokens: 16000 },
+          output_config: { effort: "high" as const },
+        },
+      }
+    : {
+        anthropic: {
+          thinking: { type: "enabled" as const, budget_tokens: 8000 },
+        },
+      };
+}
+
+function buildSystemPromptForJob(job: AgentJob): string {
   const appended = [job.fixContext].filter(Boolean).join("\n\n");
-  const systemPrompt =
-    buildAgentSystemPrompt({
-      skills: job.resolvedSkills,
-      projectContext: job.projectContext,
-      projectConfig: job.projectConfig,
-    }) + (appended ? `\n\n${appended}` : "");
+  const base = buildAgentSystemPrompt({
+    skills: job.resolvedSkills,
+    projectContext: job.projectContext,
+    projectConfig: job.projectConfig,
+  });
+  return appended ? `${base}\n\n${appended}` : base;
+}
+
+async function buildForgeContext(params: {
+  job: AgentJob;
+  db: PlatformDb;
+  events: EventBus;
+  adapter: SandboxAdapter;
+  assistantParts: AssistantPart[];
+}): Promise<{ forgeContext: ForgeAgentContext; sessionRow: { forgejoRepoPath: string; branch: string; baseBranch: string; title: string } | undefined }> {
+  const { job, db, events, adapter, assistantParts } = params;
+  const reqId = job.requestId;
 
   const [sessionRow] = await db
     .select({ forgejoRepoPath: sessions.forgejoRepoPath, branch: sessions.branch, baseBranch: sessions.baseBranch, title: sessions.title })
@@ -304,11 +291,6 @@ async function runTurn(params: {
   const forge = getForgeProvider();
   const repoPath = sessionRow?.forgejoRepoPath ?? "";
   const [repoOwner, repoName] = repoPath.split("/");
-
-  const reqId = job.requestId;
-  let accumulatedText = "";
-  let assistantParts: AssistantPart[] = [];
-  let stepCount = 0;
 
   const forgeContext: ForgeAgentContext = {
     __brand: "ForgeAgentContext",
@@ -344,7 +326,35 @@ async function runTurn(params: {
     },
   };
 
-  // Build subagent-relevant context from skills for the task tool
+  return { forgeContext, sessionRow };
+}
+
+async function runTurn(params: {
+  job: AgentJob;
+  redis: Redis;
+  events: EventBus;
+  db: PlatformDb;
+  adapter: SandboxAdapter;
+  llmKeys: ResolvedLlmKeys;
+}): Promise<{
+  text: string;
+  assistantParts: AssistantPart[];
+  responseMessages: ModelMessage[];
+  usage: { promptTokens?: number; completionTokens?: number };
+  hitStepLimit: boolean;
+}> {
+  const { job, redis, events, db, adapter, llmKeys } = params;
+  const model = getModel(job.modelId, llmKeys);
+  const thinkingOptions = buildProviderOptions(job, llmKeys);
+  const systemPrompt = buildSystemPromptForJob(job);
+
+  const reqId = job.requestId;
+  let accumulatedText = "";
+  const assistantParts: AssistantPart[] = [];
+  let stepCount = 0;
+
+  const { forgeContext } = await buildForgeContext({ job, db, events, adapter, assistantParts });
+
   const skillsSuffix = job.resolvedSkills.length > 0
     ? `## Important notes\n- All git operations target the internal Forgejo instance. Authentication is automatic.\n- When creating a PR, push your branch first with the git tool, then use create_pull_request.\n- The repository is already cloned in your workspace. Use glob/grep to explore it.`
     : "";

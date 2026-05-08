@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZodSchema } from "zod";
 import { getSession, type UserSession } from "@/lib/auth/session";
 import { ApiError, formatApiError, unauthorized } from "./errors";
-import { logger } from "@render-open-forge/shared";
+import { logger } from "@openforge/shared";
 
 interface HandlerOptions<TBody = unknown> {
   auth?: boolean; // default true — require session

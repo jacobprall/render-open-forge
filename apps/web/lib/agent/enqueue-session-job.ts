@@ -5,8 +5,8 @@ import {
   chatMessages,
   chats,
   sessions,
-} from "@render-open-forge/db";
-import { enqueueJob, ensureConsumerGroup } from "@render-open-forge/platform";
+} from "@openforge/db";
+import { enqueueJob, ensureConsumerGroup } from "@openforge/platform";
 import type { ForgeDb } from "@/lib/db";
 import { getAgentForgeProvider } from "@/lib/forgejo/client";
 import { resolveSkillsForSessionRow } from "@/lib/skills/resolve-for-session";

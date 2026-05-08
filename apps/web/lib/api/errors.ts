@@ -42,5 +42,5 @@ export const serverError = (message = "Internal server error") => new ApiError("
  * `httpStatus` property that all AppError subclasses carry.
  */
 export function isPlatformError(err: unknown): err is { message: string; httpStatus: number; code: string } {
-  return err instanceof Error && typeof (err as Record<string, unknown>).httpStatus === "number";
+  return err instanceof Error && typeof (err as unknown as Record<string, unknown>).httpStatus === "number";
 }

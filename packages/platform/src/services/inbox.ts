@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { prEvents } from "@render-open-forge/db";
-import type { PrEvent } from "@render-open-forge/db";
-import { ValidationError } from "@render-open-forge/shared";
+import { prEvents } from "@openforge/db";
+import type { PrEvent } from "@openforge/db";
+import { ValidationError } from "@openforge/shared";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
 

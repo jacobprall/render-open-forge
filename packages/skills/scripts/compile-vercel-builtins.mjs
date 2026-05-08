@@ -2,7 +2,7 @@
  * Merges Vercel Cursor skills under .cursor/skills/ into single builtin markdown
  * files so Forgejo seeding and workers get full rule text.
  *
- * Run from repo root: bun run --filter @render-open-forge/skills compile-vercel-builtins
+ * Run from repo root: bun run --filter @openforge/skills compile-vercel-builtins
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";

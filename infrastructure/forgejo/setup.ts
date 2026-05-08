@@ -13,8 +13,8 @@
 const FORGEJO_URL = process.env.FORGEJO_INTERNAL_URL || "http://localhost:3000";
 const ADMIN_USER = process.env.FORGEJO_ADMIN_USER || "forge-admin";
 const ADMIN_PASSWORD = process.env.FORGEJO_ADMIN_PASSWORD || "admin-password-change-me";
-const ADMIN_EMAIL = process.env.FORGEJO_ADMIN_EMAIL || "admin@render-open-forge.local";
-const AGENT_USER = "forge-agent";
+const ADMIN_EMAIL = process.env.FORGEJO_ADMIN_EMAIL || "admin@openforge.local";
+const AGENT_USER = "openforge-agent";
 const AGENT_PASSWORD = process.env.FORGEJO_AGENT_PASSWORD || "agent-password-change-me";
 
 const WEB_APP_URL = process.env.FORGEJO_EXTERNAL_URL || "http://localhost:4000";
@@ -97,7 +97,7 @@ async function registerOAuth2App(token: string): Promise<{ clientId: string; cli
     method: "POST",
     token,
     body: JSON.stringify({
-      name: "render-open-forge-web",
+      name: "openforge-web",
       redirect_uris: [`${WEB_APP_URL}/api/auth/callback`],
       confidential_client: true,
     }),
@@ -119,7 +119,7 @@ async function registerOAuth2App(token: string): Promise<{ clientId: string; cli
 let adminToken = "";
 
 async function main() {
-  console.log("=== render-open-forge: Forgejo Setup ===\n");
+  console.log("=== OpenForge: Forgejo Setup ===\n");
 
   await waitForForgejo();
 
@@ -136,7 +136,7 @@ async function main() {
 
   // Step 2: Create agent service account
   console.log("\n--- Step 2: Agent service account ---");
-  await createUser(AGENT_USER, AGENT_PASSWORD, "agent@render-open-forge.local", false);
+  await createUser(AGENT_USER, AGENT_PASSWORD, "agent@openforge.local", false);
   const agentToken = await createToken(AGENT_USER, AGENT_PASSWORD, "agent-service");
   console.log(`Agent token: ${agentToken}`);
   console.log(`  → Set FORGEJO_AGENT_TOKEN=${agentToken} in your .env`);

@@ -1,15 +1,15 @@
 /**
  * Local-mode CI runner for development.
- * Delegates execution to `@render-open-forge/ci-runner` libs (same as Render Workflows task).
+ * Delegates execution to `@openforge/ci-runner` libs (same as Render Workflows task).
  */
 
 import { mkdtempSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { appendCombinedOutput } from "@render-open-forge/ci-runner/lib/combined-output";
-import { cloneRepo, executeStep } from "@render-open-forge/ci-runner/lib/step-executor";
-import { scanForTestResults } from "@render-open-forge/ci-runner/lib/result-parser";
-import { logger } from "@render-open-forge/shared";
+import { appendCombinedOutput } from "@openforge/ci-runner/lib/combined-output";
+import { cloneRepo, executeStep } from "@openforge/ci-runner/lib/step-executor";
+import { scanForTestResults } from "@openforge/ci-runner/lib/result-parser";
+import { logger } from "@openforge/shared";
 
 interface CIInput {
   cloneUrl: string;

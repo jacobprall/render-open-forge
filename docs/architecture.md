@@ -84,7 +84,7 @@ Forgejo holds repos and workflow YAML; **Render Workflows** runs the jobs.
 1. Authors commit `.forgejo/workflows/*.yml` (GitHub Actions-shaped files).
 2. Forgejo sends `push` / `pull_request` webhooks to the web app.
 3. The web app loads workflow definitions from the repo via the Forge API, matches triggers, creates a `ci_events` row, sets a **pending** commit status on Forgejo, and calls **`render.workflows.startTask`** (or runs in-process when `CI_RUNNER_MODE=local`).
-4. The **`forge-ci`** worker (`apps/ci-runner`) executes the registered task: shallow `git clone`, runs each **`run:`** step under `bash`, captures logs, scans for JUnit/TAP, then POSTs JSON to **`/api/ci/results`** with a shared **`CI_RUNNER_SECRET`**.
+4. The **`openforge-ci`** worker (`apps/ci-runner`) executes the registered task: shallow `git clone`, runs each **`run:`** step under `bash`, captures logs, scans for JUnit/TAP, then POSTs JSON to **`/api/ci/results`** with a shared **`CI_RUNNER_SECRET`**.
 5. The web app validates the callback, updates Postgres, sets **success** / **failure** / **error** on the commit, and enqueues the agent on failure (same as before).
 
 Render manages task retries, timeouts, and observability. No Docker-in-Docker or Forgejo runner container required.
@@ -94,7 +94,7 @@ Render manages task retries, timeouts, and observability. No Docker-in-Docker or
 Forgejo serves as the code hosting surface, webhook source, CI orchestrator, and skill storage backend.
 
 - **Code hosting:** Git repositories (clone/push over SSH and HTTP), branches and tags, pull requests, code review threads, merge strategies, organizations and teams, repo permissions, branch protection, and (optionally) mirrors.
-- **Skill storage:** User skills are stored as markdown files in a per-user `forge-skills` Forgejo repository. Repo-level skills live under `.forge/skills/*.md` in project repos. Both are resolved from Forgejo's git contents API at session start.
+- **Skill storage:** User skills are stored as markdown files in a per-user `openforge-skills` Forgejo repository. Repo-level skills live under `.forge/skills/*.md` in project repos. Both are resolved from Forgejo's git contents API at session start.
 - **Webhooks → CI dispatch + agent reactions:** `push` and `pull_request` events trigger CI when workflows under `.forgejo/workflows/` match (same semantics as GitHub Actions `on:`). The web app dispatches work to **Render Workflows** (production) or runs shell steps locally (`CI_RUNNER_MODE=local`). Completed runs POST results to `/api/ci/results`, update `ci_events`, and set Forgejo commit statuses. Separately, **`workflow_run`** webhooks (if you still use Forgejo Actions) record run outcomes; **`status`** webhooks are filtered so our own `ci/*` contexts do not duplicate events.
 - **CI YAML:** Define pipelines as `.forgejo/workflows/*.yml`. Only **`run:`** shell steps are executed today (`uses:` / marketplace actions are ignored). The agent can still use forge tools to read Actions logs if you run classic Actions alongside this path.
 
@@ -111,7 +111,7 @@ Skills are markdown files with YAML frontmatter. They are resolved from three so
 | Source | Location | Scope |
 |---|---|---|
 | **Built-in** | `packages/skills/builtins/*.md` | Ship with the platform |
-| **User** | `{username}/forge-skills/skills/*.md` on Forgejo | Per-user, across all repos |
+| **User** | `{username}/openforge-skills/skills/*.md` on Forgejo | Per-user, across all repos |
 | **Repo** | `.forge/skills/*.md` in the project repo | Per-project |
 
 Default active skills: Implementation, Verification, PR Delivery, Code Quality, React Best Practices, Next.js Best Practices. Users toggle skills per-session; repo-level skills auto-activate.

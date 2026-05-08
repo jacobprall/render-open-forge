@@ -8,7 +8,7 @@ import {
   FORGE_SKILLS_REPO_NAME,
   listBuiltinSummaries,
   listUserSkillSummaries,
-} from "@render-open-forge/skills";
+} from "@openforge/skills";
 import { InstallSkillForm } from "./install-skill-form";
 
 export const metadata: Metadata = { title: "Skills" };

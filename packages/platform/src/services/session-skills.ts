@@ -1,5 +1,3 @@
-import type { sessions } from "@openforge/db";
-import type { ForgeProvider } from "@openforge/platform/forge";
 import {
   ensureUserSkillsRepo,
   getBuiltinRaw,
@@ -8,19 +6,20 @@ import {
   resolveActiveSkills,
   REPO_SKILLS_PATH,
   skillMarkdownToResolved,
-  type ResolvedSkill,
 } from "@openforge/skills";
-
-type SessionSkillsInput = Pick<
-  typeof sessions.$inferSelect,
-  "forgejoRepoPath" | "branch" | "activeSkills"
->;
+import type { ResolvedSkill } from "@openforge/skills";
+import type { ForgeProvider } from "../forge/provider";
 
 /**
- * Load ordered skill bodies for an agent job (user OAuth or agent token).
+ * Load ordered skill bodies for an agent job.
+ * Mirrors the logic in apps/web/lib/skills/resolve-for-session.ts.
  */
-export async function resolveSkillsForSessionRow(
-  sessionRow: SessionSkillsInput,
+export async function resolveSkillsForSession(
+  sessionRow: {
+    forgejoRepoPath: string;
+    branch: string;
+    activeSkills: Array<{ source: "builtin" | "user" | "repo"; slug: string }> | null | undefined;
+  },
   forge: ForgeProvider,
   forgeUsername: string,
 ): Promise<ResolvedSkill[]> {

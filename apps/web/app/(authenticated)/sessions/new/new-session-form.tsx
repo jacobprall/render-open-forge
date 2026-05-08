@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition, useMemo } from "react";
 import useSWR from "swr";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { ActiveSkillRef } from "@render-open-forge/skills";
+import type { ActiveSkillRef } from "@openforge/skills";
 
 type Repo = { id: number | string; fullName: string; defaultBranch: string; name: string };
 type Branch = { name: string };
@@ -361,7 +361,7 @@ export function NewSessionForm() {
             <p className="text-sm text-zinc-500">Could not load skills.</p>
           ) : allSkills.length === 0 ? (
             <p className="text-sm text-zinc-500">
-              No skills found. Your forge-skills repo will seed built-ins automatically.
+              No skills found. Your openforge-skills repo will seed built-ins automatically.
             </p>
           ) : (
             <div>

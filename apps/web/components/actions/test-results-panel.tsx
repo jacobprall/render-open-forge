@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import type { TestCase, TestResultSummary, TestSuite } from "@render-open-forge/shared/lib/ci/test-results";
+import type { TestCase, TestResultSummary, TestSuite } from "@openforge/shared/lib/ci/test-results";
 
 type Props = {
   owner: string

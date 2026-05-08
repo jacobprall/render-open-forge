@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
-import { ciEvents, agentRuns, sessions } from "@render-open-forge/db/schema";
+import { ciEvents, agentRuns, sessions } from "@openforge/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { relativeTime } from "@/lib/utils";
 import { CirclePlay, Bot, Terminal } from "lucide-react";

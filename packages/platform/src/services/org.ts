@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import { sessions, usageEvents } from "@render-open-forge/db";
+import { sessions, usageEvents } from "@openforge/db";
 import type { ForgeOrg, ForgeOrgMember } from "../forge/types";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";

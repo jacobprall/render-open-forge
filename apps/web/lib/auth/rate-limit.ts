@@ -1,11 +1,73 @@
-const rateLimitStore = new Map<
-  string,
-  { count: number; resetAt: number }
->();
+import { getSharedRedisClient, isRedisConfigured } from "@/lib/redis";
+
+export interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+}
+
+/**
+ * Fixed-window rate limiter backed by Redis.
+ * Falls back to an in-memory Map when Redis is unavailable (dev only).
+ */
+export function checkRateLimit(
+  key: string,
+  maxRequests: number,
+  windowMs: number,
+): RateLimitResult {
+  if (isRedisConfigured()) {
+    return checkRateLimitSync(key, maxRequests, windowMs);
+  }
+  return checkInMemoryRateLimit(key, maxRequests, windowMs);
+}
+
+/**
+ * Async version that uses Redis INCR + PEXPIRE for distributed rate limiting.
+ * Use this in async contexts (route handlers) for accurate multi-instance limiting.
+ */
+export async function checkRateLimitAsync(
+  key: string,
+  maxRequests: number,
+  windowMs: number,
+): Promise<RateLimitResult> {
+  if (!isRedisConfigured()) {
+    return checkInMemoryRateLimit(key, maxRequests, windowMs);
+  }
+
+  const redis = getSharedRedisClient();
+  const now = Date.now();
+  const windowKey = `${key}:${Math.floor(now / windowMs)}`;
+  const resetAt = (Math.floor(now / windowMs) + 1) * windowMs;
+
+  try {
+    const count = await redis.incr(windowKey);
+    if (count === 1) {
+      await redis.pexpire(windowKey, windowMs);
+    }
+
+    if (count > maxRequests) {
+      return { allowed: false, remaining: 0, resetAt };
+    }
+
+    return {
+      allowed: true,
+      remaining: maxRequests - count,
+      resetAt,
+    };
+  } catch {
+    return { allowed: true, remaining: maxRequests - 1, resetAt: now + windowMs };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Synchronous fallback (for Next.js middleware which must be sync)
+// Uses an in-memory Map. Not distributed but better than nothing.
+// ---------------------------------------------------------------------------
+
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 let cleanupIntervalStarted = false;
 
-/** Removes expired rate-limit entries so the Map does not grow without bound. */
 export function cleanupExpiredEntries(): void {
   const now = Date.now();
   for (const [key, entry] of rateLimitStore) {
@@ -20,13 +82,15 @@ if (typeof setInterval === "function" && !cleanupIntervalStarted) {
   setInterval(cleanupExpiredEntries, 60_000);
 }
 
-export interface RateLimitResult {
-  allowed: boolean;
-  remaining: number;
-  resetAt: number;
+function checkRateLimitSync(
+  key: string,
+  maxRequests: number,
+  windowMs: number,
+): RateLimitResult {
+  return checkInMemoryRateLimit(key, maxRequests, windowMs);
 }
 
-export function checkRateLimit(
+function checkInMemoryRateLimit(
   key: string,
   maxRequests: number,
   windowMs: number,

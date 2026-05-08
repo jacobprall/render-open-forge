@@ -544,6 +544,30 @@ export const usageEvents = pgTable("usage_events", {
 });
 
 // ---------------------------------------------------------------------------
+// Gateway API keys (hashed for auth)
+// ---------------------------------------------------------------------------
+
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id").notNull(),
+    label: text("label").notNull(),
+    hashedKey: text("hashed_key").notNull().unique(),
+    prefix: text("prefix").notNull(),
+    lastUsedAt: timestamp("last_used_at"),
+    expiresAt: timestamp("expires_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("api_keys_user_id_idx").on(table.userId),
+    index("api_keys_hashed_key_idx").on(table.hashedKey),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -579,3 +603,5 @@ export type Invite = typeof invites.$inferSelect;
 export type NewInvite = typeof invites.$inferInsert;
 export type LlmApiKeyRow = typeof llmApiKeys.$inferSelect;
 export type NewLlmApiKeyRow = typeof llmApiKeys.$inferInsert;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type NewApiKey = typeof apiKeys.$inferInsert;

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq, and } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { syncConnections } from "@render-open-forge/db";
+import { syncConnections } from "@openforge/db";
 import { getSession } from "@/lib/auth/session";
 
 async function githubToken(code: string, redirect_uri: string) {

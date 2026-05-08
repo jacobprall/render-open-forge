@@ -1,5 +1,5 @@
-import type { ForgeFileContent } from "@render-open-forge/shared/lib/forge/types";
-import type { ForgeProvider } from "@render-open-forge/shared/lib/forge/provider";
+import type { ForgeFileContent } from "@openforge/shared/lib/forge/types";
+import type { ForgeProvider } from "@openforge/shared/lib/forge/provider";
 import {
   decodeForgeFileContent,
   getBuiltinRaw,
@@ -8,7 +8,7 @@ import {
 import { parseSkillMarkdown } from "./parse";
 import type { ActiveSkillRef, ResolvedSkill, SkillSource, SkillSummary } from "./types";
 
-export const FORGE_SKILLS_REPO_NAME = "forge-skills";
+export const FORGE_SKILLS_REPO_NAME = "openforge-skills";
 /** Skills in the user repo live under this directory. */
 export const USER_SKILLS_DIR = "skills";
 /** Repo-level skills path in project repos. */

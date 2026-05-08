@@ -1,7 +1,7 @@
 services:
   # Web Application (Next.js)
   - type: web
-    name: forge-web
+    name: openforge-web
     runtime: node
     plan: starter
     buildCommand: bun install && npx turbo build --filter=web
@@ -18,7 +18,7 @@ services:
           type: keyvalue
           property: connectionString
       - key: FORGEJO_INTERNAL_URL
-        value: http://forge-forgejo:3000
+        value: http://openforge-forgejo:3000
       - key: FORGEJO_EXTERNAL_URL
         sync: false
       - key: FORGEJO_OAUTH_CLIENT_ID
@@ -36,9 +36,9 @@ services:
       - key: RENDER_API_KEY
         sync: false
       - key: RENDER_CI_WORKFLOW_SLUG
-        value: forge-ci
+        value: openforge-ci
       - key: CI_RUNNER_SECRET
-        generateValue: true # forge-ci reads the same value via fromService.envVarKey
+        generateValue: true # openforge-ci reads the same value via fromService.envVarKey
       - key: CI_CALLBACK_URL
         sync: false
       - key: NODE_ENV
@@ -46,7 +46,7 @@ services:
 
   # Agent Worker
   - type: worker
-    name: forge-agent
+    name: openforge-agent
     runtime: node
     plan: starter
     buildCommand: bun install && npx turbo build --filter=agent
@@ -62,18 +62,18 @@ services:
           type: keyvalue
           property: connectionString
       - key: FORGEJO_INTERNAL_URL
-        value: http://forge-forgejo:3000
+        value: http://openforge-forgejo:3000
       - key: FORGEJO_AGENT_TOKEN
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: ENCRYPTION_KEY
         fromService:
-          name: forge-web
+          name: openforge-web
           type: web
           envVarKey: ENCRYPTION_KEY
       - key: SANDBOX_SERVICE_HOST
-        value: forge-sandbox:3001
+        value: openforge-sandbox:3001
       - key: SANDBOX_SHARED_SECRET
         generateValue: true
       - key: SANDBOX_SESSION_SECRET
@@ -81,7 +81,7 @@ services:
 
   # Sandbox (isolated execution environment)
   - type: web
-    name: forge-sandbox
+    name: openforge-sandbox
     runtime: docker
     plan: standard
     dockerfilePath: packages/sandbox/Dockerfile
@@ -103,7 +103,7 @@ services:
 
   # MinIO (S3-compatible object storage)
   - type: web
-    name: forge-minio
+    name: openforge-minio
     runtime: docker
     plan: starter
     dockerfilePath: infrastructure/minio/Dockerfile
@@ -123,7 +123,7 @@ services:
 
   # Forgejo (Internal Forge)
   - type: web
-    name: forge-forgejo
+    name: openforge-forgejo
     runtime: docker
     plan: standard
     dockerfilePath: infrastructure/forgejo/Dockerfile
@@ -164,15 +164,15 @@ services:
       - key: FORGEJO__storage__STORAGE_TYPE
         value: minio
       - key: FORGEJO__storage__MINIO_ENDPOINT
-        value: forge-minio:9000
+        value: openforge-minio:9000
       - key: FORGEJO__storage__MINIO_ACCESS_KEY_ID
         fromService:
-          name: forge-minio
+          name: openforge-minio
           type: web
           envVarKey: MINIO_ROOT_USER
       - key: FORGEJO__storage__MINIO_SECRET_ACCESS_KEY
         fromService:
-          name: forge-minio
+          name: openforge-minio
           type: web
           envVarKey: MINIO_ROOT_PASSWORD
       - key: FORGEJO__storage__MINIO_BUCKET
@@ -184,7 +184,7 @@ services:
 
   # Gateway (headless REST + MCP API)
   - type: web
-    name: forge-gateway
+    name: openforge-gateway
     runtime: docker
     plan: starter
     dockerfilePath: apps/gateway/Dockerfile
@@ -203,19 +203,19 @@ services:
       - key: GATEWAY_API_SECRET
         generateValue: true
       - key: FORGEJO_INTERNAL_URL
-        value: http://forge-forgejo:3000
+        value: http://openforge-forgejo:3000
       - key: FORGEJO_AGENT_TOKEN
         sync: false
       - key: FORGEJO_WEBHOOK_SECRET
         sync: false
       - key: CI_RUNNER_SECRET
         fromService:
-          name: forge-web
+          name: openforge-web
           type: web
           envVarKey: CI_RUNNER_SECRET
       - key: ENCRYPTION_KEY
         fromService:
-          name: forge-web
+          name: openforge-web
           type: web
           envVarKey: ENCRYPTION_KEY
       - key: GATEWAY_PORT
@@ -228,19 +228,19 @@ services:
   # Deploy this as a worker that registers tasks with the Render SDK.
   # Once Workflows supports Blueprints, switch to type: workflow.
   - type: worker
-    name: forge-ci
+    name: openforge-ci
     runtime: node
     plan: starter
     buildCommand: bun install && npx turbo build --filter=ci-runner
     startCommand: cd apps/ci-runner && bun run start
     envVars:
       - key: FORGEJO_INTERNAL_URL
-        value: http://forge-forgejo:3000
+        value: http://openforge-forgejo:3000
       - key: FORGEJO_AGENT_TOKEN
         sync: false
       - key: CI_RUNNER_SECRET
         fromService:
-          name: forge-web
+          name: openforge-web
           type: web
           envVarKey: CI_RUNNER_SECRET
 

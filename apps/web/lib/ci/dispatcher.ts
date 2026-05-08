@@ -1,7 +1,7 @@
-import type { ForgeProvider } from "@render-open-forge/platform/forge";
-import { ciEvents } from "@render-open-forge/db";
+import type { ForgeProvider } from "@openforge/platform/forge";
+import { ciEvents } from "@openforge/db";
 import { eq } from "drizzle-orm";
-import { logger } from "@render-open-forge/shared";
+import { logger } from "@openforge/shared";
 import type { ForgeDb } from "@/lib/db";
 import { parseWorkflowYaml, shouldTrigger, type ParsedWorkflow } from "./workflow-parser";
 
@@ -189,7 +189,7 @@ async function readWorkflowsFromRepo(
 
 async function dispatchToRenderWorkflows(input: Record<string, unknown>): Promise<void> {
   const render = await getRenderWorkflowClient();
-  const workflowSlug = process.env.RENDER_CI_WORKFLOW_SLUG ?? "forge-ci";
+  const workflowSlug = process.env.RENDER_CI_WORKFLOW_SLUG ?? "openforge-ci";
   await render.workflows.startTask(`${workflowSlug}/runCIJob`, [input]);
 }
 

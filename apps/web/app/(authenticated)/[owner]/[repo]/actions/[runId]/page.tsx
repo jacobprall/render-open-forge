@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
-import { ciEvents } from "@render-open-forge/db";
+import { ciEvents } from "@openforge/db";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { relativeTime } from "@/lib/utils";

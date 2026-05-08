@@ -14,23 +14,25 @@ function resolveCsrfSecret(): string {
 
 const CSRF_SECRET = resolveCsrfSecret();
 
-export function generateCsrfToken(): string {
+export function generateCsrfToken(sessionToken: string): string {
   const nonce = randomBytes(32).toString("hex");
-  const hmac = createHmac("sha256", CSRF_SECRET).update(nonce).digest("hex");
+  const hmac = createHmac("sha256", CSRF_SECRET)
+    .update(`${sessionToken}:${nonce}`)
+    .digest("hex");
   return `${nonce}.${hmac}`;
 }
 
 export function validateCsrfToken(
   token: string,
-  _sessionToken: string,
+  sessionToken: string,
 ): boolean {
-  if (!token) return false;
+  if (!token || !sessionToken) return false;
   const parts = token.split(".");
   if (parts.length !== 2) return false;
   const [nonce, hmac] = parts;
   if (nonce === undefined || hmac === undefined) return false;
   const expected = createHmac("sha256", CSRF_SECRET)
-    .update(nonce)
+    .update(`${sessionToken}:${nonce}`)
     .digest("hex");
   const hmacBuf = Buffer.from(hmac, "utf8");
   const expectedBuf = Buffer.from(expected, "utf8");

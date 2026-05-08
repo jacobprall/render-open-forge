@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
-import { mirrors, syncConnections } from "@render-open-forge/db";
-import { ValidationError, logger } from "@render-open-forge/shared";
+import { mirrors, syncConnections } from "@openforge/db";
+import { ValidationError, logger } from "@openforge/shared";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
 import { getDefaultForgeProvider } from "../forge/factory";

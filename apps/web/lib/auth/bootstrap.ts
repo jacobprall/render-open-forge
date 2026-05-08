@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db";
-import { users, accounts } from "@render-open-forge/db/schema";
+import { users, accounts } from "@openforge/db/schema";
 
 const FORGEJO_URL = process.env.FORGEJO_INTERNAL_URL ?? "http://localhost:3000";
 const AGENT_TOKEN = process.env.FORGEJO_AGENT_TOKEN;

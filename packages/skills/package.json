@@ -1,5 +1,5 @@
 {
-  "name": "@render-open-forge/skills",
+  "name": "@openforge/skills",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "compile-vercel-builtins": "node ./scripts/compile-vercel-builtins.mjs"
   },
   "dependencies": {
-    "@render-open-forge/shared": "workspace:*"
+    "@openforge/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22",

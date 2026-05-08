@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
 import { isPlatformError } from "@/lib/api/errors";
-import type { MergeMethod } from "@render-open-forge/platform";
+import type { MergeMethod } from "@openforge/platform";
 
 const mergeModes = ["merge", "rebase", "squash"] as const;
 

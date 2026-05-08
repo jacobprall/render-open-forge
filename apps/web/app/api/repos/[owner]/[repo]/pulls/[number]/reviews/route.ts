@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
 import { isPlatformError } from "@/lib/api/errors";
-import type { ReviewEvent } from "@render-open-forge/platform";
+import type { ReviewEvent } from "@openforge/platform";
 
 const REVIEW_EVENTS = ["APPROVE", "REQUEST_CHANGES", "COMMENT"] as const;
 const EVENT_MAP: Record<string, ReviewEvent> = {

@@ -2,7 +2,7 @@ import Credentials from "next-auth/providers/credentials";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db";
-import { users } from "@render-open-forge/db/schema";
+import { users } from "@openforge/db/schema";
 
 export const credentialsProvider = Credentials({
   id: "credentials",

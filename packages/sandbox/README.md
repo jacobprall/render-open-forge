@@ -1,4 +1,4 @@
-# @render-open-forge/sandbox
+# @openforge/sandbox
 
 Isolated Docker container that exposes filesystem, shell, git, and search operations over an internal HTTP API. The agent interacts with code exclusively through the sandbox adapter — never directly on disk.
 
@@ -34,8 +34,8 @@ The Dockerfile ships with **Node, Bun, Python, ripgrep, git, and standard build 
 ## Package Exports
 
 ```
-@render-open-forge/sandbox          — SandboxAdapter, HttpSandboxAdapter, provider registry, session tokens
-@render-open-forge/sandbox/types     — ExecResult, FileReadResult, GlobResult, GrepResult, GitResult, …
-@render-open-forge/sandbox/interface — SandboxAdapter interface
-@render-open-forge/sandbox/provider  — SandboxProvider interface, register/get helpers
+@openforge/sandbox          — SandboxAdapter, HttpSandboxAdapter, provider registry, session tokens
+@openforge/sandbox/types     — ExecResult, FileReadResult, GlobResult, GrepResult, GitResult, …
+@openforge/sandbox/interface — SandboxAdapter interface
+@openforge/sandbox/provider  — SandboxProvider interface, register/get helpers
 ```

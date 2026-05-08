@@ -1,4 +1,4 @@
-# forge-ci
+# openforge-ci
 
 Render Workflows task worker that executes CI jobs dispatched by the web app.
 
@@ -42,7 +42,7 @@ CI_RUNNER_MODE=local bun run src/index.ts
 
 ## Workspace Dependencies
 
-- **`@render-open-forge/shared`** — shared types and constants
+- **`@openforge/shared`** — shared types and constants
 - **`@renderinc/sdk`** — Render platform SDK (workflow task integration)
 
 ## Notable External Dependencies
@@ -53,11 +53,11 @@ CI_RUNNER_MODE=local bun run src/index.ts
 
 This package also exports modules consumed by the web app:
 
-- `@render-open-forge/ci-runner` — main entry
-- `@render-open-forge/ci-runner/tasks/run-ci-job`
-- `@render-open-forge/ci-runner/lib/step-executor`
-- `@render-open-forge/ci-runner/lib/result-parser`
-- `@render-open-forge/ci-runner/lib/combined-output`
+- `@openforge/ci-runner` — main entry
+- `@openforge/ci-runner/tasks/run-ci-job`
+- `@openforge/ci-runner/lib/step-executor`
+- `@openforge/ci-runner/lib/result-parser`
+- `@openforge/ci-runner/lib/combined-output`
 
 ## Scripts
 

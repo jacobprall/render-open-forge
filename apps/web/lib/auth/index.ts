@@ -7,7 +7,7 @@ import {
   users,
   accounts,
   verificationTokens,
-} from "@render-open-forge/db/schema";
+} from "@openforge/db/schema";
 import { credentialsProvider } from "./providers/credentials";
 
 declare module "next-auth" {

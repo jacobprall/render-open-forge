@@ -1,12 +1,12 @@
 import { and, eq } from "drizzle-orm";
-import { ciEvents, mirrors, syncConnections } from "@render-open-forge/db";
+import { ciEvents, mirrors, syncConnections } from "@openforge/db";
 import {
   parseJUnitXML,
   parseTAPOutput,
   type TestResultSummary,
   ValidationError,
   logger,
-} from "@render-open-forge/shared";
+} from "@openforge/shared";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
 import { getDefaultForgeProvider } from "../forge/factory";

@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { getSession } from "@/lib/auth/session";
 import { redirect, notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
-import { sessions, chats, chatMessages, userPreferences } from "@render-open-forge/db";
+import { sessions, chats, chatMessages, userPreferences } from "@openforge/db";
 import { eq, and, desc } from "drizzle-orm";
 import { SessionWorkspace } from "@/components/session/session-workspace";
-import type { AssistantPart } from "@render-open-forge/ui";
+import type { AssistantPart } from "@openforge/ui";
 
 export async function generateMetadata({
   params,

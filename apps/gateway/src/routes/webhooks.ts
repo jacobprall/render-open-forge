@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { ValidationError } from "@render-open-forge/shared";
+import { ValidationError } from "@openforge/shared";
 import { getPlatform } from "../platform";
 
 export const webhookRoutes = new Hono();

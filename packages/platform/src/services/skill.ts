@@ -5,9 +5,9 @@ import {
   listRepoSkillSummaries,
   listUserSkillSummaries,
   parseSkillMarkdown,
-} from "@render-open-forge/skills";
-import type { SkillSummary } from "@render-open-forge/skills";
-import { ValidationError } from "@render-open-forge/shared";
+} from "@openforge/skills";
+import type { SkillSummary } from "@openforge/skills";
+import { ValidationError } from "@openforge/shared";
 import type { AuthContext } from "../interfaces/auth";
 import { getDefaultForgeProvider } from "../forge/factory";
 

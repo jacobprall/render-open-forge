@@ -1,4 +1,4 @@
-import type { CiEvent } from "@render-open-forge/db"
+import type { CiEvent } from "@openforge/db"
 import type { UserSession } from "@/lib/auth/session"
 
 export interface EscalationNotification {

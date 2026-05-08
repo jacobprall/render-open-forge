@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
-import { ciEvents, sessions } from "@render-open-forge/db";
-import { logger } from "@render-open-forge/shared";
+import { ciEvents, sessions } from "@openforge/db";
+import { logger } from "@openforge/shared";
 import type { ForgeDb } from "@/lib/db";
 import { getAgentForgeProvider } from "@/lib/forgejo/client";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";

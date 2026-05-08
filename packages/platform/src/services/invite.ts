@@ -1,8 +1,8 @@
 import { createHmac, randomBytes } from "crypto";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { accounts, invites, users } from "@render-open-forge/db/schema";
-import { ValidationError } from "@render-open-forge/shared";
+import { accounts, invites, users } from "@openforge/db/schema";
+import { ValidationError } from "@openforge/shared";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
 

@@ -90,7 +90,7 @@ export interface PlatformContainer {
  *
  * ```ts
  * import Redis from "ioredis";
- * import { createPlatform } from "@render-open-forge/platform/container";
+ * import { createPlatform } from "@openforge/platform/container";
  *
  * const platform = createPlatform({
  *   databaseUrl: process.env.DATABASE_URL!,

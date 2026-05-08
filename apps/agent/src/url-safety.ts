@@ -1,8 +1,12 @@
+import { lookup } from "node:dns/promises";
+
 /**
  * SSRF hardening for agent-initiated HTTP fetches.
  * Blocks loopback, link-local, private-space hostnames, and sandbox host.
+ * Also resolves DNS to catch rebinding attacks where a public hostname resolves
+ * to an internal IP.
  */
-export function assertSafeHttpUrl(urlString: string): URL {
+export async function assertSafeHttpUrl(urlString: string): Promise<URL> {
   let url: URL;
   try {
     url = new URL(urlString);
@@ -34,27 +38,50 @@ export function assertSafeHttpUrl(urlString: string): URL {
     throw new Error("Host is not allowed");
   }
 
+  // Check if the hostname is a literal IP address
   const v4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (v4) {
-    const [a, b] = [Number(v4[1]), Number(v4[2])];
-    if (
-      a === 10 ||
-      a === 127 ||
-      a === 0 ||
-      (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      (a === 100 && b >= 64 && b <= 127)
-    ) {
-      throw new Error("Address is not allowed");
-    }
+    assertNotPrivateIPv4(Number(v4[1]), Number(v4[2]));
   }
 
   const defaultPort = url.protocol === "https:" ? "443" : "80";
   const effectivePort = url.port || defaultPort;
-  if (effectivePort !== "80" && effectivePort !== "443") {
+  if (effectivePort !== "80" && effectivePort !== "443" && effectivePort !== "8080" && effectivePort !== "8443") {
     throw new Error("URL port is not allowed");
   }
 
+  // DNS rebinding protection: resolve hostname and verify the resolved IP
+  if (!v4) {
+    try {
+      const { address } = await lookup(hostname);
+      const resolved = address.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+      if (resolved) {
+        assertNotPrivateIPv4(Number(resolved[1]), Number(resolved[2]));
+      }
+      if (address === "::1" || address.startsWith("::ffff:127.")) {
+        throw new Error("Resolved address is not allowed");
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("not allowed")) {
+        throw err;
+      }
+      throw new Error("DNS resolution failed for URL");
+    }
+  }
+
   return url;
+}
+
+function assertNotPrivateIPv4(a: number, b: number): void {
+  if (
+    a === 10 ||
+    a === 127 ||
+    a === 0 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127)
+  ) {
+    throw new Error("Address is not allowed");
+  }
 }

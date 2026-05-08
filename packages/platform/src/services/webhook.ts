@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { ciEvents, mirrors, prEvents, sessions } from "@render-open-forge/db";
-import { logger, ValidationError } from "@render-open-forge/shared";
+import { ciEvents, mirrors, prEvents, sessions } from "@openforge/db";
+import { logger, ValidationError } from "@openforge/shared";
 import type { PlatformDb } from "../interfaces/database";
 import type { QueueAdapter } from "../interfaces/queue";
 import type { EventBus } from "../interfaces/events";

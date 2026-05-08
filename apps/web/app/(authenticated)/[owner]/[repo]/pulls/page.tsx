@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { createForgeProvider } from "@/lib/forgejo/client";
-import type { ForgePullRequest } from "@render-open-forge/platform/forge/types";
+import type { ForgePullRequest } from "@openforge/platform/forge/types";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { relativeTime } from "@/lib/utils";

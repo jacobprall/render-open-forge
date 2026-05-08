@@ -1,22 +1,25 @@
-import { getDb } from "@/lib/db";
-import { sessions, chatMessages, chats } from "@openforge/db";
-import { eq, and, asc } from "drizzle-orm";
-import { resolveLlmApiKeys } from "@openforge/platform";
+import { and, asc, eq } from "drizzle-orm";
+import { chatMessages, chats, sessions } from "@openforge/db";
+import type { PlatformDb } from "../interfaces/database";
+import { resolveLlmApiKeys } from "../auth/api-key-resolver";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 export type AutoTitleResult =
   | { ok: true; title: string }
   | { ok: false; reason: "no-api-key" | "not-found" | "no-chat" };
 
-/**
- * Generates and persists a short title from recent chat messages (Anthropic Haiku).
- * Call after the first user message is stored; requires the session owner id.
- */
+// ---------------------------------------------------------------------------
+// generateAutoTitle
+// ---------------------------------------------------------------------------
+
 export async function generateAutoTitle(
+  db: PlatformDb,
   sessionId: string,
   userId: string,
 ): Promise<AutoTitleResult> {
-  const db = getDb();
-
   const keys = await resolveLlmApiKeys(db, userId);
   const apiKey = keys.anthropic;
   if (!apiKey) {

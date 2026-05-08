@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { ForgeProvider } from "@render-open-forge/shared/lib/forge/provider";
+import type { ForgeProvider } from "@openforge/shared/lib/forge/provider";
 import {
   decodeForgeFileContent,
   getBuiltinRaw,
@@ -9,7 +9,7 @@ import {
 import { parseSkillMarkdown } from "./parse";
 import { FORGE_SKILLS_REPO_NAME, USER_SKILLS_DIR, listMdSlugsInRepoPath } from "./resolve";
 
-/** Shipped with full Vercel rule text; mirror into forge-skills whenever app builtins change. */
+/** Shipped with full Vercel rule text; mirror into openforge-skills whenever app builtins change. */
 const FRAMEWORK_BUILTIN_SLUGS = ["react-best-practices", "next-best-practices"] as const;
 
 const frameworkBuiltinSyncCache = new Map<string, string>();
@@ -62,7 +62,7 @@ async function ensureFrameworkBuiltinMirrorFiles(
 }
 
 /**
- * Ensure `{username}/forge-skills` exists and seed `skills/*.md` from built-ins when empty.
+ * Ensure `{username}/openforge-skills` exists and seed `skills/*.md` from built-ins when empty.
  */
 export async function ensureUserSkillsRepo(
   forge: ForgeProvider,

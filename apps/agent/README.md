@@ -1,4 +1,4 @@
-# forge-agent
+# openforge-agent
 
 Persistent Bun worker that consumes agent jobs from Redis Streams, runs multi-step LLM execution (Anthropic / OpenAI via Vercel AI SDK), and streams results back to the web app.
 
@@ -19,7 +19,7 @@ bun run --watch src/worker.ts
 3. **Tool execution** (`src/tools/`) — each tool (file read/write, shell, grep, git, web search, PR creation, etc.) is defined as a schema + handler and executed via the sandbox HTTP API.
 4. **Subagents** — the agent can spawn child agents for parallel work, coordinated through the same Redis infrastructure.
 
-Results and progress are streamed back through `@render-open-forge/platform` event publishing so the web UI can display them in real time via SSE.
+Results and progress are streamed back through `@openforge/platform` event publishing so the web UI can display them in real time via SSE.
 
 ## Key Files
 
@@ -31,11 +31,11 @@ Results and progress are streamed back through `@render-open-forge/platform` eve
 
 ## Workspace Dependencies
 
-- **`@render-open-forge/platform`** — DB access and event publishing
-- **`@render-open-forge/db`** — Drizzle schema
-- **`@render-open-forge/sandbox`** — sandbox HTTP client for tool execution
-- **`@render-open-forge/shared`** — shared types and constants
-- **`@render-open-forge/skills`** — agent skill definitions
+- **`@openforge/platform`** — DB access and event publishing
+- **`@openforge/db`** — Drizzle schema
+- **`@openforge/sandbox`** — sandbox HTTP client for tool execution
+- **`@openforge/shared`** — shared types and constants
+- **`@openforge/skills`** — agent skill definitions
 
 ## Notable External Dependencies
 

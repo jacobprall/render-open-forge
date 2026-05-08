@@ -53,7 +53,7 @@ export class RenderWorkflowsDispatcher implements CIDispatcher {
     try {
       const render = await this.getClient();
       const slug =
-        process.env.RENDER_CI_WORKFLOW_SLUG ?? "forge-ci";
+        process.env.RENDER_CI_WORKFLOW_SLUG ?? "openforge-ci";
       await render.workflows.startTask(`${slug}/runCIJob`, [input]);
       return { ok: true };
     } catch (err) {

@@ -1,7 +1,7 @@
 FROM codeberg.org/forgejo/forgejo:14
 
-LABEL org.opencontainers.image.source="https://github.com/jacobprall/render-open-forge"
-LABEL org.opencontainers.image.description="render-open-forge: Forgejo instance"
+LABEL org.opencontainers.image.source="https://github.com/jacobprall/openforge"
+LABEL org.opencontainers.image.description="openforge: Forgejo instance"
 
 COPY app.ini /etc/templates/app.ini
 
