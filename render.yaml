@@ -79,9 +79,15 @@ services:
       - key: SANDBOX_SERVICE_HOST
         value: openforge-sandbox:3001
       - key: SANDBOX_SHARED_SECRET
-        generateValue: true
+        fromService:
+          name: openforge-sandbox
+          type: web
+          envVarKey: SANDBOX_SHARED_SECRET
       - key: SANDBOX_SESSION_SECRET
-        generateValue: true
+        fromService:
+          name: openforge-sandbox
+          type: web
+          envVarKey: SANDBOX_SESSION_SECRET
 
   # Sandbox (isolated execution environment)
   - type: web

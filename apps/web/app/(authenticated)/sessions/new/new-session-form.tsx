@@ -192,10 +192,6 @@ export function NewSessionForm() {
     setError(null);
 
     const activeSkills = activeSkillRefs();
-    if (activeSkills.length === 0) {
-      setError("Select at least one skill");
-      return;
-    }
 
     startTransition(async () => {
       try {
