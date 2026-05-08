@@ -78,13 +78,13 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col border-r border-zinc-800 bg-zinc-900 transition-transform duration-200 md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col border-r border-stroke-subtle bg-surface-1 transition-transform duration-200 md:static md:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         } ${collapsed ? "w-16" : "w-60"}`}
       >
         {/* Logo */}
         <div
-          className={`flex h-12 items-center border-b border-zinc-800 ${
+          className={`flex h-12 items-center border-b border-stroke-subtle ${
             collapsed ? "justify-center" : "gap-2 px-4"
           }`}
         >
@@ -132,7 +132,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
         </nav>
 
         {/* User menu */}
-        <div className="border-t border-zinc-800 p-2">
+        <div className="border-t border-stroke-subtle p-2">
           <div
             className={`flex items-center gap-3 rounded-md px-3 py-2 ${
               collapsed ? "justify-center px-0" : ""
@@ -144,15 +144,15 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
                 alt={user.username}
                 width={28}
                 height={28}
-                className="h-7 w-7 shrink-0 rounded-full bg-zinc-700"
+                className="h-7 w-7 shrink-0 rounded-full bg-surface-3"
               />
             ) : (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs font-medium text-zinc-300">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-3 text-xs font-medium text-text-secondary">
                 {user.username.charAt(0).toUpperCase()}
               </div>
             )}
             {!collapsed && (
-              <span className="flex-1 truncate text-sm text-zinc-300">
+              <span className="flex-1 truncate text-sm text-text-secondary">
                 {user.username}
               </span>
             )}
@@ -160,7 +160,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
               <button
                 onClick={handleSignOut}
                 title="Sign out"
-                className="rounded-md p-1 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+                className="rounded-md p-1 text-text-tertiary transition-colors hover:bg-surface-2 hover:text-text-secondary"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -171,7 +171,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
             <button
               onClick={handleSignOut}
               title="Sign out"
-              className="mt-1 flex w-full items-center justify-center rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+              className="mt-1 flex w-full items-center justify-center rounded-md p-2 text-text-tertiary transition-colors hover:bg-surface-2 hover:text-text-secondary"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -179,10 +179,10 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
         </div>
 
         {/* Collapse toggle (desktop only) */}
-        <div className="hidden border-t border-zinc-800 p-2 md:block">
+        <div className="hidden border-t border-stroke-subtle p-2 md:block">
           <button
             onClick={toggleCollapsed}
-            className="flex w-full items-center justify-center rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+            className="flex w-full items-center justify-center rounded-md p-2 text-text-tertiary transition-colors hover:bg-surface-2 hover:text-text-secondary"
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />

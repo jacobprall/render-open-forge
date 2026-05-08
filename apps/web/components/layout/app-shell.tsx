@@ -24,7 +24,7 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-zinc-950">
+    <div className="flex h-screen overflow-hidden bg-surface-0">
       <Sidebar
         user={user}
         mobileOpen={mobileOpen}

@@ -8,12 +8,12 @@ interface TopBarProps {
 
 export function TopBar({ breadcrumbs, children, onMenuClick }: TopBarProps) {
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between border-b border-zinc-800 px-4">
+    <header className="flex h-12 shrink-0 items-center justify-between border-b border-stroke-subtle px-4">
       <div className="flex items-center gap-2">
         {onMenuClick && (
           <button
             onClick={onMenuClick}
-            className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 md:hidden"
+            className="rounded-md p-1.5 text-text-secondary hover:bg-surface-2 hover:text-text-primary md:hidden"
             aria-label="Open menu"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

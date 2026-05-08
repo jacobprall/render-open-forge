@@ -9,6 +9,7 @@ export interface ThemeColors {
 }
 
 const COLOR_PRESETS: Record<string, { base: string; hover: string; bg: string; text: string }> = {
+  purple:   { base: "#8a05ff",                 hover: "#9b52fb",                bg: "#2a0052",                        text: "#d1b8ff" },
   emerald:  { base: "oklch(0.696 0.17 162)",  hover: "oklch(0.637 0.16 162)",  bg: "oklch(0.696 0.17 162 / 0.1)",  text: "oklch(0.765 0.155 162)" },
   blue:     { base: "oklch(0.623 0.214 259)",  hover: "oklch(0.546 0.21 259)",  bg: "oklch(0.623 0.214 259 / 0.1)",  text: "oklch(0.707 0.165 254)" },
   violet:   { base: "oklch(0.606 0.25 292)",   hover: "oklch(0.541 0.24 292)",  bg: "oklch(0.606 0.25 292 / 0.1)",   text: "oklch(0.678 0.2 292)" },
@@ -41,9 +42,9 @@ export function ThemeProvider({
   children: React.ReactNode;
 }) {
   useEffect(() => {
-    applyColorGroup("accent", colors.accentColor, "emerald");
-    applyColorGroup("secondary", colors.secondaryColor, "blue");
-    applyColorGroup("tertiary", colors.tertiaryColor, "violet");
+    applyColorGroup("accent", colors.accentColor, "purple");
+    applyColorGroup("secondary", colors.secondaryColor, "purple");
+    applyColorGroup("tertiary", colors.tertiaryColor, "purple");
   }, [colors.accentColor, colors.secondaryColor, colors.tertiaryColor]);
 
   return <>{children}</>;

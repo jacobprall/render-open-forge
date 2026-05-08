@@ -31,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`dark ${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="min-h-screen bg-zinc-950 font-sans text-zinc-100 antialiased">
+      <body className="min-h-screen bg-surface-0 font-sans text-text-primary antialiased">
         <RouteProgress />
         <AuthSessionProvider>{children}</AuthSessionProvider>
       </body>
