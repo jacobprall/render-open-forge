@@ -1,0 +1,53 @@
+/**
+ * Singleton PlatformContainer for the Next.js app.
+ *
+ * Reuses the existing `getDb()` and `getSharedRedisClient()` singletons
+ * so the app keeps its current connection lifecycle and there is no extra
+ * pool.
+ */
+
+import { createPlatformFromInstances, type PlatformContainer } from "@render-open-forge/platform/container";
+import type { AuthContext } from "@render-open-forge/platform";
+import { getDb } from "@/lib/db";
+import { getSharedRedisClient } from "@/lib/redis";
+import { auth } from "@/lib/auth";
+
+// ---------------------------------------------------------------------------
+// Container singleton
+// ---------------------------------------------------------------------------
+
+const globalForPlatform = globalThis as unknown as { __platform?: PlatformContainer };
+
+export function getPlatform(): PlatformContainer {
+  if (!globalForPlatform.__platform) {
+    globalForPlatform.__platform = createPlatformFromInstances({
+      db: getDb(),
+      redis: getSharedRedisClient(),
+    });
+  }
+  return globalForPlatform.__platform;
+}
+
+// ---------------------------------------------------------------------------
+// Auth bridge: NextAuth session → AuthContext
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve the current NextAuth session into a platform `AuthContext`.
+ * Throws a 401 `Response` if unauthenticated (suitable for route handlers).
+ */
+export async function requireAuth(): Promise<AuthContext> {
+  const session = await auth();
+  if (!session?.user?.id || !session.forgejoToken) {
+    throw new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return {
+    userId: session.user.id,
+    username: session.forgejoUsername,
+    forgeToken: session.forgejoToken,
+    isAdmin: session.isAdmin,
+  };
+}

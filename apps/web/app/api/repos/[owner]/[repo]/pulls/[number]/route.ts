@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string; number: string }> },
 ) {
-  const auth = await getSession();
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const auth = await requireAuth();
   const { owner, repo, number } = await params;
   const n = Number(number);
   if (!Number.isFinite(n) || n < 1) {
@@ -22,21 +20,16 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const patch: { state?: "open" | "closed"; title?: string } = {};
-  if (body.state === "open" || body.state === "closed") patch.state = body.state;
-  if (typeof body.title === "string" && body.title.trim().length > 0) {
-    patch.title = body.title.trim();
-  }
-
-  if (Object.keys(patch).length === 0) {
-    return NextResponse.json({ error: "No valid patch fields (state | title)" }, { status: 400 });
-  }
-
-  const forge = createForgeProvider(auth.forgejoToken);
   try {
-    const pr = await forge.pulls.update(owner, repo, n, patch);
+    const pr = await getPlatform().pullRequests.updatePullRequest(auth, owner, repo, n, {
+      state: body.state,
+      title: body.title,
+    });
     return NextResponse.json({ pull_request: pr });
   } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Forgejo update failed" },
       { status: 502 },

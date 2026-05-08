@@ -128,3 +128,23 @@ export type {
 export { S3StorageAdapter } from "./storage/s3-adapter";
 export { LocalStorageAdapter } from "./storage/local-adapter";
 export { MemoryStorageAdapter } from "./storage/memory-adapter";
+
+// Cache adapter
+export type { CacheAdapter } from "./interfaces/cache";
+export { RedisCacheAdapter, MemoryCacheAdapter } from "./interfaces/cache";
+
+// CI dispatcher
+export type { CIDispatcher, CIJobInput, CIDispatchResult } from "./interfaces/ci-dispatcher";
+export { RenderWorkflowsDispatcher, NoopCIDispatcher } from "./interfaces/ci-dispatcher";
+
+// Notification sink
+export type { NotificationSink, NotificationPayload, NotificationLevel } from "./interfaces/notification-sink";
+export { ConsoleSink, WebhookSink, CompositeSink, NoopSink } from "./interfaces/notification-sink";
+
+// Auth provider
+export type { AuthProvider } from "./interfaces/auth-provider";
+export { StaticTokenAuthProvider, CompositeAuthProvider } from "./interfaces/auth-provider";
+
+// Composition root
+export { createPlatform, createPlatformFromInstances } from "./container";
+export type { PlatformConfig, PlatformInstances, PlatformContainer } from "./container";

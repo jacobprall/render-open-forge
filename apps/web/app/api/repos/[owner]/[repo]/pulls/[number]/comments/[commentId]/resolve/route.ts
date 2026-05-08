@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string; number: string; commentId: string }> },
 ) {
-  const auth = await getSession();
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const auth = await requireAuth();
   const { owner, repo, commentId } = await params;
   const cid = Number(commentId);
   if (!Number.isFinite(cid) || cid < 1) {
@@ -25,15 +23,13 @@ export async function POST(
     // default to resolve
   }
 
-  const forge = createForgeProvider(auth.forgejoToken);
   try {
-    if (unresolve) {
-      await forge.reviews.unresolveComment(owner, repo, cid);
-    } else {
-      await forge.reviews.resolveComment(owner, repo, cid);
-    }
-    return NextResponse.json({ success: true, resolved: !unresolve });
+    const result = await getPlatform().pullRequests.resolveComment(auth, owner, repo, cid, unresolve);
+    return NextResponse.json({ success: true, resolved: result.resolved });
   } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to update comment state" },
       { status: 502 },

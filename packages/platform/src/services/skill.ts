@@ -1,0 +1,183 @@
+import {
+  ensureUserSkillsRepo,
+  FORGE_SKILLS_REPO_NAME,
+  listBuiltinSummaries,
+  listRepoSkillSummaries,
+  listUserSkillSummaries,
+  parseSkillMarkdown,
+} from "@render-open-forge/skills";
+import type { SkillSummary } from "@render-open-forge/skills";
+import { ValidationError } from "@render-open-forge/shared";
+import type { AuthContext } from "../interfaces/auth";
+import { getDefaultForgeProvider } from "../forge/factory";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const USER_SKILLS_DIR = "skills";
+
+// ---------------------------------------------------------------------------
+// Parameter and result types
+// ---------------------------------------------------------------------------
+
+export interface ListSkillsResult {
+  builtins: SkillSummary[];
+  user: SkillSummary[];
+  repo: SkillSummary[];
+}
+
+export interface InstallSkillParams {
+  url: string;
+  name?: string;
+}
+
+export interface InstallSkillResult {
+  ok: boolean;
+  slug: string;
+  name: string;
+  description: string | undefined;
+}
+
+export interface ListRepoSkillsResult {
+  repo: string;
+  skills: SkillSummary[];
+}
+
+// ---------------------------------------------------------------------------
+// SkillService
+// ---------------------------------------------------------------------------
+
+export class SkillService {
+  // -------------------------------------------------------------------------
+  // listSkills — GET /api/skills
+  // -------------------------------------------------------------------------
+
+  async listSkills(
+    auth: AuthContext,
+    repoPath?: string,
+  ): Promise<ListSkillsResult> {
+    const forge = getDefaultForgeProvider(auth.forgeToken);
+
+    await ensureUserSkillsRepo(forge, auth.username);
+
+    const builtins = listBuiltinSummaries();
+    const user = await listUserSkillSummaries(forge, auth.username);
+    const repo = repoPath ? await listRepoSkillSummaries(forge, repoPath) : [];
+
+    return { builtins, user, repo };
+  }
+
+  // -------------------------------------------------------------------------
+  // installSkill — POST /api/skills/install
+  // -------------------------------------------------------------------------
+
+  async installSkill(
+    auth: AuthContext,
+    params: InstallSkillParams,
+  ): Promise<InstallSkillResult> {
+    const { url, name } = params;
+    if (!url?.trim()) {
+      throw new ValidationError("URL is required");
+    }
+
+    const rawUrl = toRawUrl(url.trim());
+
+    let markdown: string;
+    const res = await fetch(rawUrl, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) {
+      throw new ValidationError(`Failed to fetch skill: ${res.status} ${res.statusText}`);
+    }
+    markdown = await res.text();
+
+    const parsed = parseSkillMarkdown(markdown);
+    if (!parsed.body.trim()) {
+      throw new ValidationError(
+        "Fetched content doesn't look like a valid skill (no body)",
+      );
+    }
+
+    const slug =
+      name?.trim() ||
+      parsed.name?.toLowerCase().replace(/\s+/g, "-") ||
+      slugFromUrl(url);
+
+    const forge = getDefaultForgeProvider(auth.forgeToken);
+    await ensureUserSkillsRepo(forge, auth.username);
+
+    const filePath = `${USER_SKILLS_DIR}/${slug}.md`;
+
+    try {
+      await forge.files.createFile(auth.username, FORGE_SKILLS_REPO_NAME, filePath, {
+        content: markdown,
+        message: `install skill: ${parsed.name || slug}`,
+      });
+    } catch {
+      const existing = await forge.files.getContents(
+        auth.username,
+        FORGE_SKILLS_REPO_NAME,
+        filePath,
+      );
+      const sha = Array.isArray(existing) ? undefined : existing.sha;
+      await forge.files.putFile(auth.username, FORGE_SKILLS_REPO_NAME, filePath, {
+        content: markdown,
+        message: `update skill: ${parsed.name || slug}`,
+        sha,
+      });
+    }
+
+    return {
+      ok: true,
+      slug,
+      name: parsed.name || slug,
+      description: parsed.description,
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // syncSkills — POST /api/skills/sync
+  // -------------------------------------------------------------------------
+
+  async syncSkills(auth: AuthContext): Promise<void> {
+    const forge = getDefaultForgeProvider(auth.forgeToken);
+    await ensureUserSkillsRepo(forge, auth.username);
+  }
+
+  // -------------------------------------------------------------------------
+  // listRepoSkills — GET /api/skills/repo/[...path]
+  // -------------------------------------------------------------------------
+
+  async listRepoSkills(
+    auth: AuthContext,
+    owner: string,
+    repo: string,
+  ): Promise<ListRepoSkillsResult> {
+    const repoPath = `${owner}/${repo}`;
+    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const skills = await listRepoSkillSummaries(forge, repoPath);
+    return { repo: repoPath, skills };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
+
+function toRawUrl(url: string): string {
+  const gh = url.match(
+    /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/,
+  );
+  if (gh) {
+    return `https://raw.githubusercontent.com/${gh[1]}/${gh[2]}/${gh[3]}/${gh[4]}`;
+  }
+  return url;
+}
+
+function slugFromUrl(url: string): string {
+  const segments = url.split("/").filter(Boolean);
+  const last = segments[segments.length - 1] ?? "skill";
+  return last
+    .replace(/\.md$/i, "")
+    .replace(/[^a-zA-Z0-9_-]/g, "-")
+    .toLowerCase();
+}

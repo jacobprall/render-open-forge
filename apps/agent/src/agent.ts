@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { agentRuns, chats, chatMessages, specs, sessions, prEvents } from "@render-open-forge/db";
 import { AppError } from "@render-open-forge/shared";
-import { publishRunEvent, resolveLlmApiKeys, type ResolvedLlmKeys } from "@render-open-forge/platform";
+import { resolveLlmApiKeys, type ResolvedLlmKeys, type PlatformContainer, type PlatformDb, type EventBus } from "@render-open-forge/platform";
 import { getDefaultForgeProvider, type ForgeProvider } from "@render-open-forge/platform/forge";
 import {
   SharedHttpSandboxProvider,
@@ -41,7 +41,6 @@ import {
   type SubmitSpecInput,
 } from "./tools";
 import { getModel, getModelDef } from "./models";
-import { getDb } from "./db";
 import type { AgentJob, StreamEvent } from "./types";
 import { isDeliverComplete, transitionToComplete } from "./lib/deliver";
 
@@ -62,14 +61,14 @@ class AbortError extends Error {
   }
 }
 
-async function isAborted(redis: Redis, runId: string): Promise<boolean> {
-  const val = await redis.get(`run:${runId}:abort`);
+async function isAborted(events: EventBus, runId: string): Promise<boolean> {
+  const val = await events.getKey(`run:${runId}:abort`);
   return val === "1";
 }
 
-async function publishEvent(redis: Redis, runId: string, event: StreamEvent, requestId?: string): Promise<void> {
+async function publishEvent(events: EventBus, runId: string, event: StreamEvent, requestId?: string): Promise<void> {
   const payload = JSON.stringify({ ...event, requestId });
-  await publishRunEvent(redis, runId, payload);
+  await events.publish(runId, payload);
 }
 
 /** Expire the run event stream after a terminal event so keys don't accumulate. */
@@ -182,13 +181,20 @@ function buildSubagentToolSet(): ToolSet {
   };
 }
 
-function buildToolSet(redis: Redis, job: AgentJob, model: LanguageModel, skillsPromptSuffix: string): ToolSet {
+function buildToolSet(
+  events: EventBus,
+  redis: Redis,
+  db: PlatformDb,
+  job: AgentJob,
+  model: LanguageModel,
+  skillsPromptSuffix: string,
+): ToolSet {
   const reqId = job.requestId;
   return {
     ...buildSubagentToolSet(),
     task: taskTool(
       async (event) => {
-        await publishEvent(redis, job.runId, event as unknown as StreamEvent, reqId);
+        await publishEvent(events, job.runId, event as unknown as StreamEvent, reqId);
       },
       buildSubagentToolSet,
       model,
@@ -196,7 +202,7 @@ function buildToolSet(redis: Redis, job: AgentJob, model: LanguageModel, skillsP
     ),
     todo_write: todoWriteTool(),
     ask_user_question: askUserQuestionTool(job.runId, () => redis.duplicate(), async (event) => {
-      await publishEvent(redis, job.runId, event as unknown as StreamEvent, reqId);
+      await publishEvent(events, job.runId, event as unknown as StreamEvent, reqId);
     }),
     merge_pr: mergePrTool(),
     close_pr: closePrTool(),
@@ -210,17 +216,16 @@ function buildToolSet(redis: Redis, job: AgentJob, model: LanguageModel, skillsP
     resolve_comment: resolveCommentTool(),
     submit_spec: submitSpecTool(
       async (event) => {
-        await publishEvent(redis, job.runId, event, reqId);
+        await publishEvent(events, job.runId, event, reqId);
       },
       async (spec) => {
-        await persistSubmittedSpec(job.sessionId, spec);
+        await persistSubmittedSpec(db, job.sessionId, spec);
       },
     ),
   };
 }
 
-async function persistSubmittedSpec(sessionId: string, spec: SubmitSpecInput): Promise<void> {
-  const db = getDb();
+async function persistSubmittedSpec(db: PlatformDb, sessionId: string, spec: SubmitSpecInput): Promise<void> {
   const [latest] = await db
     .select()
     .from(specs)
@@ -250,6 +255,8 @@ async function persistSubmittedSpec(sessionId: string, spec: SubmitSpecInput): P
 async function runTurn(params: {
   job: AgentJob;
   redis: Redis;
+  events: EventBus;
+  db: PlatformDb;
   adapter: SandboxAdapter;
   llmKeys: ResolvedLlmKeys;
 }): Promise<{
@@ -259,7 +266,7 @@ async function runTurn(params: {
   usage: { promptTokens?: number; completionTokens?: number };
   hitStepLimit: boolean;
 }> {
-  const { job, redis, adapter, llmKeys } = params;
+  const { job, redis, events, db, adapter, llmKeys } = params;
   const modelDef = getModelDef(job.modelId);
   const model = getModel(job.modelId, llmKeys);
   const isAnthropic = modelDef.provider === "anthropic";
@@ -288,7 +295,6 @@ async function runTurn(params: {
       projectConfig: job.projectConfig,
     }) + (appended ? `\n\n${appended}` : "");
 
-  const db = getDb();
   const [sessionRow] = await db
     .select({ forgejoRepoPath: sessions.forgejoRepoPath, branch: sessions.branch, baseBranch: sessions.baseBranch, title: sessions.title })
     .from(sessions)
@@ -315,11 +321,10 @@ async function runTurn(params: {
     baseBranch: sessionRow?.baseBranch ?? "main",
     onFileChanged: async (p) => {
       const ev: StreamEvent = { type: "file_changed", path: p.path, additions: p.additions, deletions: p.deletions };
-      await publishEvent(redis, job.runId, ev, reqId);
+      await publishEvent(events, job.runId, ev, reqId);
       assistantParts.push({ type: "file_changed", ...p });
     },
     onPrCreated: async ({ prNumber }) => {
-      const db = getDb();
       await db
         .update(sessions)
         .set({ prNumber, prStatus: "open", updatedAt: new Date() })
@@ -344,7 +349,7 @@ async function runTurn(params: {
     ? `## Important notes\n- All git operations target the internal Forgejo instance. Authentication is automatic.\n- When creating a PR, push your branch first with the git tool, then use create_pull_request.\n- The repository is already cloned in your workspace. Use glob/grep to explore it.`
     : "";
 
-  const tools = buildToolSet(redis, job, model, skillsSuffix);
+  const tools = buildToolSet(events, redis, db, job, model, skillsSuffix);
   const inputMessages = buildModelMessages(job);
 
   console.log(
@@ -361,7 +366,7 @@ async function runTurn(params: {
     providerOptions: thinkingOptions,
     onStepFinish: async ({ text, toolCalls, toolResults }) => {
       stepCount++;
-      if (await isAborted(redis, job.runId)) {
+      if (await isAborted(events, job.runId)) {
         throw new AbortError(assistantParts);
       }
 
@@ -369,19 +374,19 @@ async function runTurn(params: {
         accumulatedText += text;
         const ev: StreamEvent = { type: "token", token: text };
         assistantParts.push({ type: "text", text });
-        await publishEvent(redis, job.runId, ev, reqId);
+        await publishEvent(events, job.runId, ev, reqId);
       }
 
       for (const tc of toolCalls ?? []) {
         const ev: StreamEvent = { type: "tool_call", toolName: tc.toolName, toolCallId: tc.toolCallId, args: tc.input };
         assistantParts.push({ type: "tool_call", toolName: tc.toolName, toolCallId: tc.toolCallId, args: tc.input });
-        await publishEvent(redis, job.runId, ev, reqId);
+        await publishEvent(events, job.runId, ev, reqId);
       }
 
       for (const tr of toolResults ?? []) {
         const ev: StreamEvent = { type: "tool_result", toolCallId: tr.toolCallId, result: tr.output };
         assistantParts.push({ type: "tool_result", toolCallId: tr.toolCallId, result: tr.output });
-        await publishEvent(redis, job.runId, ev, reqId);
+        await publishEvent(events, job.runId, ev, reqId);
       }
     },
   });
@@ -391,7 +396,7 @@ async function runTurn(params: {
   if (hitStepLimit) {
     const limitMsg = `Reached the maximum step limit (${MAX_STEPS}). Send another message to continue where I left off.`;
     assistantParts.push({ type: "text", text: limitMsg });
-    await publishEvent(redis, job.runId, { type: "token", token: limitMsg }, reqId);
+    await publishEvent(events, job.runId, { type: "token", token: limitMsg }, reqId);
   }
 
   return {
@@ -412,8 +417,7 @@ async function runTurn(params: {
 
 // ─── Repo cloning ────────────────────────────────────────────────────────────
 
-async function ensureRepoCloned(job: AgentJob, adapter: SandboxAdapter): Promise<void> {
-  const db = getDb();
+async function ensureRepoCloned(db: PlatformDb, job: AgentJob, adapter: SandboxAdapter): Promise<void> {
   const [session] = await db.select().from(sessions).where(eq(sessions.id, job.sessionId)).limit(1);
   if (!session?.forgejoRepoPath) return;
 
@@ -471,11 +475,11 @@ async function ensureRepoCloned(job: AgentJob, adapter: SandboxAdapter): Promise
 // ─── Persistence helpers ─────────────────────────────────────────────────────
 
 async function persistAssistantMessage(
+  db: PlatformDb,
   job: AgentJob,
   parts: AssistantPart[],
   responseMessages: ModelMessage[],
 ): Promise<string> {
-  const db = getDb();
   const id = nanoid();
   await db.insert(chatMessages).values({
     id,
@@ -489,11 +493,11 @@ async function persistAssistantMessage(
 }
 
 async function updateRunStatus(
+  db: PlatformDb,
   job: AgentJob,
   status: "completed" | "failed" | "aborted",
   usage?: { promptTokens?: number; completionTokens?: number },
 ): Promise<void> {
-  const db = getDb();
   const finishedAt = new Date();
   const [row] = await db
     .select({ startedAt: agentRuns.startedAt })
@@ -517,40 +521,41 @@ async function updateRunStatus(
 
 // ─── Public entry point ───────────────────────────────────────────────────────
 
-export async function runAgentTurn(job: AgentJob, redis: Redis): Promise<void> {
+export async function runAgentTurn(job: AgentJob, redis: Redis, platform: PlatformContainer): Promise<void> {
+  const { db, events } = platform;
   const adapter = await getAdapter(job.sessionId);
 
   try {
-    const db = getDb();
-
     await db.update(agentRuns).set({ status: "running", startedAt: new Date() }).where(eq(agentRuns.id, job.runId));
-    await redis.set(`run:${job.runId}:status`, "running", "EX", RUN_STATUS_TTL);
+    await events.setKey(`run:${job.runId}:status`, "running", RUN_STATUS_TTL);
 
-    await ensureRepoCloned(job, adapter);
+    await ensureRepoCloned(db, job, adapter);
 
-    const llmKeys = await resolveLlmApiKeys(getDb(), job.userId);
+    const llmKeys = await resolveLlmApiKeys(db, job.userId);
 
     const { assistantParts, responseMessages, usage } = await runTurn({
       job,
       redis,
+      events,
+      db,
       adapter,
       llmKeys,
     });
 
     let assistantMessageId: string | undefined;
     if (assistantParts.length > 0) {
-      assistantMessageId = await persistAssistantMessage(job, assistantParts, responseMessages);
+      assistantMessageId = await persistAssistantMessage(db, job, assistantParts, responseMessages);
     }
 
-    await updateRunStatus(job, "completed", usage);
+    await updateRunStatus(db, job, "completed", usage);
 
     await publishEvent(
-      redis,
+      events,
       job.runId,
       { type: "done", assistantMessageId, assistantParts: assistantParts as unknown[] },
       job.requestId,
     );
-    await redis.set(`run:${job.runId}:status`, "completed", "EX", RUN_STATUS_TTL);
+    await events.setKey(`run:${job.runId}:status`, "completed", RUN_STATUS_TTL);
     await expireRunStream(redis, job.runId);
 
     const [session] = await db
@@ -560,27 +565,26 @@ export async function runAgentTurn(job: AgentJob, redis: Redis): Promise<void> {
       .limit(1);
     if (session && isDeliverComplete(session)) {
       await transitionToComplete(db, job.sessionId);
-      await publishEvent(redis, job.runId, { type: "phase_changed", phase: "complete" } as unknown as StreamEvent, job.requestId);
+      await publishEvent(events, job.runId, { type: "phase_changed", phase: "complete" } as unknown as StreamEvent, job.requestId);
     }
   } catch (error) {
     if (error instanceof AbortError) {
-      // R4: Persist partial work accumulated before abort
       const mergedParts = mergeToolResults(error.parts);
       if (mergedParts.length > 0) {
-        await persistAssistantMessage(job, mergedParts, []).catch((e) =>
+        await persistAssistantMessage(db, job, mergedParts, []).catch((e) =>
           console.error("[agent] Failed to persist partial abort work:", e),
         );
       }
-      await updateRunStatus(job, "aborted");
-      await publishEvent(redis, job.runId, { type: "aborted" }, job.requestId);
-      await redis.set(`run:${job.runId}:status`, "aborted", "EX", RUN_STATUS_TTL);
+      await updateRunStatus(db, job, "aborted");
+      await publishEvent(events, job.runId, { type: "aborted" }, job.requestId);
+      await events.setKey(`run:${job.runId}:status`, "aborted", RUN_STATUS_TTL);
       await expireRunStream(redis, job.runId);
       return;
     }
 
-    await updateRunStatus(job, "failed");
+    await updateRunStatus(db, job, "failed");
     await publishEvent(
-      redis,
+      events,
       job.runId,
       {
         type: "error",
@@ -591,7 +595,7 @@ export async function runAgentTurn(job: AgentJob, redis: Redis): Promise<void> {
       },
       job.requestId,
     );
-    await redis.set(`run:${job.runId}:status`, "failed", "EX", RUN_STATUS_TTL);
+    await events.setKey(`run:${job.runId}:status`, "failed", RUN_STATUS_TTL);
     await expireRunStream(redis, job.runId);
     throw error;
   }

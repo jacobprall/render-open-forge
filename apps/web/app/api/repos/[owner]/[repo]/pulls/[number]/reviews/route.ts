@@ -1,32 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
-import type { ReviewEvent } from "@render-open-forge/platform/forge";
-
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ owner: string; repo: string; number: string }> },
-) {
-  const auth = await getSession();
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { owner, repo, number } = await params;
-  const n = Number(number);
-  if (!Number.isFinite(n) || n < 1) {
-    return NextResponse.json({ error: "Invalid PR number" }, { status: 400 });
-  }
-
-  const forge = createForgeProvider(auth.forgejoToken);
-  try {
-    const reviews = await forge.reviews.listReviews(owner, repo, n);
-    return NextResponse.json({ reviews });
-  } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to fetch reviews" },
-      { status: 502 },
-    );
-  }
-}
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
+import type { ReviewEvent } from "@render-open-forge/platform";
 
 const REVIEW_EVENTS = ["APPROVE", "REQUEST_CHANGES", "COMMENT"] as const;
 const EVENT_MAP: Record<string, ReviewEvent> = {
@@ -35,13 +10,36 @@ const EVENT_MAP: Record<string, ReviewEvent> = {
   COMMENT: "comment",
 };
 
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ owner: string; repo: string; number: string }> },
+) {
+  const auth = await requireAuth();
+  const { owner, repo, number } = await params;
+  const n = Number(number);
+  if (!Number.isFinite(n) || n < 1) {
+    return NextResponse.json({ error: "Invalid PR number" }, { status: 400 });
+  }
+
+  try {
+    const reviews = await getPlatform().pullRequests.listReviews(auth, owner, repo, n);
+    return NextResponse.json({ reviews });
+  } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to fetch reviews" },
+      { status: 502 },
+    );
+  }
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string; number: string }> },
 ) {
-  const auth = await getSession();
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const auth = await requireAuth();
   const { owner, repo, number } = await params;
   const n = Number(number);
   if (!Number.isFinite(n) || n < 1) {
@@ -72,11 +70,17 @@ export async function POST(
       }))
     : undefined;
 
-  const forge = createForgeProvider(auth.forgejoToken);
   try {
-    const review = await forge.reviews.submitReview(owner, repo, n, event, reviewBody, comments);
+    const review = await getPlatform().pullRequests.submitReview(auth, owner, repo, n, {
+      event,
+      body: reviewBody,
+      comments,
+    });
     return NextResponse.json({ review });
   } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to submit review" },
       { status: 502 },

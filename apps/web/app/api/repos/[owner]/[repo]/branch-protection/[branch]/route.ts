@@ -1,25 +1,22 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ owner: string; repo: string; branch: string }> },
 ) {
-  const auth = await getSession();
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const auth = await requireAuth();
   const { owner, repo, branch } = await params;
   const decoded = decodeURIComponent(branch);
-  const forge = createForgeProvider(auth.forgejoToken);
 
   try {
-    const protection = await forge.branches.getProtectionRule(owner, repo, decoded);
-    if (!protection) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
+    const protection = await getPlatform().repos.getBranchProtection(auth, owner, repo, decoded);
     return NextResponse.json({ protection });
   } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Forgejo unreachable" },
       { status: 502 },
@@ -31,17 +28,17 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ owner: string; repo: string; branch: string }> },
 ) {
-  const auth = await getSession();
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const auth = await requireAuth();
   const { owner, repo, branch } = await params;
   const decoded = decodeURIComponent(branch);
-  const forge = createForgeProvider(auth.forgejoToken);
 
   try {
-    await forge.branches.deleteProtectionRule(owner, repo, decoded);
+    await getPlatform().repos.deleteBranchProtection(auth, owner, repo, decoded);
     return NextResponse.json({ success: true });
   } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to delete branch protection" },
       { status: 502 },

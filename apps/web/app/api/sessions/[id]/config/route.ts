@@ -1,22 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db";
-import { sessions } from "@render-open-forge/db";
-import { and, eq } from "drizzle-orm";
+import { getPlatform, requireAuth } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
-/**
- * PATCH — shallow-merge keys into sessions.project_config.
- * Accepts `{ projectConfig }` or `{ projectConfigPatch }` (either as a shallow patch object).
- */
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await getSession();
-  if (!auth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+  const auth = await requireAuth();
   const { id } = await params;
 
   let body: unknown;
@@ -42,31 +32,14 @@ export async function PATCH(
     return NextResponse.json({ error: "Provide projectConfig or projectConfigPatch object" }, { status: 400 });
   }
 
-  const db = getDb();
-  const [row] = await db
-    .select()
-    .from(sessions)
-    .where(and(eq(sessions.id, id), eq(sessions.userId, String(auth.userId))))
-    .limit(1);
-
-  if (!row) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  try {
+    const projectConfig = await getPlatform().sessions.updateConfig(auth, id, shallow);
+    return NextResponse.json({ success: true, projectConfig });
+  } catch (err) {
+    if (err instanceof Response) throw err;
+    if (err instanceof AppError) {
+      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
+    }
+    throw err;
   }
-
-  const base =
-    typeof row.projectConfig === "object" && row.projectConfig !== null
-      ? ({ ...(row.projectConfig as object) } as Record<string, unknown>)
-      : {};
-  Object.assign(base, shallow);
-
-  const [updated] = await db
-    .update(sessions)
-    .set({
-      projectConfig: Object.keys(base).length ? base : undefined,
-      updatedAt: new Date(),
-    })
-    .where(and(eq(sessions.id, id), eq(sessions.userId, String(auth.userId))))
-    .returning({ id: sessions.id, projectConfig: sessions.projectConfig });
-
-  return NextResponse.json({ success: true, projectConfig: updated?.projectConfig });
 }

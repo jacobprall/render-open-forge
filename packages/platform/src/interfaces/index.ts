@@ -14,3 +14,20 @@ export type {
   GetObjectResult,
   S3StorageConfig,
 } from "./storage";
+export type { CacheAdapter } from "./cache";
+export { RedisCacheAdapter, MemoryCacheAdapter } from "./cache";
+export type { CIDispatcher, CIJobInput, CIDispatchResult } from "./ci-dispatcher";
+export { RenderWorkflowsDispatcher, NoopCIDispatcher } from "./ci-dispatcher";
+export type {
+  NotificationSink,
+  NotificationPayload,
+  NotificationLevel,
+} from "./notification-sink";
+export {
+  ConsoleSink,
+  WebhookSink,
+  CompositeSink,
+  NoopSink,
+} from "./notification-sink";
+export type { AuthProvider } from "./auth-provider";
+export { StaticTokenAuthProvider, CompositeAuthProvider } from "./auth-provider";

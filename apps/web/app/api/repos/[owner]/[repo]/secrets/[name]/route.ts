@@ -1,37 +1,32 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getSession } from "@/lib/auth/session"
-import { createForgeProvider } from "@/lib/forgejo/client"
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string; name: string }> },
 ) {
-  const session = await getSession()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const auth = await requireAuth();
+  const { owner, repo, name } = await params;
 
-  const { owner, repo, name } = await params
-
-  let body: { value?: string }
+  let body: { value?: string };
   try {
-    body = (await req.json()) as { value?: string }
+    body = (await req.json()) as { value?: string };
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-
-  if (typeof body.value !== "string" || body.value.length === 0) {
-    return NextResponse.json({ error: "Secret value is required" }, { status: 400 })
-  }
-
-  const forge = createForgeProvider(session.forgejoToken)
 
   try {
-    await forge.secrets.set(owner, repo, name, body.value)
-    return NextResponse.json({ ok: true })
+    await getPlatform().repos.setSecret(auth, owner, repo, name, body.value ?? "");
+    return NextResponse.json({ ok: true });
   } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to set secret" },
       { status: 502 },
-    )
+    );
   }
 }
 
@@ -39,19 +34,19 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ owner: string; repo: string; name: string }> },
 ) {
-  const session = await getSession()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-  const { owner, repo, name } = await params
-  const forge = createForgeProvider(session.forgejoToken)
+  const auth = await requireAuth();
+  const { owner, repo, name } = await params;
 
   try {
-    await forge.secrets.delete(owner, repo, name)
-    return NextResponse.json({ ok: true })
+    await getPlatform().repos.deleteSecret(auth, owner, repo, name);
+    return NextResponse.json({ ok: true });
   } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to delete secret" },
       { status: 502 },
-    )
+    );
   }
 }

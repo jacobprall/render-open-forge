@@ -21,6 +21,7 @@
     "typecheck": "turbo typecheck",
     "web": "cd apps/web && bun run dev",
     "worker": "cd apps/agent && bun run src/worker.ts",
+    "gateway": "cd apps/gateway && bun run dev",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
     "infra:logs": "docker compose logs -f",

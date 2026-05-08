@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ owner: string; repo: string; artifactId: string }> },
 ) {
-  const auth = await getSession();
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const auth = await requireAuth();
   const { owner, repo, artifactId } = await params;
-  const forge = createForgeProvider(auth.forgejoToken);
 
   try {
-    const data = await forge.ci.downloadArtifact(owner, repo, artifactId);
+    const data = await getPlatform().repos.downloadArtifact(auth, owner, repo, artifactId);
     return new Response(data, {
       headers: {
         "Content-Type": "application/octet-stream",
@@ -21,6 +18,9 @@ export async function GET(
       },
     });
   } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Download failed" },
       { status: 502 },

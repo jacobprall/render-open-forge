@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ org: string; name: string }> },
 ) {
-  const auth = await getSession();
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const auth = await requireAuth();
   const { org, name } = await params;
-  const forge = createForgeProvider(auth.forgejoToken);
 
   try {
-    await forge.orgs.secrets.delete(org, name);
+    await getPlatform().orgs.deleteSecret(auth, org, name);
     return NextResponse.json({ ok: true });
   } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to delete org secret" },
       { status: 502 },

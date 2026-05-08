@@ -1,16 +1,24 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ org: string }> },
 ) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const auth = await requireAuth();
   const { org } = await params;
-  const forge = createForgeProvider(session.forgejoToken);
-  await forge.orgs.delete(org);
-  return new NextResponse(null, { status: 204 });
+
+  try {
+    await getPlatform().orgs.deleteOrg(auth, org);
+    return new NextResponse(null, { status: 204 });
+  } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to delete org" },
+      { status: 502 },
+    );
+  }
 }

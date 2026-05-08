@@ -182,6 +182,47 @@ services:
       - key: FORGEJO__storage__MINIO_USE_SSL
         value: "false"
 
+  # Gateway (headless REST + MCP API)
+  - type: web
+    name: forge-gateway
+    runtime: docker
+    plan: starter
+    dockerfilePath: apps/gateway/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: forge-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: forge-redis
+          type: keyvalue
+          property: connectionString
+      - key: GATEWAY_API_SECRET
+        generateValue: true
+      - key: FORGEJO_INTERNAL_URL
+        value: http://forge-forgejo:3000
+      - key: FORGEJO_AGENT_TOKEN
+        sync: false
+      - key: FORGEJO_WEBHOOK_SECRET
+        sync: false
+      - key: CI_RUNNER_SECRET
+        fromService:
+          name: forge-web
+          type: web
+          envVarKey: CI_RUNNER_SECRET
+      - key: ENCRYPTION_KEY
+        fromService:
+          name: forge-web
+          type: web
+          envVarKey: ENCRYPTION_KEY
+      - key: GATEWAY_PORT
+        value: "4100"
+      - key: NODE_ENV
+        value: production
+
   # CI Runner (Render Workflows)
   # Note: Render Workflows doesn't yet support Blueprint definitions.
   # Deploy this as a worker that registers tasks with the Render SDK.

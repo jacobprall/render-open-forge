@@ -1,47 +1,63 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { ApiError, withApiHandler } from "@/lib/api";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 const postBodySchema = z.object({
   name: z.string().min(1),
   value: z.string().min(1),
 });
 
-export const GET = withApiHandler({}, async ({ session, params }) => {
-  const auth = session!;
-  const { org } = params;
-
-  const forge = createForgeProvider(auth.forgejoToken);
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ org: string }> },
+) {
+  const auth = await requireAuth();
+  const { org } = await params;
 
   try {
-    const secrets = await forge.orgs.secrets.list(org);
+    const secrets = await getPlatform().orgs.listSecrets(auth, org);
     return NextResponse.json({ secrets });
   } catch (e) {
-    throw new ApiError(
-      "UPSTREAM_ERROR",
-      e instanceof Error ? e.message : "Failed to list org secrets",
-      502,
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to list org secrets" },
+      { status: 502 },
     );
   }
-});
+}
 
-export const POST = withApiHandler(
-  { bodySchema: postBodySchema },
-  async ({ session, params, body }) => {
-    const auth = session!;
-    const { org } = params;
+export async function POST(req: Request, { params }: { params: Promise<{ org: string }> }) {
+  const auth = await requireAuth();
+  const { org } = await params;
 
-    const forge = createForgeProvider(auth.forgejoToken);
-    try {
-      await forge.orgs.secrets.set(org, body.name, body.value);
-      return NextResponse.json({ ok: true });
-    } catch (e) {
-      throw new ApiError(
-        "UPSTREAM_ERROR",
-        e instanceof Error ? e.message : "Failed to create org secret",
-        502,
-      );
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const parsed = postBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid input", details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+
+  try {
+    await getPlatform().orgs.setSecret(auth, org, parsed.data.name, parsed.data.value);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
     }
-  },
-);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to create org secret" },
+      { status: 502 },
+    );
+  }
+}

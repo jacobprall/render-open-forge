@@ -1,28 +1,20 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db";
-import { prEvents } from "@render-open-forge/db";
-import { eq, and, sql } from "drizzle-orm";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 export async function GET() {
-  const userSession = await getSession();
-  if (!userSession) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth();
 
-  const db = getDb();
-  const userId = String(userSession.userId);
-
-  const [result] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(prEvents)
-    .where(
-      and(
-        eq(prEvents.userId, userId),
-        eq(prEvents.actionNeeded, true),
-        eq(prEvents.read, false),
-      ),
+  try {
+    const count = await getPlatform().inbox.countUnread(auth);
+    return NextResponse.json({ count });
+  } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to get count" },
+      { status: 502 },
     );
-
-  return NextResponse.json({ count: result?.count ?? 0 });
+  }
 }

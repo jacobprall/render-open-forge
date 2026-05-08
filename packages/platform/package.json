@@ -15,7 +15,8 @@
     "./forgejo": "./src/forgejo/index.ts",
     "./interfaces": "./src/interfaces/index.ts",
     "./services": "./src/services/index.ts",
-    "./storage": "./src/storage/index.ts"
+    "./storage": "./src/storage/index.ts",
+    "./container": "./src/container.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
@@ -23,15 +24,19 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3",
     "@aws-sdk/s3-request-presigner": "^3",
-    "@render-open-forge/shared": "workspace:*",
     "@render-open-forge/db": "workspace:*",
+    "@render-open-forge/shared": "workspace:*",
     "@render-open-forge/skills": "workspace:*",
+    "@renderinc/sdk": "^0.5.0",
+    "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.1",
     "ioredis": "^5.9.2",
     "postgres": "^3.4.5",
+    "yaml": "^2.7.1",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/bun": "1.3.12",
     "@types/node": "^22",
     "typescript": "^5"

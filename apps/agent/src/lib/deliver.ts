@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { sessions } from "@render-open-forge/db";
-import { getDb } from "../db";
+import type { PlatformDb } from "@render-open-forge/platform";
 
 interface SessionForDelivery {
   prNumber: number | null;
@@ -11,7 +11,7 @@ export function isDeliverComplete(session: SessionForDelivery): boolean {
   return session.prNumber != null && session.prStatus === "merged";
 }
 
-export async function transitionToComplete(db: ReturnType<typeof getDb>, sessionId: string): Promise<void> {
+export async function transitionToComplete(db: PlatformDb, sessionId: string): Promise<void> {
   const now = new Date();
   await db
     .update(sessions)

@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db";
-import { createMirror, listMirrors } from "@/lib/sync/mirror-engine";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 import { paginationSchema, paginatedResponse } from "@/lib/api/pagination";
 
 export async function GET(request: NextRequest) {
-  const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth();
 
   const paginationParsed = paginationSchema.safeParse(
     Object.fromEntries(request.nextUrl.searchParams),
@@ -21,22 +17,30 @@ export async function GET(request: NextRequest) {
   }
   const params = paginationParsed.data;
 
-  const db = getDb();
-  const rows = await listMirrors(db, String(session.userId), params);
-  const page = paginatedResponse(rows, params);
-
-  return NextResponse.json({
-    mirrors: page.data,
-    data: page.data,
-    pagination: page.pagination,
-  });
+  try {
+    const rows = await getPlatform().mirrors.list(auth, {
+      limit: params.limit,
+      offset: params.offset,
+    });
+    const page = paginatedResponse(rows, params);
+    return NextResponse.json({
+      mirrors: page.data,
+      data: page.data,
+      pagination: page.pagination,
+    });
+  } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to list mirrors" },
+      { status: 502 },
+    );
+  }
 }
 
 export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth();
 
   let body: {
     syncConnectionId: string;
@@ -53,26 +57,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  if (!body.syncConnectionId || !body.forgejoRepoPath || !body.remoteRepoUrl || !body.direction) {
-    return NextResponse.json(
-      { error: "Missing required fields: syncConnectionId, forgejoRepoPath, remoteRepoUrl, direction" },
-      { status: 400 },
-    );
-  }
-
-  const validDirections = ["pull", "push", "bidirectional"] as const;
-  if (!validDirections.includes(body.direction)) {
-    return NextResponse.json(
-      { error: `Invalid direction. Must be one of: ${validDirections.join(", ")}` },
-      { status: 400 },
-    );
-  }
-
-  const db = getDb();
-
   try {
-    const mirror = await createMirror(db, {
-      userId: String(session.userId),
+    const mirror = await getPlatform().mirrors.create(auth, {
       syncConnectionId: body.syncConnectionId,
       forgejoRepoPath: body.forgejoRepoPath,
       remoteRepoUrl: body.remoteRepoUrl,
@@ -82,6 +68,9 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ mirror }, { status: 201 });
   } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to create mirror" },
       { status: 500 },

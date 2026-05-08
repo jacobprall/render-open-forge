@@ -144,6 +144,31 @@ export class SessionService {
   }
 
   // -------------------------------------------------------------------------
+  // archive — server action / API
+  // -------------------------------------------------------------------------
+
+  async archive(auth: AuthContext, sessionId: string): Promise<void> {
+    const [row] = await this.db
+      .select({ id: sessions.id, status: sessions.status })
+      .from(sessions)
+      .where(and(eq(sessions.id, sessionId), eq(sessions.userId, auth.userId)))
+      .limit(1);
+
+    if (!row) throw new SessionNotFoundError();
+    if (row.status === "running") {
+      throw new ValidationError("Cannot archive a running session");
+    }
+    if (row.status === "archived") {
+      throw new ValidationError("Session is already archived");
+    }
+
+    await this.db
+      .update(sessions)
+      .set({ status: "archived", updatedAt: new Date() })
+      .where(and(eq(sessions.id, sessionId), eq(sessions.userId, auth.userId)));
+  }
+
+  // -------------------------------------------------------------------------
   // sendMessage — POST /api/sessions/[id]/message
   // -------------------------------------------------------------------------
 

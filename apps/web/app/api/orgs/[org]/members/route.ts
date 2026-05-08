@@ -1,52 +1,74 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ org: string }> },
 ) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const auth = await requireAuth();
   const { org } = await params;
-  const forge = createForgeProvider(session.forgejoToken);
-  const members = await forge.orgs.listMembers(org);
-  return NextResponse.json(members);
+
+  try {
+    const members = await getPlatform().orgs.listMembers(auth, org);
+    return NextResponse.json(members);
+  } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to list members" },
+      { status: 502 },
+    );
+  }
 }
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ org: string }> },
 ) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const auth = await requireAuth();
   const { org } = await params;
   const { username } = await request.json();
   if (!username) {
     return NextResponse.json({ error: "username is required" }, { status: 400 });
   }
 
-  const forge = createForgeProvider(session.forgejoToken);
-  await forge.orgs.addMember(org, username);
-  return new NextResponse(null, { status: 204 });
+  try {
+    await getPlatform().orgs.addMember(auth, org, username);
+    return new NextResponse(null, { status: 204 });
+  } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to add member" },
+      { status: 502 },
+    );
+  }
 }
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ org: string }> },
 ) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const auth = await requireAuth();
   const { org } = await params;
   const { username } = await request.json();
   if (!username) {
     return NextResponse.json({ error: "username is required" }, { status: 400 });
   }
 
-  const forge = createForgeProvider(session.forgejoToken);
-  await forge.orgs.removeMember(org, username);
-  return new NextResponse(null, { status: 204 });
+  try {
+    await getPlatform().orgs.removeMember(auth, org, username);
+    return new NextResponse(null, { status: 204 });
+  } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to remove member" },
+      { status: 502 },
+    );
+  }
 }

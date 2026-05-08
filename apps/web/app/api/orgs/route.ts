@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 const createOrgBodySchema = z.object({
   login: z.string().min(1).max(40),
@@ -10,17 +10,24 @@ const createOrgBodySchema = z.object({
 });
 
 export async function GET() {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAuth();
 
-  const forge = createForgeProvider(session.forgejoToken);
-  const orgs = await forge.orgs.list();
-  return NextResponse.json(orgs);
+  try {
+    const orgs = await getPlatform().orgs.listOrgs(auth);
+    return NextResponse.json(orgs);
+  } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to list orgs" },
+      { status: 502 },
+    );
+  }
 }
 
 export async function POST(request: Request) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAuth();
 
   const body = await request.json();
   const parsed = createOrgBodySchema.safeParse(body);
@@ -31,9 +38,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const { login, fullName, description } = parsed.data;
-
-  const forge = createForgeProvider(session.forgejoToken);
-  const org = await forge.orgs.create(login, { fullName, description });
-  return NextResponse.json(org, { status: 201 });
+  try {
+    const org = await getPlatform().orgs.createOrg(auth, parsed.data);
+    return NextResponse.json(org, { status: 201 });
+  } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to create org" },
+      { status: 502 },
+    );
+  }
 }

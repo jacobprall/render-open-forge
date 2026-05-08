@@ -1,8 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { requireAuth, getPlatform } from "@/lib/platform";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -28,18 +27,21 @@ export async function mergePullRequestAction(
   number: number,
   method: string,
 ): Promise<{ error?: string }> {
-  const session = await getSession();
-  if (!session) redirect("/");
+  let auth;
+  try {
+    auth = await requireAuth();
+  } catch {
+    redirect("/");
+  }
 
   const parsed = mergePullRequestSchema.safeParse({ owner, repo, number, method });
   if (!parsed.success) {
     return { error: "Invalid input" };
   }
 
-  const forge = createForgeProvider(session.forgejoToken);
   try {
     const { owner: o, repo: r, number: n, method: m } = parsed.data;
-    await forge.pulls.merge(o, r, n, m);
+    await getPlatform().pullRequests.mergePullRequest(auth, o, r, n, m);
     revalidatePath(`/${parsed.data.owner}/${parsed.data.repo}/pulls/${parsed.data.number}`);
     return {};
   } catch (e) {
@@ -55,8 +57,12 @@ export async function createPullRequestAction(
   head: string,
   base: string,
 ): Promise<{ number?: number; error?: string }> {
-  const session = await getSession();
-  if (!session) redirect("/");
+  let auth;
+  try {
+    auth = await requireAuth();
+  } catch {
+    redirect("/");
+  }
 
   const parsed = createPullRequestSchema.safeParse({
     owner,
@@ -70,18 +76,15 @@ export async function createPullRequestAction(
     return { error: "Invalid input" };
   }
 
-  const forge = createForgeProvider(session.forgejoToken);
   try {
     const { owner: o, repo: r, title: t, body: b, head: h, base: baseBranch } = parsed.data;
-    const pr = await forge.pulls.create({
-      owner: o,
-      repo: r,
+    const result = await getPlatform().pullRequests.createPullRequest(auth, o, r, {
       title: t,
       body: b,
       head: h,
       base: baseBranch,
     });
-    return { number: pr.number };
+    return { number: result.number };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to create pull request" };
   }

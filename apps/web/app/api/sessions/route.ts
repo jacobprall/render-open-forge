@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db";
-import { sessions, chats } from "@render-open-forge/db";
+import { getPlatform, requireAuth } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
 const activeSkillRefSchema = z.object({
   source: z.enum(["builtin", "user", "repo"]),
@@ -17,10 +16,7 @@ const createSessionBodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const userSession = await getSession();
-  if (!userSession) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth();
 
   const body = await req.json();
   const parsed = createSessionBodySchema.safeParse(body);
@@ -31,33 +27,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { repoPath, branch, title: rawTitle, activeSkills } = parsed.data;
-
-  const title = (rawTitle && String(rawTitle).trim()) || "New session";
-
-  const db = getDb();
-  const sessionId = crypto.randomUUID();
-  const chatId = crypto.randomUUID();
-
-  await db.insert(sessions).values({
-    id: sessionId,
-    userId: String(userSession.userId),
-    forgeUsername: userSession.username,
-    title,
-    status: "running",
-    forgejoRepoPath: repoPath,
-    branch,
-    baseBranch: "main",
-    phase: "execute",
-    workflowMode: "standard",
-    activeSkills: Array.isArray(activeSkills) && activeSkills.length > 0 ? activeSkills : null,
-  });
-
-  await db.insert(chats).values({
-    id: chatId,
-    sessionId,
-    title,
-  });
-
-  return NextResponse.json({ sessionId });
+  try {
+    const result = await getPlatform().sessions.create(auth, parsed.data);
+    return NextResponse.json(result);
+  } catch (err) {
+    if (err instanceof Response) throw err;
+    if (err instanceof AppError) {
+      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
+    }
+    throw err;
+  }
 }

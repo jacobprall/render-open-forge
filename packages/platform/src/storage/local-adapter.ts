@@ -61,7 +61,6 @@ export class LocalStorageAdapter implements StorageAdapter {
   async get(key: string): Promise<GetObjectResult> {
     const filePath = this.keyToPath(key);
 
-    let stat: fsp.FileHandle | undefined;
     try {
       await fsp.access(filePath);
     } catch {

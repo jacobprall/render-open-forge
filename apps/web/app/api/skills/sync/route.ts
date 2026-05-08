@@ -1,16 +1,20 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
-import { ensureUserSkillsRepo } from "@render-open-forge/skills";
+import { requireAuth, getPlatform } from "@/lib/platform";
+import { AppError } from "@render-open-forge/shared";
 
-/** Optional: re-ensure user skills repo and seed. Full DB cache sync can be added later. */
 export async function POST() {
-  const auth = await getSession();
-  if (!auth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth();
 
-  const forge = createForgeProvider(auth.forgejoToken);
-  await ensureUserSkillsRepo(forge, auth.username);
-  return NextResponse.json({ ok: true });
+  try {
+    await getPlatform().skills.syncSkills(auth);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    if (e instanceof AppError) {
+      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    }
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to sync skills" },
+      { status: 502 },
+    );
+  }
 }

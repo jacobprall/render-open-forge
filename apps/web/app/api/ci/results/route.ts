@@ -1,33 +1,12 @@
-import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { logger } from "@render-open-forge/shared";
-import { getDb } from "@/lib/db";
-import { handleCIResult } from "@/lib/ci/result-handler";
-import { ciResultPayloadSchema } from "@/lib/ci/ci-result-schema";
+import { logger, ValidationError } from "@render-open-forge/shared";
+import { ciResultPayloadSchema } from "@render-open-forge/platform/services";
+import { getPlatform } from "@/lib/platform";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function timingSafeEqualUtf8(a: string, b: string): boolean {
-  const ba = Buffer.from(a, "utf8");
-  const bb = Buffer.from(b, "utf8");
-  if (ba.length !== bb.length) return false;
-  return timingSafeEqual(ba, bb);
-}
-
-/**
- * Callback endpoint for Render Workflows CI runner tasks.
- * The ci-runner task POSTs results here after completing a CI job.
- */
 export async function POST(request: NextRequest) {
-  const secret = process.env.CI_RUNNER_SECRET;
-  if (secret) {
-    const provided = request.headers.get("x-ci-secret") ?? "";
-    if (!timingSafeEqualUtf8(provided, secret)) {
-      return NextResponse.json({ error: "Invalid secret" }, { status: 401 });
-    }
-  }
-
   let body: unknown;
   try {
     body = await request.json();
@@ -43,10 +22,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const secret = request.headers.get("x-ci-secret") ?? "";
+
   try {
-    const db = getDb();
-    await handleCIResult(db, parsed.data);
+    await getPlatform().ci.handleResult(secret, parsed.data);
   } catch (err) {
+    if (err instanceof ValidationError) {
+      return NextResponse.json({ error: err.message }, { status: 401 });
+    }
     logger.errorWithCause(err, "ci results callback failed", {});
     return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }

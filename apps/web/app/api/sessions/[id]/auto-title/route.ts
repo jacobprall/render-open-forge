@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { generateAutoTitle } from "@/lib/sessions/auto-title";
+import { getPlatform, requireAuth } from "@/lib/platform";
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
-  const userSession = await getSession();
-  if (!userSession) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const [{ id }, auth] = await Promise.all([params, requireAuth()]);
 
-  const result = await generateAutoTitle(id, String(userSession.userId));
+  const result = await getPlatform().sessions.generateAutoTitle(id, auth.userId);
 
   if (!result.ok) {
     if (result.reason === "no-api-key") {

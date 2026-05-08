@@ -1,14 +1,27 @@
 import Redis from "ioredis";
 import { eq } from "drizzle-orm";
 import { agentRuns, chats } from "@render-open-forge/db";
-import { ensureConsumerGroup, readOneJob, ackJob, reclaimStalePending, publishRunEvent, type ValidatedAgentJob } from "@render-open-forge/platform";
+import {
+  ensureConsumerGroup,
+  readOneJob,
+  ackJob,
+  reclaimStalePending,
+  createPlatform,
+  type PlatformContainer,
+  type ValidatedAgentJob,
+} from "@render-open-forge/platform";
 import { runAgentTurn } from "./agent";
 import { fetchAvailableModels } from "./models";
-import { getDb } from "./db";
 
 const REDIS_URL = process.env.REDIS_URL;
 if (!REDIS_URL) {
   console.error("REDIS_URL is required");
+  process.exit(1);
+}
+
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error("DATABASE_URL is required");
   process.exit(1);
 }
 
@@ -48,8 +61,8 @@ async function heartbeat(redis: Redis): Promise<void> {
   }
 }
 
-async function finalizeDeadLetter(redis: Redis, job: ValidatedAgentJob): Promise<void> {
-  const db = getDb();
+async function finalizeDeadLetter(platform: PlatformContainer, job: ValidatedAgentJob): Promise<void> {
+  const { db, events } = platform;
   const finishedAt = new Date();
   const [row] = await db
     .select({ startedAt: agentRuns.startedAt })
@@ -76,11 +89,11 @@ async function finalizeDeadLetter(redis: Redis, job: ValidatedAgentJob): Promise
     requestId: job.requestId,
     retryable: false,
   });
-  await publishRunEvent(redis, job.runId, payload);
-  await redis.set(`run:${job.runId}:status`, "failed", "EX", 3600);
+  await events.publish(job.runId, payload);
+  await events.setKey(`run:${job.runId}:status`, "failed", 3600);
 }
 
-async function reclaimLoop(redis: Redis): Promise<void> {
+async function reclaimLoop(redis: Redis, platform: PlatformContainer): Promise<void> {
   while (!shuttingDown) {
     await new Promise((r) => setTimeout(r, RECLAIM_INTERVAL_MS));
     try {
@@ -90,7 +103,7 @@ async function reclaimLoop(redis: Redis): Promise<void> {
           runId: job.runId,
           sessionId: job.sessionId,
         });
-        await finalizeDeadLetter(redis, job).catch((err) =>
+        await finalizeDeadLetter(platform, job).catch((err) =>
           console.error("[worker] Failed to finalize dead letter", err),
         );
       }
@@ -100,17 +113,14 @@ async function reclaimLoop(redis: Redis): Promise<void> {
   }
 }
 
-async function processJob(redis: Redis, streamId: string, job: ValidatedAgentJob): Promise<void> {
-  const jobRedis = createRedis(`job-${job.runId}`);
+async function processJob(redis: Redis, streamId: string, job: ValidatedAgentJob, platform: PlatformContainer): Promise<void> {
   try {
-    await runAgentTurn(job, jobRedis);
+    await runAgentTurn(job, redis, platform);
     await ackJob(redis, streamId);
   } catch (err) {
     console.error(`Job ${job.runId} failed — leaving in PEL for reclaim/retry`, err);
     // Do NOT ack: leave the entry in the Pending Entry List so
     // reclaimStalePending() can re-enqueue it (up to maxRetries).
-  } finally {
-    jobRedis.disconnect();
   }
 }
 
@@ -120,6 +130,11 @@ async function main() {
   const redis = createRedis("main");
   const heartbeatRedis = createRedis("heartbeat");
 
+  const platform = createPlatform({
+    databaseUrl: DATABASE_URL!,
+    redis,
+  });
+
   await ensureConsumerGroup(redis);
 
   console.info(
@@ -127,7 +142,7 @@ async function main() {
   );
 
   void heartbeat(heartbeatRedis).catch((err) => console.error("Heartbeat failed", err));
-  void reclaimLoop(redis).catch((err) => console.error("Reclaim loop failed", err));
+  void reclaimLoop(redis, platform).catch((err) => console.error("Reclaim loop failed", err));
 
   while (true) {
     if (shuttingDown && active === 0) break;
@@ -157,7 +172,7 @@ async function main() {
     console.info(`[worker] Processing job: runId=${job.runId} sessionId=${job.sessionId} skills=${job.resolvedSkills.length}`);
 
     active++;
-    void processJob(redis, streamId, job).finally(() => {
+    void processJob(redis, streamId, job, platform).finally(() => {
       active--;
     });
   }
