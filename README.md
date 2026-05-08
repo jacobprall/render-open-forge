@@ -51,12 +51,6 @@ graph LR
     Forgejo -->|"LFS, attachments, avatars"| MinIO
 ```
 
-### Separation of concerns
-
-The agent does not run inside the execution environment. It runs alongside it and interacts through tools — file read/write, shell execution, grep, git, glob — over an internal HTTP API. The sandbox has no knowledge of the agent protocol or model being used. The two can be scaled, replaced, and debugged independently.
-
-No application service contains business logic directly. All three apps (web, gateway, agent) create one `PlatformContainer` at startup and use the same typed service layer. Route handlers are thin adapters.
-
 ## Repo layout
 
 ```
