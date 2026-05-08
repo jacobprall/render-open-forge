@@ -4,6 +4,7 @@ services:
     name: openforge-web
     runtime: node
     plan: starter
+    autoDeploy: false
     buildCommand: bun install && npx turbo build --filter=@openforge/web
     startCommand: cd apps/web && bun run start
     healthCheckPath: /api/health
@@ -49,6 +50,7 @@ services:
     name: openforge-agent
     runtime: node
     plan: starter
+    autoDeploy: false
     buildCommand: bun install && npx turbo build --filter=@openforge/agent
     startCommand: cd apps/agent && bun run start
     envVars:
@@ -84,6 +86,7 @@ services:
     name: openforge-sandbox
     runtime: docker
     plan: standard
+    autoDeploy: false
     dockerfilePath: packages/sandbox/Dockerfile
     dockerContext: .
     healthCheckPath: /health
@@ -106,6 +109,7 @@ services:
     name: openforge-minio
     runtime: docker
     plan: starter
+    autoDeploy: false
     dockerfilePath: infrastructure/minio/Dockerfile
     dockerContext: infrastructure/minio
     healthCheckPath: /minio/health/live
@@ -126,6 +130,7 @@ services:
     name: openforge-forgejo
     runtime: docker
     plan: standard
+    autoDeploy: false
     dockerfilePath: infrastructure/forgejo/Dockerfile
     dockerContext: infrastructure/forgejo
     healthCheckPath: /api/v1/version
@@ -189,6 +194,7 @@ services:
     name: openforge-gateway
     runtime: docker
     plan: starter
+    autoDeploy: false
     dockerfilePath: apps/gateway/Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
