@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 
 export async function GET(
   _request: Request,
@@ -13,8 +13,8 @@ export async function GET(
     const members = await getPlatform().orgs.listMembers(auth, org);
     return NextResponse.json(members);
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to list members" },
@@ -38,8 +38,8 @@ export async function PUT(
     await getPlatform().orgs.addMember(auth, org, username);
     return new NextResponse(null, { status: 204 });
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to add member" },
@@ -63,8 +63,8 @@ export async function DELETE(
     await getPlatform().orgs.removeMember(auth, org, username);
     return new NextResponse(null, { status: 204 });
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to remove member" },

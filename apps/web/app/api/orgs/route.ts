@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 
 const createOrgBodySchema = z.object({
   login: z.string().min(1).max(40),
@@ -16,8 +16,8 @@ export async function GET() {
     const orgs = await getPlatform().orgs.listOrgs(auth);
     return NextResponse.json(orgs);
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to list orgs" },
@@ -42,8 +42,8 @@ export async function POST(request: Request) {
     const org = await getPlatform().orgs.createOrg(auth, parsed.data);
     return NextResponse.json(org, { status: 201 });
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to create org" },

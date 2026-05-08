@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { logger } from "@render-open-forge/shared";
-import { ValidationError } from "@render-open-forge/shared";
 import { getPlatform } from "@/lib/platform";
+import { isPlatformError } from "@/lib/api/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   try {
     await webhooks.handleGithubWebhook(rawBody, signature);
   } catch (err) {
-    if (err instanceof ValidationError) {
+    if (isPlatformError(err)) {
       return NextResponse.json({ error: err.message }, { status: 401 });
     }
     throw err;

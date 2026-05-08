@@ -5,6 +5,7 @@ import {
 } from "@render-open-forge/platform/container";
 
 let _platform: PlatformContainer | undefined;
+let _redis: Redis | undefined;
 
 export function getPlatform(): PlatformContainer {
   if (!_platform) {
@@ -18,14 +19,21 @@ export function getPlatform(): PlatformContainer {
       ? redisUrl
       : `redis://${redisUrl}`;
 
+    _redis = new Redis(normalized, {
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+      connectionName: "gateway",
+    });
+
     _platform = createPlatform({
       databaseUrl,
-      redis: new Redis(normalized, {
-        maxRetriesPerRequest: 3,
-        lazyConnect: true,
-        connectionName: "gateway",
-      }),
+      redis: _redis,
     });
   }
   return _platform;
+}
+
+export function getRedis(): Redis {
+  getPlatform();
+  return _redis!;
 }

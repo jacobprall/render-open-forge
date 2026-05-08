@@ -1,7 +1,7 @@
 import { after, NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 
 const postMessageBodySchema = z.object({
   content: z.string().min(1).max(100_000),
@@ -44,8 +44,9 @@ export async function POST(
     return NextResponse.json({ success: true, messageId: result.messageId, runId: result.runId });
   } catch (err) {
     if (err instanceof Response) throw err;
-    if (err instanceof AppError) {
-      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
+    if (isPlatformError(err)) {
+      const details = "details" in err ? (err as Record<string, unknown>).details : undefined;
+      return NextResponse.json({ error: err.message, ...(details ? { details } : {}) }, { status: err.httpStatus });
     }
     throw err;
   }

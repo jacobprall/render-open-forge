@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 
 const activeSkillRefSchema = z.object({
   source: z.enum(["builtin", "user", "repo"]),
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof Response) throw err;
-    if (err instanceof AppError) {
+    if (isPlatformError(err)) {
       return NextResponse.json({ error: err.message }, { status: err.httpStatus });
     }
     throw err;

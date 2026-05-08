@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 
 const phaseBodySchema = z.object({
   phase: z.string().min(1),
@@ -24,7 +24,7 @@ export async function POST(
     return NextResponse.json({ success: true, phase: parsed.data.phase });
   } catch (err) {
     if (err instanceof Response) throw err;
-    if (err instanceof AppError) {
+    if (isPlatformError(err)) {
       return NextResponse.json({ error: err.message }, { status: err.httpStatus });
     }
     throw err;

@@ -16,21 +16,29 @@ Built on Forgejo, a Bun-based agent worker, **Render Workflows for CI execution*
 
 ## Architecture
 
-A three-tier system:
+A four-tier system with a pluggable service layer:
 
 ```mermaid
 graph LR
     subgraph Clients
         direction TB
         Browser["Browser"]
+        CLI["CLI / MCP clients"]
         LLM["LLM APIs · Anthropic · OpenAI"]
     end
 
     subgraph Application
         direction TB
         Web["forge-web · Next.js"]
+        Gateway["forge-gateway · Hono"]
         Agent["forge-agent · Bun worker"]
         CI["forge-ci · Render Workflows"]
+    end
+
+    subgraph Platform["packages/platform"]
+        direction TB
+        Services["13 services · composition root"]
+        Adapters["pluggable adapters"]
     end
 
     subgraph Infrastructure
@@ -42,31 +50,44 @@ graph LR
         Postgres[("Postgres")]
     end
 
+    Web --> Services
+    Gateway --> Services
+    Agent --> Services
     Forgejo -->|"LFS, attachments, avatars, packages"| MinIO
 ```
 
-- **forge-web**: Next.js app serving auth, chat UI, REST API, SSE streaming, and the forge browser.
-- **forge-agent**: persistent Bun worker. Reads jobs from Redis Streams, runs multi-step LLM execution, streams results back.
+- **forge-web**: Next.js app serving auth, chat UI, SSE streaming, and the forge browser. Route handlers are thin adapters calling platform services.
+- **forge-gateway**: lightweight Hono server exposing all platform operations via REST, SSE, and MCP. Runs headlessly on port 4100 — no browser required. Includes OpenAPI docs at `/api/docs/ui`.
+- **forge-agent**: persistent Bun worker. Reads jobs from Redis Streams, runs multi-step LLM execution via platform services, streams results back.
 - **forge-ci**: Render Workflows task worker. Clones repos, runs CI shell steps, posts results to the web app.
 - **forge-sandbox**: isolated Docker container (no public IP, bearer-token auth). Filesystem, shell, git, and search over an internal HTTP API.
 - **forge-forgejo**: Forgejo running as a private service. Repos, PRs, code review, branch protection, orgs, CI workflow definitions.
-- **forge-minio**: S3-compatible object storage (MinIO). Forgejo stores LFS objects, attachments, avatars, packages, and repo-archives here instead of local disk, providing durability independent of the Forgejo container. Swappable for AWS S3 or any S3-compatible service by changing the endpoint and credentials.
+- **forge-minio**: S3-compatible object storage (MinIO). Forgejo stores LFS objects, attachments, avatars, packages, and repo-archives here instead of local disk. Swappable for AWS S3 or any S3-compatible service.
+- **packages/platform**: framework-agnostic service layer with 13 domain services, pluggable adapters (storage, cache, CI dispatcher, notification sink, auth provider), and a composition root. Every app creates one `PlatformContainer` at startup.
 - **Postgres**: all application state via Drizzle ORM.
-- **Redis (Valkey)**: job queue (Streams), Pub/Sub for SSE, worker heartbeats.
+- **Redis (Valkey)**: job queue (Streams), Pub/Sub for SSE, cache, worker heartbeats.
 
 ## Repo layout
 
 ```
-apps/web                 Next.js 15 app: auth, sessions, chat UI, forge browser, REST API, SSE, CI dispatch & callbacks
-apps/agent               Agent worker: tools, skills, subagents, Redis consumer
-apps/ci-runner           Render Workflows task worker: clone repo, run `run:` steps, POST results to web app
-packages/db              Shared Drizzle schema
-packages/sandbox         Sandbox HTTP adapter + Bun server + Docker image
-packages/shared          Shared types, forge provider abstraction, queue helpers
-packages/skills          Skill types, resolution, builtins, provisioning, parsing
-infrastructure/forgejo   Forgejo Dockerfile + app.ini config + setup script
-infrastructure/minio     MinIO Dockerfile + entrypoint (S3-compatible object storage for Forgejo)
-infrastructure/runner    Legacy Forgejo Actions runner image (optional, not used by the default Render blueprint)
+apps/
+  web/                   Next.js 15 app: auth, sessions, chat UI, forge browser, SSE
+  gateway/               Hono headless API: REST, SSE, MCP, OpenAPI docs (port 4100)
+  agent/                 Agent worker: tools, skills, subagents, Redis consumer
+  ci-runner/             Render Workflows task worker: clone, run steps, POST results
+
+packages/
+  platform/              Framework-agnostic service layer: 13 services, pluggable adapters, composition root
+  db/                    Shared Drizzle ORM schema and migrations
+  shared/                Shared types, errors, constants, stream events
+  ui/                    Client-side React hooks and utilities
+  skills/                Skill types, resolution, builtins, provisioning, parsing
+  sandbox/               Sandbox HTTP adapter + Bun server + Docker image
+
+infrastructure/
+  forgejo/               Forgejo Dockerfile + app.ini config + setup script
+  minio/                 MinIO Dockerfile + entrypoint (S3-compatible object storage)
+  runner/                Legacy Forgejo Actions runner image (optional)
 ```
 
 ## Local development
@@ -139,6 +160,14 @@ bun run dev
 
 This starts Next.js on `http://localhost:4000` and the agent worker side by side via Turborepo. Sign in with your `ADMIN_EMAIL` / `ADMIN_PASSWORD` credentials (auto-created on first startup).
 
+**7. (Optional) Start the headless gateway**
+
+```bash
+bun run gateway
+```
+
+This starts the Hono gateway on `http://localhost:4100`. Authenticate with `Authorization: Bearer <GATEWAY_API_SECRET>`. OpenAPI docs are at `http://localhost:4100/api/docs/ui`.
+
 ### Useful commands
 
 ```bash
@@ -147,6 +176,7 @@ bun run infra:down     # stop containers (data volumes preserved)
 bun run db:studio      # Drizzle Studio on http://localhost:4983
 bun run typecheck      # check all packages
 bun run test           # run tests
+bun run gateway        # start headless API gateway
 ```
 
 ## Deploy to Render
@@ -222,6 +252,7 @@ Infrastructure cost is flat and doesn't scale with headcount.
 | Component | Render plan | Est. cost |
 |---|---|---|
 | Web app (Next.js) | Starter | $7 |
+| Gateway (Hono) | Starter | $7 |
 | Agent worker | Starter | $7 |
 | Sandbox (Docker) | Standard + 20 GB disk | ~$29 |
 | Forgejo (git forge) | Standard + 10 GB disk | ~$27 |
@@ -229,7 +260,7 @@ Infrastructure cost is flat and doesn't scale with headcount.
 | CI worker (Render Workflows) | Starter | $7 |
 | Redis | Starter | $10 |
 | Postgres | Basic 256 MB | $7 |
-| **Infrastructure total** | | **~$106/mo** |
+| **Infrastructure total** | | **~$113/mo** |
 
 LLM costs (Anthropic / OpenAI) depend on usage. A team of 10 engineers averaging 20 agent sessions/day typically runs $200–400/mo in API tokens. Scale the agent worker plan or Render Workflows concurrency as load grows.
 
@@ -237,20 +268,21 @@ LLM costs (Anthropic / OpenAI) depend on usage. A team of 10 engineers averaging
 
 | Team size | Cursor Business + GitHub + Actions* | render-open-forge |
 |---|---|---|
-| 5 engineers | ~$270/mo | ~$206/mo (infra + ~$100 LLM) |
-| 20 engineers | ~$1,080/mo | ~$406/mo (infra + ~$300 LLM) |
-| 50 engineers | ~$2,700/mo | ~$706/mo (infra + ~$600 LLM) |
-| 100 engineers | ~$5,400/mo | ~$1,106/mo (infra + ~$1,000 LLM) |
+| 5 engineers | ~$270/mo | ~$213/mo (infra + ~$100 LLM) |
+| 20 engineers | ~$1,080/mo | ~$413/mo (infra + ~$300 LLM) |
+| 50 engineers | ~$2,700/mo | ~$713/mo (infra + ~$600 LLM) |
+| 100 engineers | ~$5,400/mo | ~$1,113/mo (infra + ~$1,000 LLM) |
 
 <sub>*Cursor Business ($40/user) + GitHub Team ($4/user) + Actions (~$10/user for moderate CI). Cursor's seat price includes limited fast requests; heavy agentic usage burns through the included quota, and Cursor's effective per-token cost is higher than direct API access. render-open-forge calls LLM providers (Anthropic, OpenAI) at cost with your own API keys. LLM estimates assume moderate agent usage; heavy usage (autonomous debugging, large refactors) will be higher.</sub>
 
 ## Documentation
 
-The `docs/` directory has the long-form material:
+The `docs/` directory has long-form material. Each app and package also has its own README.
 
 - [`docs/architecture.md`](docs/architecture.md): authentication, architectural decisions, Forgejo, skills system, data ownership
 - [`docs/capabilities.md`](docs/capabilities.md): agent tools, skills, mirroring, CI reactions, web UI, persistence, org quotas, operations
 - [`docs/environment.md`](docs/environment.md): environment variable reference for all services, security notes
+- [`apps/gateway/README.md`](apps/gateway/README.md): headless API endpoint reference, MCP tools, SSE streams
 
 ## Object storage
 
@@ -262,8 +294,26 @@ Forgejo's blob storage (LFS objects, attachments, avatars, packages, repo-archiv
 
 See [`docs/environment.md`](docs/environment.md) for the full list of MinIO and Forgejo storage environment variables.
 
+## Headless usage
+
+The gateway allows operating OpenForge without the web UI. Connect any MCP-compatible client (Claude Desktop, Cursor) or call the REST API directly.
+
+```json
+{
+  "mcpServers": {
+    "forge": {
+      "url": "https://<gateway-host>/mcp",
+      "headers": { "Authorization": "Bearer <GATEWAY_API_SECRET>" }
+    }
+  }
+}
+```
+
+See [`apps/gateway/README.md`](apps/gateway/README.md) for the full endpoint and MCP tool reference.
+
 ## Future work
 
+- Per-user API key authentication on the gateway (currently admin-only shared secret)
 - Tune Render Workflows concurrency, timeouts, and plans per repo or workflow
 - Enhanced spec-driven development with approval gates and inline spec editing
 - External integrations (Slack notifications, webhook triggers)

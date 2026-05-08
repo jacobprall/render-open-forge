@@ -404,12 +404,8 @@ async function runTurn(params: {
     assistantParts: mergeToolResults(assistantParts),
     responseMessages: result.response.messages as ModelMessage[],
     usage: {
-      promptTokens: (result as unknown as Record<string, unknown>).usage
-        ? ((result as unknown as Record<string, unknown>).usage as Record<string, number>).promptTokens
-        : undefined,
-      completionTokens: (result as unknown as Record<string, unknown>).usage
-        ? ((result as unknown as Record<string, unknown>).usage as Record<string, number>).completionTokens
-        : undefined,
+      promptTokens: result.usage?.inputTokens,
+      completionTokens: result.usage?.outputTokens,
     },
     hitStepLimit,
   };

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 import type { ReviewEvent } from "@render-open-forge/platform";
 
 const REVIEW_EVENTS = ["APPROVE", "REQUEST_CHANGES", "COMMENT"] as const;
@@ -25,8 +25,8 @@ export async function GET(
     const reviews = await getPlatform().pullRequests.listReviews(auth, owner, repo, n);
     return NextResponse.json({ reviews });
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to fetch reviews" },
@@ -78,8 +78,8 @@ export async function POST(
     });
     return NextResponse.json({ review });
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to submit review" },

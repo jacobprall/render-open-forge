@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 
 export async function POST(
   _req: Request,
@@ -13,8 +13,8 @@ export async function POST(
     await getPlatform().mirrors.sync(auth, id);
     return NextResponse.json({ synced: true });
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Sync failed" },

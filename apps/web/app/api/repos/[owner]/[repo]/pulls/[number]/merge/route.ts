@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 import type { MergeMethod } from "@render-open-forge/platform";
 
 const mergeModes = ["merge", "rebase", "squash"] as const;
@@ -34,8 +34,8 @@ export async function POST(
     await getPlatform().pullRequests.mergePullRequest(auth, owner, repo, n, mode);
     return NextResponse.json({ success: true });
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Merge failed" },

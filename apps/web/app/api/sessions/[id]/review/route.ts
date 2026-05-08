@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 
 export async function POST(
   _req: NextRequest,
@@ -16,7 +16,7 @@ export async function POST(
     return NextResponse.json({ success: true, runId: result.runId });
   } catch (err) {
     if (err instanceof Response) throw err;
-    if (err instanceof AppError) {
+    if (isPlatformError(err)) {
       return NextResponse.json({ error: err.message }, { status: err.httpStatus });
     }
     throw err;

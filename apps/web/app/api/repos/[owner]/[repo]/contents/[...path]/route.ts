@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string; path: string[] }>;
@@ -17,8 +17,8 @@ export async function GET(request: Request, { params }: RouteParams) {
     const file = await getPlatform().repos.getFileContents(auth, owner, repo, filePath, ref);
     return NextResponse.json(file);
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to get file contents" },
@@ -42,8 +42,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
     });
     return NextResponse.json(result);
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to write file" },

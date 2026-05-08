@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 
 export async function PUT(
   req: NextRequest,
@@ -20,8 +20,8 @@ export async function PUT(
     await getPlatform().repos.setSecret(auth, owner, repo, name, body.value ?? "");
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to set secret" },
@@ -41,8 +41,8 @@ export async function DELETE(
     await getPlatform().repos.deleteSecret(auth, owner, repo, name);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to delete secret" },

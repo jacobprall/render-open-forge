@@ -34,3 +34,13 @@ export const forbidden = (message = "Forbidden") => new ApiError("FORBIDDEN", me
 export const notFound = (message = "Not found") => new ApiError("NOT_FOUND", message, 404);
 export const badRequest = (message: string, details?: unknown) => new ApiError("BAD_REQUEST", message, 400, details);
 export const serverError = (message = "Internal server error") => new ApiError("INTERNAL_ERROR", message, 500);
+
+/**
+ * Duck-typed check for platform AppError instances.
+ * `instanceof` can fail across Next.js module boundaries when the shared
+ * package is resolved as separate copies, so we also check for the
+ * `httpStatus` property that all AppError subclasses carry.
+ */
+export function isPlatformError(err: unknown): err is { message: string; httpStatus: number; code: string } {
+  return err instanceof Error && typeof (err as Record<string, unknown>).httpStatus === "number";
+}

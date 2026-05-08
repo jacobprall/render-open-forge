@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 
 export async function POST(req: NextRequest) {
   const auth = await requireAuth();
@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
     await getPlatform().inbox.markRead(auth, { ids, markAll });
     return NextResponse.json({ success: true });
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to mark read" },

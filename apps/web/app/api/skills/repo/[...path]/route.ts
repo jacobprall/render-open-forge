@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { AppError } from "@render-open-forge/shared";
+import { isPlatformError } from "@/lib/api/errors";
 
 export async function GET(
   _req: Request,
@@ -19,8 +19,8 @@ export async function GET(
     const result = await getPlatform().skills.listRepoSkills(auth, owner, repo);
     return NextResponse.json(result);
   } catch (e) {
-    if (e instanceof AppError) {
-      return NextResponse.json(e.toJSON(), { status: e.httpStatus });
+    if (isPlatformError(e)) {
+      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
     }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to list repo skills" },

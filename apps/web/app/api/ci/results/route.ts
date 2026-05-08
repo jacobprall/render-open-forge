@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { logger, ValidationError } from "@render-open-forge/shared";
+import { logger } from "@render-open-forge/shared";
 import { ciResultPayloadSchema } from "@render-open-forge/platform/services";
 import { getPlatform } from "@/lib/platform";
+import { isPlatformError } from "@/lib/api/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
   try {
     await getPlatform().ci.handleResult(secret, parsed.data);
   } catch (err) {
-    if (err instanceof ValidationError) {
+    if (isPlatformError(err)) {
       return NextResponse.json({ error: err.message }, { status: 401 });
     }
     logger.errorWithCause(err, "ci results callback failed", {});

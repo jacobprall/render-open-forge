@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  ValidationError,
-  SessionNotFoundError,
-  InsufficientPermissionsError,
-} from "@render-open-forge/shared";
 import { getPlatform, requireAuth } from "@/lib/platform";
+import { isPlatformError } from "@/lib/api/errors";
 
 const patchSchema = z
   .object({
@@ -36,15 +32,9 @@ export async function PATCH(
     await getPlatform().settings.updateApiKey(auth, id, parsed.data);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    if (err instanceof ValidationError) {
-      const status = err.message.includes("ENCRYPTION_KEY") ? 503 : 400;
+    if (isPlatformError(err)) {
+      const status = err.message.includes("ENCRYPTION_KEY") ? 503 : err.httpStatus;
       return NextResponse.json({ error: err.message }, { status });
-    }
-    if (err instanceof SessionNotFoundError) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-    if (err instanceof InsufficientPermissionsError) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     throw err;
   }
@@ -61,11 +51,8 @@ export async function DELETE(
     await getPlatform().settings.deleteApiKey(auth, id);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    if (err instanceof SessionNotFoundError) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-    if (err instanceof InsufficientPermissionsError) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (isPlatformError(err)) {
+      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
     }
     throw err;
   }

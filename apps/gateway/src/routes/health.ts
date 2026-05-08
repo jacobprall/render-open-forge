@@ -1,18 +1,74 @@
 import { Hono } from "hono";
-import { getPlatform } from "../platform";
+import { getPlatform, getRedis } from "../platform";
 
 export const healthRoutes = new Hono();
 
-healthRoutes.get("/", async (c) => {
-  const checks: Record<string, "ok" | "error"> = {};
+type CheckResult = { status: "ok" | "error"; latencyMs?: number; error?: string };
 
+async function checkPostgres(): Promise<CheckResult> {
+  const start = Date.now();
   try {
     const result = await getPlatform().db.execute("SELECT 1");
-    checks.postgres = result ? "ok" : "error";
-  } catch {
-    checks.postgres = "error";
+    return { status: result ? "ok" : "error", latencyMs: Date.now() - start };
+  } catch (err) {
+    return { status: "error", latencyMs: Date.now() - start, error: err instanceof Error ? err.message : "Unknown" };
   }
+}
 
-  const allOk = Object.values(checks).every((v) => v === "ok");
-  return c.json({ status: allOk ? "healthy" : "degraded", checks }, allOk ? 200 : 503);
+async function checkRedis(): Promise<CheckResult> {
+  const start = Date.now();
+  try {
+    await Promise.race([
+      getRedis().ping(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
+    ]);
+    return { status: "ok", latencyMs: Date.now() - start };
+  } catch (err) {
+    return { status: "error", latencyMs: Date.now() - start, error: err instanceof Error ? err.message : "Unknown" };
+  }
+}
+
+async function checkForgejo(): Promise<CheckResult> {
+  const start = Date.now();
+  try {
+    const baseUrl = process.env.FORGEJO_INTERNAL_URL || "http://localhost:3000";
+    const res = await fetch(`${baseUrl}/api/v1/version`, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return { status: "ok", latencyMs: Date.now() - start };
+  } catch (err) {
+    return { status: "error", latencyMs: Date.now() - start, error: err instanceof Error ? err.message : "Unknown" };
+  }
+}
+
+healthRoutes.get("/", async (c) => {
+  const [postgres, redis, forgejo] = await Promise.all([
+    checkPostgres(),
+    checkRedis(),
+    checkForgejo(),
+  ]);
+
+  const checks = { postgres, redis, forgejo };
+  const allOk = Object.values(checks).every((ch) => ch.status === "ok");
+  const anyOk = Object.values(checks).some((ch) => ch.status === "ok");
+  const status = allOk ? "healthy" : anyOk ? "degraded" : "unhealthy";
+
+  return c.json({ status, checks }, status === "unhealthy" ? 503 : 200);
+});
+
+healthRoutes.get("/workers", async (c) => {
+  try {
+    const redis = getRedis();
+    const workerKeys = await redis.keys("worker:heartbeat:*");
+    let activeCount = 0;
+    for (const key of workerKeys) {
+      const raw = await redis.get(key);
+      if (raw) activeCount++;
+    }
+    return c.json({ hasActiveWorkers: activeCount > 0, activeWorkers: activeCount });
+  } catch (err) {
+    return c.json(
+      { hasActiveWorkers: false, error: err instanceof Error ? err.message : "Unknown" },
+      500,
+    );
+  }
 });
