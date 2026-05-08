@@ -107,7 +107,17 @@ async function createToken(username: string, password: string, tokenName: string
     },
     body: JSON.stringify({
       name: tokenName,
-      scopes: ["all"],
+      scopes: [
+        "write:activitypub",
+        "write:admin",
+        "write:issue",
+        "write:misc",
+        "write:notification",
+        "write:organization",
+        "write:package",
+        "write:repository",
+        "write:user",
+      ],
     }),
   });
 

@@ -24,6 +24,7 @@ export const GIT_ALLOWED_SUBCOMMANDS = new Set([
   "cat-file",
   "init",
   "clean",
+  "config",
   "restore",
   "switch",
   "blame",

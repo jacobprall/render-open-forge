@@ -192,7 +192,20 @@ async function createForgejoToken(forgejoUrl: string, username: string, password
       "Content-Type": "application/json",
       Authorization: `Basic ${btoa(`${username}:${password}`)}`,
     },
-    body: JSON.stringify({ name: tokenName, scopes: ["all"] }),
+    body: JSON.stringify({
+      name: tokenName,
+      scopes: [
+        "write:activitypub",
+        "write:admin",
+        "write:issue",
+        "write:misc",
+        "write:notification",
+        "write:organization",
+        "write:package",
+        "write:repository",
+        "write:user",
+      ],
+    }),
   });
 
   if (!res.ok) {
