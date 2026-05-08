@@ -10,12 +10,18 @@ FROM oven/bun:1.2.19 AS install
 WORKDIR /app
 
 COPY package.json bun.lock ./
+
 COPY apps/gateway/package.json apps/gateway/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY apps/agent/package.json apps/agent/package.json
+COPY apps/ci-runner/package.json apps/ci-runner/package.json
 
 COPY packages/platform/package.json packages/platform/package.json
 COPY packages/shared/package.json packages/shared/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/skills/package.json packages/skills/package.json
+COPY packages/sandbox/package.json packages/sandbox/package.json
+COPY packages/ui/package.json packages/ui/package.json
 
 RUN bun install --frozen-lockfile --production
 

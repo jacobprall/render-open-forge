@@ -223,26 +223,8 @@ services:
       - key: NODE_ENV
         value: production
 
-  # CI Runner (Render Workflows)
-  # Note: Render Workflows doesn't yet support Blueprint definitions.
-  # Deploy this as a worker that registers tasks with the Render SDK.
-  # Once Workflows supports Blueprints, switch to type: workflow.
-  - type: worker
-    name: openforge-ci
-    runtime: node
-    plan: starter
-    buildCommand: bun install && npx turbo build --filter=@openforge/ci-runner
-    startCommand: cd apps/ci-runner && bun run start
-    envVars:
-      - key: FORGEJO_INTERNAL_URL
-        value: http://openforge-forgejo:3000
-      - key: FORGEJO_AGENT_TOKEN
-        sync: false
-      - key: CI_RUNNER_SECRET
-        fromService:
-          name: openforge-web
-          type: web
-          envVarKey: CI_RUNNER_SECRET
+  # CI Runner — deploy as a Render Workflow via the Dashboard (not supported in Blueprints yet).
+  # Source: apps/ci-runner, build: bun install && npx turbo build --filter=@openforge/ci-runner
 
   # Redis (job queue + streaming)
   - type: keyvalue
