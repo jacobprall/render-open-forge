@@ -209,9 +209,9 @@ export function PreferencesForm({ prefs }: { prefs: UserPreferencesData | null }
             defaultValue={prefs?.defaultWorkflowMode || "standard"}
             className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           >
-            <option value="full">Full — All phases including spec review</option>
-            <option value="standard">Standard — Balanced execution</option>
-            <option value="fast">Fast — Skip non-essential phases</option>
+            <option value="full">Full — Spec review, verification, PR delivery</option>
+            <option value="standard">Standard — Implement, verify, deliver</option>
+            <option value="fast">Fast — Implement and deliver, skip verification</option>
             <option value="yolo">YOLO — Minimal checks, maximum speed</option>
           </select>
         </div>

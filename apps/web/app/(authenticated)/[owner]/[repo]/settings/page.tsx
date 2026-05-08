@@ -68,7 +68,7 @@ export default async function RepoSettingsPage({
       </section>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-zinc-100">Agent Pipeline</h2>
+        <h2 className="mb-4 text-lg font-semibold text-zinc-100">Agent Configuration</h2>
         <PipelineEditor owner={owner} repo={repo} />
       </section>
 

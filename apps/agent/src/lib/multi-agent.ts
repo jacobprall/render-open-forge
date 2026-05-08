@@ -41,7 +41,7 @@ export function nextPipelineStep(currentRole: AgentRole, pipeline?: AgentPipelin
   return p.roles[idx + 1] ?? null;
 }
 
-// ─── Role → Phase mapping ────────────────────────────────────────────────────
+// ─── Role → session status label (for UI/DB phase column) ───────────────────
 
 const ROLE_TO_PHASE: Record<AgentRole, string> = {
   spec: "spec",

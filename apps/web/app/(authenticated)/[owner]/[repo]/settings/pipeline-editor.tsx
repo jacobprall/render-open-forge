@@ -22,7 +22,7 @@ interface AgentConfig {
 }
 
 const EMPTY_STEP: Omit<PipelineStep, "id"> = {
-  role: "execute",
+  role: "implement",
   model: "anthropic/claude-sonnet-4-5",
   trigger: "user_message",
   tools: [],
@@ -144,8 +144,8 @@ export function PipelineEditor({ owner, repo }: Props) {
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
       <h3 className="text-base font-semibold text-zinc-100">Agent Pipeline</h3>
       <p className="mt-2 text-sm text-zinc-400">
-        Configure the multi-step agent pipeline for this repository. Each step
-        defines a role, model, trigger, and available tools.
+        Configure automated agent steps for this repository. Each step defines
+        a role, model, trigger event, and available tools.
       </p>
 
       {loading ? (
@@ -206,11 +206,10 @@ export function PipelineEditor({ owner, repo }: Props) {
                         onChange={(e) => updateStep(step.id, { role: e.target.value })}
                         className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-accent focus:outline-none"
                       >
-                        <option value="understand">understand</option>
-                        <option value="spec">spec</option>
-                        <option value="execute">execute</option>
-                        <option value="verify">verify</option>
-                        <option value="deliver">deliver</option>
+                        <option value="implement">Implement</option>
+                        <option value="review">Review</option>
+                        <option value="verify">Verify</option>
+                        <option value="merge">Merge / Deliver</option>
                       </select>
                     </div>
                     <div>
@@ -294,7 +293,7 @@ export function PipelineEditor({ owner, repo }: Props) {
           <div className="mt-6 border-t border-zinc-800 pt-5">
             <h4 className="text-sm font-medium text-zinc-200">Verify Checks</h4>
             <p className="mt-1 text-xs text-zinc-500">
-              Commands to run during the verify phase.
+              Commands the agent runs to verify changes (tests, lint, typecheck).
             </p>
 
             {config.verifyChecks.length > 0 && (
