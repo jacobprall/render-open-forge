@@ -30,7 +30,15 @@ services:
         sync: false
       - key: AUTH_SECRET
         generateValue: true
+      - key: CSRF_SECRET
+        generateValue: true
       - key: AUTH_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -67,6 +75,8 @@ services:
           property: connectionString
       - key: FORGEJO_INTERNAL_URL
         value: http://openforge-forgejo:3000
+      - key: FORGEJO_SANDBOX_URL
+        value: http://openforge-forgejo:3000
       - key: FORGEJO_AGENT_TOKEN
         sync: false
       - key: ANTHROPIC_API_KEY
@@ -79,9 +89,15 @@ services:
       - key: SANDBOX_SERVICE_HOST
         value: openforge-sandbox:3001
       - key: SANDBOX_SHARED_SECRET
-        generateValue: true
+        fromService:
+          name: openforge-sandbox
+          type: web
+          envVarKey: SANDBOX_SHARED_SECRET
       - key: SANDBOX_SESSION_SECRET
-        generateValue: true
+        fromService:
+          name: openforge-sandbox
+          type: web
+          envVarKey: SANDBOX_SESSION_SECRET
 
   # Sandbox (isolated execution environment)
   - type: web

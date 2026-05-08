@@ -174,20 +174,25 @@ Go to [render.com/new/blueprint](https://render.com/new/blueprint) and connect y
 The following are handled automatically by the blueprint (no action needed):
 
 - `DATABASE_URL`, `REDIS_URL` — wired from the database and key-value store
-- `AUTH_SECRET`, `ENCRYPTION_KEY`, `CI_RUNNER_SECRET` — auto-generated on `openforge-web`
+- `AUTH_SECRET`, `CSRF_SECRET`, `ENCRYPTION_KEY`, `CI_RUNNER_SECRET` — auto-generated on `openforge-web`
 - `GATEWAY_API_SECRET` — auto-generated on `openforge-gateway`
-- `SANDBOX_SHARED_SECRET`, `SANDBOX_SESSION_SECRET` — auto-generated
-- `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` — auto-generated and shared with Forgejo
-- All `fromService` references (e.g. `ENCRYPTION_KEY` on agent/gateway pulls from web)
+- `SANDBOX_SHARED_SECRET`, `SANDBOX_SESSION_SECRET` — auto-generated on sandbox, shared with agent via `fromService`
+- `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` — auto-generated on MinIO, shared with Forgejo via `fromService`
+- `FORGEJO_SANDBOX_URL` — hardcoded internal URL on agent
+- All other `fromService` references (e.g. `ENCRYPTION_KEY` on agent/gateway pulls from web)
 
 ### 2. Set pre-deploy environment variables
 
-These you need to provide immediately — you already have them or can get them from external services:
+Set these on `openforge-web` immediately after provisioning. Replace `<web-url>` with the public URL Render assigns to `openforge-web` (e.g. `https://openforge-web-xxxx.onrender.com`).
 
-| Variable | Set on | Where to get it |
+| Variable | Set on | Value / source |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | **openforge-web** + **openforge-agent** | Your [Anthropic](https://console.anthropic.com/) account |
 | `RENDER_API_KEY` | **openforge-web** | Render Dashboard → Account Settings → API Keys |
+| `AUTH_URL` | **openforge-web** | `https://<web-url>` (the web app's own public URL) |
+| `NEXT_PUBLIC_APP_URL` | **openforge-web** | Same as `AUTH_URL` |
+| `ADMIN_EMAIL` | **openforge-web** | Email for the auto-bootstrapped admin account |
+| `ADMIN_PASSWORD` | **openforge-web** | Password for signing in to the web app |
 
 ### 3. Wait for Forgejo to boot
 
@@ -199,7 +204,7 @@ Once it's live, note its public URL (e.g. `https://openforge-forgejo-xxxx.onrend
 
 | Variable | Set on | Value |
 |---|---|---|
-| `FORGEJO__server__ROOT_URL` | **openforge-forgejo** | Forgejo's public URL (e.g. `https://openforge-forgejo-xxxx.onrender.com`) |
+| `FORGEJO__server__ROOT_URL` | **openforge-forgejo** | Forgejo's public URL |
 | `FORGEJO_EXTERNAL_URL` | **openforge-web** | Same Forgejo public URL |
 
 Redeploy `openforge-forgejo` after setting `ROOT_URL`.
@@ -212,11 +217,11 @@ Open a **Shell** on the `openforge-forgejo` service in the Render Dashboard and 
 su -c 'forgejo admin user create --admin --username forge-admin --password <your-password> --email <your-email>' git
 ```
 
-Replace `<your-password>` with a strong password and `<your-email>` with your email.
+Must run as the `git` user — Forgejo refuses to run as root.
 
 ### 6. Run the Forgejo setup script
 
-Run this **locally** from your project root (it makes HTTP calls to Forgejo's public API):
+Run **locally** from your project root (it makes HTTP calls to Forgejo's public API):
 
 ```bash
 FORGEJO_INTERNAL_URL=https://openforge-forgejo-xxxx.onrender.com \
@@ -244,7 +249,7 @@ Take the values from the setup script output and set them in the Render Dashboar
 
 | Variable | Set on | Value |
 |---|---|---|
-| `CI_CALLBACK_URL` | **openforge-web** | `https://openforge-web-xxxx.onrender.com/api/ci/callback` |
+| `CI_CALLBACK_URL` | **openforge-web** | `https://<web-url>/api/ci/callback` |
 | `FORGEJO_WEBHOOK_SECRET` | **openforge-gateway** | Any strong random string (e.g. `openssl rand -hex 32`), then configure the same value in Forgejo's webhook settings |
 
 ### 9. Set up CI (Render Workflows)
@@ -261,11 +266,15 @@ Render Workflows can't be defined in Blueprints yet, so create the CI workflow m
 
 ### 10. Push the database schema
 
+Forgejo and OpenForge share the same database. Use `generate` + `migrate` instead of `db:push` to avoid Drizzle trying to drop Forgejo's tables:
+
 ```bash
-DATABASE_URL="<external-connection-string>?sslmode=require" bun run db:push
+cd apps/web
+DATABASE_URL="<external-connection-string>?sslmode=require" npx drizzle-kit generate
+DATABASE_URL="<external-connection-string>?sslmode=require" npx drizzle-kit migrate
 ```
 
-Get the external connection string from the `openforge-db` database page in the Render Dashboard.
+Get the external connection string from the `openforge-db` database page in the Render Dashboard. Always choose **"create table"** (not rename) if prompted.
 
 ### 11. Bootstrap the admin user
 

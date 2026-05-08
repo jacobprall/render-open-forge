@@ -357,13 +357,15 @@ function buildWorkspaceContext(
 ): string | null {
   if (!sessionRow?.forgejoRepoPath) return null;
 
+  const workdir = `/workspace/${ctx.sessionId}`;
+
   const lines = [
     "# Workspace",
     "",
     `- **Repository:** ${sessionRow.forgejoRepoPath}`,
     `- **Branch:** ${sessionRow.branch || "main"}`,
     `- **Base branch:** ${sessionRow.baseBranch || "main"}`,
-    `- **Working directory:** /workspace (repo root, already cloned)`,
+    `- **Working directory:** \`${workdir}\` — the repo is cloned here. All bash and git commands execute in this directory automatically. Do NOT \`cd\` elsewhere; \`cd\` does not persist between commands.`,
   ];
 
   if (ctx.repoOwner && ctx.repoName) {

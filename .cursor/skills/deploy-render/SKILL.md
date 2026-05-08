@@ -38,6 +38,10 @@ Set these immediately via the Render Dashboard (or API). You have these values a
 |---|---|---|
 | `ANTHROPIC_API_KEY` | openforge-web, openforge-agent | Anthropic account |
 | `RENDER_API_KEY` | openforge-web | Render Dashboard → Account → API Keys |
+| `AUTH_URL` | openforge-web | The web app's own public URL (e.g. `https://openforge-web-xxxx.onrender.com`). Required or NextAuth redirects to `localhost` |
+| `NEXT_PUBLIC_APP_URL` | openforge-web | Same URL as `AUTH_URL`. Used for OAuth redirect URIs, invite links, CI callbacks |
+| `ADMIN_EMAIL` | openforge-web | Email for the auto-bootstrapped admin account |
+| `ADMIN_PASSWORD` | openforge-web | Password for signing in to the web app |
 
 **Via CLI:**
 
@@ -119,11 +123,15 @@ Render Workflows can't be defined in Blueprints. Create manually:
 
 ### Step 9: Push Database Schema
 
+Forgejo and OpenForge share the same database. Use `generate` + `migrate` instead of `db:push` to avoid Drizzle trying to drop Forgejo's tables:
+
 ```bash
-DATABASE_URL="<external-connection-string>?sslmode=require" bun run db:push
+cd apps/web
+DATABASE_URL="<external-connection-string>?sslmode=require" npx drizzle-kit generate
+DATABASE_URL="<external-connection-string>?sslmode=require" npx drizzle-kit migrate
 ```
 
-Get the external connection string from `openforge-db` in the Render Dashboard.
+Get the external connection string from `openforge-db` in the Render Dashboard. If prompted about renaming vs creating, always choose **"create table"**.
 
 ### Step 10: Bootstrap the Admin User
 
@@ -162,6 +170,10 @@ curl https://openforge-web-xxxx.onrender.com/api/health/workers
 | Turbo `--filter` can't find package | Use the full scoped name: `--filter=@openforge/web` not `--filter=web` |
 | `Forgejo is not supposed to be run as root` | Run CLI commands as the `git` user: `su -c '...' git` |
 | CI runner exits immediately | Expected for Render Workflows — the process registers tasks and exits. Deploy as a Workflow, not a worker. |
+| Redirects to `localhost:4000` after login | `AUTH_URL` is not set on `openforge-web`. Set it to the web app's public URL |
+| `Sandbox request failed (401): Unauthorized` | `SANDBOX_SHARED_SECRET` mismatch between agent and sandbox. Agent must pull from sandbox via `fromService`. If already deployed, manually copy the value from sandbox to agent in the Render Dashboard |
+| `drizzle-kit push` fails with "Interactive prompts" | Forgejo tables are in the shared DB. Use `drizzle-kit generate` + `drizzle-kit migrate` instead (the `tablesFilter` in `drizzle.config.ts` excludes Forgejo tables) |
+| `NEXT_PUBLIC_APP_URL` not set | OAuth callbacks and invite links will fail. Set it to the same value as `AUTH_URL` |
 
 ## Auto-Handled Env Vars (No Action Needed)
 
@@ -169,8 +181,9 @@ These are wired automatically by the Blueprint:
 
 - `DATABASE_URL` — from `openforge-db`
 - `REDIS_URL` — from `openforge-redis`
-- `AUTH_SECRET`, `ENCRYPTION_KEY`, `CI_RUNNER_SECRET` — `generateValue` on openforge-web
+- `AUTH_SECRET`, `CSRF_SECRET`, `ENCRYPTION_KEY`, `CI_RUNNER_SECRET` — `generateValue` on openforge-web
 - `GATEWAY_API_SECRET` — `generateValue` on openforge-gateway
-- `SANDBOX_SHARED_SECRET`, `SANDBOX_SESSION_SECRET` — `generateValue`
-- `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` — `generateValue`, shared with Forgejo via `fromService`
+- `SANDBOX_SHARED_SECRET`, `SANDBOX_SESSION_SECRET` — `generateValue` on sandbox, shared with agent via `fromService`
+- `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` — `generateValue` on MinIO, shared with Forgejo via `fromService`
 - `ENCRYPTION_KEY` on agent/gateway — pulled from web via `fromService`
+- `FORGEJO_SANDBOX_URL` — hardcoded internal URL on agent (`http://openforge-forgejo:3000`)
