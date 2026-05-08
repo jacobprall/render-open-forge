@@ -5,7 +5,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: install dependencies
 # ---------------------------------------------------------------------------
-FROM oven/bun:1.2 AS install
+FROM oven/bun:1.2.19 AS install
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN bun install --frozen-lockfile --production
 # ---------------------------------------------------------------------------
 # Stage 2: production image
 # ---------------------------------------------------------------------------
-FROM oven/bun:1.2-slim AS production
+FROM oven/bun:1.2.19-slim AS production
 
 WORKDIR /app
 
