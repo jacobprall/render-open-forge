@@ -22,6 +22,8 @@
  *   SKIP_DB_PUSH             (set to "true" to skip schema push)
  */
 
+export {};
+
 const RENDER_API = "https://api.render.com/v1";
 const RENDER_API_KEY = requireEnv("RENDER_API_KEY");
 const ANTHROPIC_API_KEY = requireEnv("ANTHROPIC_API_KEY");
@@ -207,7 +209,8 @@ async function createForgejoUser(
   adminToken: string,
   username: string,
   password: string,
-  email: string
+  email: string,
+  isAdmin = false,
 ): Promise<void> {
   const res = await fetch(`${forgejoUrl}/api/v1/admin/users`, {
     method: "POST",
@@ -223,11 +226,23 @@ async function createForgejoUser(
       login_name: username,
       source_id: 0,
       visibility: "public",
+      ...(isAdmin ? { is_admin: true } : {}),
     }),
   });
 
   if (res.status === 422) {
     console.log(`  User ${username} already exists`);
+    if (isAdmin) {
+      const patch = await fetch(`${forgejoUrl}/api/v1/admin/users/${username}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `token ${adminToken}`,
+        },
+        body: JSON.stringify({ is_admin: true, login_name: username, source_id: 0 }),
+      });
+      if (patch.ok) console.log(`  → Promoted ${username} to admin`);
+    }
     return;
   }
   if (!res.ok) {
@@ -338,7 +353,7 @@ async function main() {
   console.log("  ✓ Admin token created");
 
   const agentPassword = crypto.randomUUID();
-  await createForgejoUser(forgejoUrl, adminToken, "openforge-agent", agentPassword, "agent@openforge.local");
+  await createForgejoUser(forgejoUrl, adminToken, "openforge-agent", agentPassword, "agent@openforge.local", true);
   const agentToken = await createForgejoToken(forgejoUrl, "openforge-agent", agentPassword, "agent-service");
   console.log(`  ✓ Agent token: ${agentToken}`);
 
