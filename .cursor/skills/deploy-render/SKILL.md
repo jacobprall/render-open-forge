@@ -125,7 +125,23 @@ DATABASE_URL="<external-connection-string>?sslmode=require" bun run db:push
 
 Get the external connection string from `openforge-db` in the Render Dashboard.
 
-### Step 10: Redeploy & Verify
+### Step 10: Bootstrap the Admin User
+
+Seeds the first admin user into Postgres and links it to the Forgejo admin account:
+
+```bash
+DATABASE_URL="<external-connection-string>?sslmode=require" \
+FORGEJO_INTERNAL_URL=https://openforge-forgejo-xxxx.onrender.com \
+FORGEJO_AGENT_TOKEN=<agent-token> \
+ADMIN_EMAIL=<email> \
+ADMIN_PASSWORD=<web-login-password> \
+FORGEJO_ADMIN_PASSWORD=<forgejo-admin-password> \
+bun run apps/web/scripts/bootstrap-admin.ts
+```
+
+`ADMIN_PASSWORD` is the password for signing in to the web app. It can differ from the Forgejo admin password.
+
+### Step 11: Redeploy & Verify
 
 Redeploy all services to pick up new env vars, then check:
 

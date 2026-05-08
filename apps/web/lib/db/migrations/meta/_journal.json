@@ -8,6 +8,13 @@
       "when": 1778176916585,
       "tag": "0000_dusty_karen_page",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778264985162,
+      "tag": "0001_bouncy_shocker",
+      "breakpoints": true
     }
   ]
 }

@@ -267,14 +267,30 @@ DATABASE_URL="<external-connection-string>?sslmode=require" bun run db:push
 
 Get the external connection string from the `openforge-db` database page in the Render Dashboard.
 
-### 11. Redeploy all services
+### 11. Bootstrap the admin user
+
+This seeds the first admin user into the database and links it to the Forgejo admin account. Run **locally**:
+
+```bash
+DATABASE_URL="<external-connection-string>?sslmode=require" \
+FORGEJO_INTERNAL_URL=https://openforge-forgejo-xxxx.onrender.com \
+FORGEJO_AGENT_TOKEN=<your-agent-token> \
+ADMIN_EMAIL=<your-email> \
+ADMIN_PASSWORD=<your-web-login-password> \
+FORGEJO_ADMIN_PASSWORD=<your-forgejo-admin-password> \
+bun run apps/web/scripts/bootstrap-admin.ts
+```
+
+This is the password you'll use to sign in to the web app — it can be different from the Forgejo admin password.
+
+### 12. Redeploy all services
 
 After setting all secrets, redeploy every service so they pick up the new env vars.
 
-### 12. Verify
+### 13. Verify
 
 - `https://<web-url>/api/health` → `{"status":"healthy","checks":{"postgres":{"status":"ok"},"redis":{"status":"ok"},"forgejo":{"status":"ok"}}}`
-- Sign in with your admin email and password
+- Sign in at `https://<web-url>` with your `ADMIN_EMAIL` and `ADMIN_PASSWORD`
 - `https://<web-url>/api/health/workers` → `{"hasActiveWorkers": true}`
 
 ### Optional: Google OAuth on Forgejo
