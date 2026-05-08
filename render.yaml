@@ -4,17 +4,17 @@ services:
     name: openforge-web
     runtime: node
     plan: starter
-    buildCommand: bun install && npx turbo build --filter=web
+    buildCommand: bun install && npx turbo build --filter=@openforge/web
     startCommand: cd apps/web && bun run start
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: forge-db
+          name: openforge-db
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: forge-redis
+          name: openforge-redis
           type: keyvalue
           property: connectionString
       - key: FORGEJO_INTERNAL_URL
@@ -49,16 +49,16 @@ services:
     name: openforge-agent
     runtime: node
     plan: starter
-    buildCommand: bun install && npx turbo build --filter=agent
+    buildCommand: bun install && npx turbo build --filter=@openforge/agent
     startCommand: cd apps/agent && bun run start
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: forge-db
+          name: openforge-db
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: forge-redis
+          name: openforge-redis
           type: keyvalue
           property: connectionString
       - key: FORGEJO_INTERNAL_URL
@@ -138,19 +138,19 @@ services:
         value: postgres
       - key: FORGEJO__database__HOST
         fromDatabase:
-          name: forge-db
+          name: openforge-db
           property: host
       - key: FORGEJO__database__NAME
         fromDatabase:
-          name: forge-db
+          name: openforge-db
           property: database
       - key: FORGEJO__database__USER
         fromDatabase:
-          name: forge-db
+          name: openforge-db
           property: user
       - key: FORGEJO__database__PASSWD
         fromDatabase:
-          name: forge-db
+          name: openforge-db
           property: password
       - key: FORGEJO__server__ROOT_URL
         sync: false
@@ -193,11 +193,11 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: forge-db
+          name: openforge-db
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: forge-redis
+          name: openforge-redis
           type: keyvalue
           property: connectionString
       - key: GATEWAY_API_SECRET
@@ -231,7 +231,7 @@ services:
     name: openforge-ci
     runtime: node
     plan: starter
-    buildCommand: bun install && npx turbo build --filter=ci-runner
+    buildCommand: bun install && npx turbo build --filter=@openforge/ci-runner
     startCommand: cd apps/ci-runner && bun run start
     envVars:
       - key: FORGEJO_INTERNAL_URL
@@ -246,12 +246,12 @@ services:
 
   # Redis (job queue + streaming)
   - type: keyvalue
-    name: forge-redis
+    name: openforge-redis
     plan: starter
     ipAllowList: []
     maxmemoryPolicy: allkeys-lru
 
 databases:
-  - name: forge-db
+  - name: openforge-db
     plan: basic-256mb
     postgresMajorVersion: "16"
