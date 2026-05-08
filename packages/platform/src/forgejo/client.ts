@@ -343,7 +343,7 @@ export class ForgejoClient {
     });
   }
 
-  async listOrgSecrets(org: string): Promise<{ secrets?: { name: string }[] }> {
+  async listOrgSecrets(org: string): Promise<{ name: string }[] | { secrets?: { name: string }[] }> {
     return this.request(`/orgs/${org}/actions/secrets`);
   }
 

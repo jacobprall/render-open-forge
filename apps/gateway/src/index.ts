@@ -50,6 +50,8 @@ app.route("/api/notifications", notificationRoutes);
 app.route("/api/stream", streamRoutes);
 
 // --- MCP endpoint (authenticated) ---
+app.use("/mcp", requireApiAuth);
+app.use("/mcp/*", requireApiAuth);
 app.all("/mcp", async (c) => {
   const auth = c.get("auth");
   return handleMcpRequest(c.req.raw, auth);

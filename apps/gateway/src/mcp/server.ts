@@ -515,9 +515,11 @@ export async function handleMcpRequest(
 
   await server.connect(transport);
 
+  const response = await transport.handleRequest(request);
+
   if (transport.sessionId) {
     sessions.set(transport.sessionId, transport);
   }
 
-  return transport.handleRequest(request);
+  return response;
 }

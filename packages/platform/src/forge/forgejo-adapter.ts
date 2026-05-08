@@ -527,7 +527,8 @@ export class ForgejoProvider implements ForgeProvider {
     return {
       async list(owner, repo) {
         const res = await c.listRepoSecrets(owner, repo);
-        return (res.secrets ?? []).map(s => s.name);
+        const arr = Array.isArray(res) ? res : (res.secrets ?? []);
+        return arr.map(s => s.name);
       },
       async set(owner, repo, name, value) {
         await c.setRepoSecret(owner, repo, name, value);
@@ -543,7 +544,8 @@ export class ForgejoProvider implements ForgeProvider {
     return {
       async list(org) {
         const res = await c.listOrgSecrets(org);
-        return (res.secrets ?? []).map(s => s.name);
+        const arr = Array.isArray(res) ? res : (res.secrets ?? []);
+        return arr.map(s => s.name);
       },
       async set(org, name, value) {
         await c.setOrgSecret(org, name, value);
