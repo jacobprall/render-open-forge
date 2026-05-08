@@ -1,4 +1,9 @@
----
+FORGEJO_INTERNAL_URL=https://openforge-forgejo.onrender.com \
+FORGEJO_ADMIN_USER=forge-admin \
+FORGEJO_ADMIN_PASSWORD=daniel27 \
+FORGEJO_ADMIN_EMAIL=prall.jacob@gmail.com \
+FORGEJO_EXTERNAL_URL=https://openforge-web.onrender.com \
+bun run infrastructure/forgejo/setup.ts---
 title: Cache Repeated Function Calls
 impact: MEDIUM
 impactDescription: avoid redundant computation

@@ -28,7 +28,8 @@
     "db:push": "cd apps/web && bun run db:push",
     "db:generate": "cd apps/web && bun run db:generate",
     "db:studio": "cd apps/web && bun run db:studio",
-    "setup": "bun run infrastructure/forgejo/setup.ts"
+    "setup": "bun run infrastructure/forgejo/setup.ts",
+    "deploy:render": "bun run scripts/deploy-render.ts"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

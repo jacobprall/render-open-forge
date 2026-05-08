@@ -169,50 +169,122 @@ The `render.yaml` blueprint provisions all services shown in the architecture di
 
 ### 1. Provision the blueprint
 
-Go to [render.com/new/blueprint](https://render.com/new/blueprint) and connect your fork.
+Go to [render.com/new/blueprint](https://render.com/new/blueprint) and connect your fork. This creates all services, databases, and wires up auto-generated secrets and cross-service references.
 
-### 2. Set environment variables
+The following are handled automatically by the blueprint (no action needed):
 
-After provisioning, set these in the Render dashboard:
+- `DATABASE_URL`, `REDIS_URL` — wired from the database and key-value store
+- `AUTH_SECRET`, `ENCRYPTION_KEY`, `CI_RUNNER_SECRET` — auto-generated on `openforge-web`
+- `GATEWAY_API_SECRET` — auto-generated on `openforge-gateway`
+- `SANDBOX_SHARED_SECRET`, `SANDBOX_SESSION_SECRET` — auto-generated
+- `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` — auto-generated and shared with Forgejo
+- All `fromService` references (e.g. `ENCRYPTION_KEY` on agent/gateway pulls from web)
 
-| Variable | Service(s) | Notes |
+### 2. Set pre-deploy environment variables
+
+These you need to provide immediately — you already have them or can get them from external services:
+
+| Variable | Set on | Where to get it |
 |---|---|---|
-| `AUTH_SECRET` | Web | NextAuth encryption key. Generate with `openssl rand -base64 32` |
-| `ADMIN_EMAIL` | Web | Email for the auto-bootstrapped admin account |
-| `ADMIN_PASSWORD` | Web | Password for the auto-bootstrapped admin account |
-| `ANTHROPIC_API_KEY` | Web, Agent | At least one LLM provider key |
-| `RENDER_API_KEY` | Web | Render Dashboard API key for `render.workflows.startTask` |
-| `SANDBOX_SHARED_SECRET` | Web, Agent, Sandbox | Same value on all three. Generate with `openssl rand -hex 32` |
-| `FORGEJO_EXTERNAL_URL` | Web | Public URL of your Forgejo instance |
-| `FORGEJO_AGENT_TOKEN` | Web, Agent, openforge-ci | Same token across all three |
-| `CI_CALLBACK_URL` | Web (optional) | Public `https://<web>/api/ci/results` if the worker cannot reach the default internal URL |
+| `ANTHROPIC_API_KEY` | **openforge-web** + **openforge-agent** | Your [Anthropic](https://console.anthropic.com/) account |
+| `RENDER_API_KEY` | **openforge-web** | Render Dashboard → Account Settings → API Keys |
 
-`CI_RUNNER_SECRET` is auto-generated on **openforge-web** and linked into **openforge-ci** via Blueprint `fromService`. Both services must share this value for callbacks to authenticate.
+### 3. Wait for Forgejo to boot
 
-### 3. Run Forgejo setup
+Forgejo takes ~10–15 seconds to initialize (DB migrations, storage setup). It may restart once or twice before the health check passes — this is normal.
 
-Once Forgejo is live, create the Forgejo admin user through its UI, then run the setup script from a Render Shell on the web service:
+Once it's live, note its public URL (e.g. `https://openforge-forgejo-xxxx.onrender.com`).
+
+### 4. Set Forgejo URLs
+
+| Variable | Set on | Value |
+|---|---|---|
+| `FORGEJO__server__ROOT_URL` | **openforge-forgejo** | Forgejo's public URL (e.g. `https://openforge-forgejo-xxxx.onrender.com`) |
+| `FORGEJO_EXTERNAL_URL` | **openforge-web** | Same Forgejo public URL |
+
+Redeploy `openforge-forgejo` after setting `ROOT_URL`.
+
+### 5. Create the Forgejo admin user
+
+Open a **Shell** on the `openforge-forgejo` service in the Render Dashboard and run:
 
 ```bash
-bun run setup
+su -c 'forgejo admin user create --admin --username forge-admin --password <your-password> --email <your-email>' git
 ```
 
-### 4. Push the database schema
+Replace `<your-password>` with a strong password and `<your-email>` with your email.
+
+### 6. Run the Forgejo setup script
+
+Run this **locally** from your project root (it makes HTTP calls to Forgejo's public API):
 
 ```bash
-DATABASE_URL="<external-url>?sslmode=require" bun run db:push
+FORGEJO_INTERNAL_URL=https://openforge-forgejo-xxxx.onrender.com \
+FORGEJO_ADMIN_USER=forge-admin \
+FORGEJO_ADMIN_PASSWORD=<your-password> \
+FORGEJO_EXTERNAL_URL=https://openforge-web-xxxx.onrender.com \
+bun run infrastructure/forgejo/setup.ts
 ```
 
-### 5. Redeploy all services
+The script will:
+1. Create an `openforge-agent` service account and print a **`FORGEJO_AGENT_TOKEN`**
+2. Register an OAuth2 app and print **`FORGEJO_OAUTH_CLIENT_ID`** and **`FORGEJO_OAUTH_CLIENT_SECRET`**
 
-After setting secrets, redeploy so services pick up the new env vars.
+### 7. Set Forgejo-derived environment variables
 
-### 6. Verify
+Take the values from the setup script output and set them in the Render Dashboard:
+
+| Variable | Set on |
+|---|---|
+| `FORGEJO_AGENT_TOKEN` | **openforge-web** + **openforge-agent** + **openforge-gateway** |
+| `FORGEJO_OAUTH_CLIENT_ID` | **openforge-web** |
+| `FORGEJO_OAUTH_CLIENT_SECRET` | **openforge-web** |
+
+### 8. Set remaining variables
+
+| Variable | Set on | Value |
+|---|---|---|
+| `CI_CALLBACK_URL` | **openforge-web** | `https://openforge-web-xxxx.onrender.com/api/ci/callback` |
+| `FORGEJO_WEBHOOK_SECRET` | **openforge-gateway** | Any strong random string (e.g. `openssl rand -hex 32`), then configure the same value in Forgejo's webhook settings |
+
+### 9. Set up CI (Render Workflows)
+
+Render Workflows can't be defined in Blueprints yet, so create the CI workflow manually:
+
+1. Go to the Render Dashboard → **Workflows** → **New Workflow**
+2. Connect your repo, set the root directory to `apps/ci-runner`
+3. Build command: `bun install && npx turbo build --filter=@openforge/ci-runner`
+4. Set these env vars on the workflow:
+   - `FORGEJO_INTERNAL_URL` = `http://openforge-forgejo:3000`
+   - `FORGEJO_AGENT_TOKEN` = same token from step 7
+   - `CI_RUNNER_SECRET` = copy from `openforge-web`
+
+### 10. Push the database schema
+
+```bash
+DATABASE_URL="<external-connection-string>?sslmode=require" bun run db:push
+```
+
+Get the external connection string from the `openforge-db` database page in the Render Dashboard.
+
+### 11. Redeploy all services
+
+After setting all secrets, redeploy every service so they pick up the new env vars.
+
+### 12. Verify
 
 - `https://<web-url>/api/health` → `{"status":"healthy","checks":{"postgres":{"status":"ok"},"redis":{"status":"ok"},"forgejo":{"status":"ok"}}}`
 - Sign in with your admin email and password
 - `https://<web-url>/api/health/workers` → `{"hasActiveWorkers": true}`
-- Confirm **openforge-ci** worker is **Live** in the Render dashboard
+
+### Optional: Google OAuth on Forgejo
+
+To let users sign in to Forgejo via Google, set these on **openforge-forgejo**:
+
+| Variable | Where to get it |
+|---|---|
+| `GOOGLE_OAUTH_CLIENT_ID` | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Same |
 
 ## Documentation
 
