@@ -181,6 +181,8 @@ services:
         value: us-east-1
       - key: FORGEJO__storage__MINIO_USE_SSL
         value: "false"
+      - key: PORT
+        value: "3000"
 
   # Gateway (headless REST + MCP API)
   - type: web
