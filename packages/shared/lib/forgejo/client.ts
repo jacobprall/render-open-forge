@@ -110,9 +110,15 @@ export class ForgejoClient {
 
     if (res.status === 204) return undefined as T;
 
+    const contentLength = res.headers.get("content-length");
+    if (contentLength === "0") return undefined as T;
+
     if (responseType === "text") return res.text() as Promise<T>;
     if (responseType === "binary") return res.arrayBuffer() as Promise<T>;
-    return res.json() as Promise<T>;
+
+    const text = await res.text();
+    if (!text) return undefined as T;
+    return JSON.parse(text) as T;
   }
 
   // --- Auth ---

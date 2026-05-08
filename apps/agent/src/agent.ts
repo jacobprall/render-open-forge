@@ -438,15 +438,34 @@ async function ensureRepoCloned(job: AgentJob, adapter: SandboxAdapter): Promise
   console.log(`[clone] cloning ${session.forgejoRepoPath} for session ${job.sessionId}`);
   const result = await adapter.git(job.sessionId, cloneArgs);
   if (result.exitCode !== 0) {
-    console.error(`[clone] failed for session ${job.sessionId}:`, result.stderr);
-    // Try full clone as fallback
-    const fullArgs = ["clone"];
-    if (session.branch) fullArgs.push("--branch", session.branch);
-    fullArgs.push(authenticatedUrl, ".");
-    const retry = await adapter.git(job.sessionId, fullArgs);
-    if (retry.exitCode !== 0) {
-      console.error(`[clone] full clone also failed for session ${job.sessionId}:`, retry.stderr);
-      return;
+    const branchNotFound = result.stderr?.includes("not found in upstream") ||
+      result.stderr?.includes("Remote branch") && result.stderr?.includes("not found");
+
+    if (branchNotFound && session.branch) {
+      // Branch doesn't exist remotely — clone default branch, then create it locally
+      console.log(`[clone] branch "${session.branch}" not found, cloning default branch`);
+      const defaultArgs = ["clone", "--depth", "50", authenticatedUrl, "."];
+      const defaultResult = await adapter.git(job.sessionId, defaultArgs);
+      if (defaultResult.exitCode !== 0) {
+        console.error(`[clone] default branch clone failed for session ${job.sessionId}:`, defaultResult.stderr);
+        return;
+      }
+      const checkout = await adapter.git(job.sessionId, ["checkout", "-b", session.branch]);
+      if (checkout.exitCode !== 0) {
+        console.error(`[clone] branch creation failed for session ${job.sessionId}:`, checkout.stderr);
+        return;
+      }
+    } else {
+      // Try full clone as fallback (non-branch-related failure)
+      console.error(`[clone] failed for session ${job.sessionId}:`, result.stderr);
+      const fullArgs = ["clone"];
+      if (session.branch) fullArgs.push("--branch", session.branch);
+      fullArgs.push(authenticatedUrl, ".");
+      const retry = await adapter.git(job.sessionId, fullArgs);
+      if (retry.exitCode !== 0) {
+        console.error(`[clone] full clone also failed for session ${job.sessionId}:`, retry.stderr);
+        return;
+      }
     }
   }
   console.log(`[clone] success for session ${job.sessionId}`);

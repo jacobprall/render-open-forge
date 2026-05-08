@@ -10,11 +10,12 @@ export interface ForgejoUserProfile {
 }
 
 /**
- * Create a personal access token for a Forgejo user using the agent account
- * with Sudo (admin API). Used for headless provisioning — users never see Forgejo.
+ * Create a personal access token for a Forgejo user.
+ * Uses basic auth with the user's password (Forgejo blocks Sudo on token endpoints).
  */
 export async function createForgejoApiTokenForUser(
   username: string,
+  password: string,
 ): Promise<{ token: string; profile: ForgejoUserProfile }> {
   const agentToken = process.env.FORGEJO_AGENT_TOKEN;
   if (!agentToken) throw new Error("FORGEJO_AGENT_TOKEN not configured");
@@ -30,14 +31,14 @@ export async function createForgejoApiTokenForUser(
 
   const profile = (await userRes.json()) as ForgejoUserProfile;
 
+  const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
   const tokenRes = await fetch(
     `${FORGEJO_INTERNAL_URL}/api/v1/users/${encodeURIComponent(username)}/tokens`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `token ${agentToken}`,
-        Sudo: username,
+        Authorization: `Basic ${basicAuth}`,
       },
       body: JSON.stringify({
         name: `open-forge-app-${Date.now()}`,

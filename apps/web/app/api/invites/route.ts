@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     );
 
     const { token: forgejoToken, profile } =
-      await createForgejoApiTokenForUser(forgejoUser.login);
+      await createForgejoApiTokenForUser(forgejoUser.login, forgejoBootstrapPassword);
 
     const invitedUserId = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);

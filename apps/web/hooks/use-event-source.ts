@@ -72,14 +72,32 @@ export function useEventSource({
       if (es.readyState === EventSource.CLOSED) {
         setStatus("disconnected");
 
-        if (reconnectAttempts.current < maxReconnectAttempts) {
-          reconnectAttempts.current++;
-          reconnectTimer.current = setTimeout(() => {
-            if (isMounted.current) connect();
-          }, reconnectInterval * reconnectAttempts.current);
-        } else {
-          setStatus("error");
-        }
+        // Probe the URL to distinguish auth failure from transient errors
+        fetch(url, { method: "HEAD" }).then((res) => {
+          if (!isMounted.current) return;
+          if (res.status === 401 || res.status === 403) {
+            setStatus("error");
+            return;
+          }
+          if (reconnectAttempts.current < maxReconnectAttempts) {
+            reconnectAttempts.current++;
+            reconnectTimer.current = setTimeout(() => {
+              if (isMounted.current) connect();
+            }, reconnectInterval * reconnectAttempts.current);
+          } else {
+            setStatus("error");
+          }
+        }).catch(() => {
+          if (!isMounted.current) return;
+          if (reconnectAttempts.current < maxReconnectAttempts) {
+            reconnectAttempts.current++;
+            reconnectTimer.current = setTimeout(() => {
+              if (isMounted.current) connect();
+            }, reconnectInterval * reconnectAttempts.current);
+          } else {
+            setStatus("error");
+          }
+        });
       }
     };
   }, [url, enabled, cleanup, onMessage, onError, onOpen, reconnectInterval, maxReconnectAttempts]);

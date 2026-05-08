@@ -46,14 +46,14 @@ export async function POST(
 
   try {
     const b = body as Record<string, unknown>;
-    const pattern = (b.branch_name as string) ?? (b.rule_name as string) ?? (b.pattern as string) ?? "";
+    const pattern = (b.branch_name as string) ?? (b.branchName as string) ?? (b.rule_name as string) ?? (b.pattern as string) ?? "";
     const protection = await forge.branches.setProtectionRule(owner, repo, {
       pattern,
       name: (b.rule_name as string) ?? pattern,
-      requiredApprovals: (b.required_approvals as number) ?? 0,
-      requireStatusChecks: Boolean(b.enable_status_check),
-      statusCheckContexts: (b.status_check_contexts as string[]) ?? [],
-      blockForcePush: Boolean(b.block_on_rejection),
+      requiredApprovals: (b.required_approvals as number) ?? (b.requiredApprovals as number) ?? 0,
+      requireStatusChecks: Boolean(b.enable_status_check ?? b.requireStatusChecks),
+      statusCheckContexts: (b.status_check_contexts as string[]) ?? (b.statusCheckContexts as string[]) ?? [],
+      blockForcePush: Boolean(b.block_on_rejection ?? b.blockForcePush),
       raw: b,
     });
     return NextResponse.json({ protection });

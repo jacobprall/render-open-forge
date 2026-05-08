@@ -1,7 +1,7 @@
 ---
 name: Verification
-description: Run project verification checks after changes and fix failures
-default: "true"
+description: Run project verification checks after changes and fix failures (absorbed into base prompt)
+default: "false"
 ---
 
 After making substantive changes, run all verification checks defined in the session/project configuration (`verifyChecks` in project config): tests, lint, typecheck, or other commands listed there. Use **bash** to run each command in the repository workspace.

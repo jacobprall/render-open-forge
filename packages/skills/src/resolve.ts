@@ -14,10 +14,6 @@ export const USER_SKILLS_DIR = "skills";
 export const REPO_SKILLS_PATH = ".forge/skills";
 
 export const DEFAULT_ACTIVE_SKILL_REFS: ActiveSkillRef[] = [
-  { source: "builtin", slug: "implementation" },
-  { source: "builtin", slug: "verification" },
-  { source: "builtin", slug: "pr-delivery" },
-  { source: "builtin", slug: "code-quality" },
   { source: "builtin", slug: "react-best-practices" },
   { source: "builtin", slug: "next-best-practices" },
 ];

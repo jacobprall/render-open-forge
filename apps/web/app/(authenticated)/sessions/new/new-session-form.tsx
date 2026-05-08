@@ -43,11 +43,27 @@ function defaultActiveFromLists(
   return refs;
 }
 
+class FetchError extends Error {
+  status: number;
+  constructor(status: number) {
+    super(`HTTP ${status}`);
+    this.status = status;
+  }
+}
+
 async function jsonFetcher<T>(url: string): Promise<T> {
   const r = await fetch(url);
-  if (!r.ok) throw new Error(String(r.status));
+  if (!r.ok) throw new FetchError(r.status);
   return r.json() as Promise<T>;
 }
+
+const swrOptions = {
+  onErrorRetry: (err: unknown, _key: string, _config: unknown, revalidate: (opts: { retryCount: number }) => void, { retryCount }: { retryCount: number }) => {
+    if (err instanceof FetchError && err.status === 401) return;
+    if (retryCount >= 3) return;
+    setTimeout(() => revalidate({ retryCount }), 5000 * (retryCount + 1));
+  },
+};
 
 export function NewSessionForm() {
   const router = useRouter();
@@ -72,6 +88,7 @@ export function NewSessionForm() {
     error: reposErr,
   } = useSWR("/api/sessions/repos", (u) =>
     jsonFetcher<{ repos?: Repo[] }>(u).then((d) => d.repos ?? []),
+    swrOptions,
   );
 
   const {
@@ -81,6 +98,7 @@ export function NewSessionForm() {
   } = useSWR(
     selectedRepo ? `/api/sessions/repos/${encodeURIComponent(selectedRepo)}/branches` : null,
     (u) => jsonFetcher<{ branches?: Branch[] }>(u).then((d) => d.branches ?? []),
+    swrOptions,
   );
 
   const { data: skillsPayload, isLoading: loadingSkills, error: skillsErr } = useSWR(
@@ -97,6 +115,7 @@ export function NewSessionForm() {
         repo: d.repo ?? [],
       };
     },
+    swrOptions,
   );
 
   useEffect(() => {

@@ -9,7 +9,7 @@ Built on Forgejo, a Bun-based agent worker, **Render Workflows for CI execution*
 | Capability | Typical stack | render-open-forge |
 |---|---|---|
 | Repository hosting | GitHub/GitLab ($4–21/user/mo) | Forgejo (self-hosted, $0/user) |
-| AI coding agent | Copilot/Cursor ($19–40/user/mo) | Built-in agent (pay only for LLM API tokens) |
+| AI coding agent | Cursor Business ($40/user/mo + token markup) | Built-in agent (pay only for LLM API tokens at cost) |
 | CI/CD | GitHub Actions / GitLab CI (per-minute billing) | Forgejo workflow YAML + **Render Workflows** execution (flat worker cost, scalable tasks) |
 | Code review | Built into GitHub/GitLab | Built into Forgejo + agent-assisted review |
 | Data ownership | Vendor-hosted | Postgres you control |
@@ -229,14 +229,14 @@ LLM costs (Anthropic / OpenAI) depend on usage. A team of 10 engineers averaging
 
 **Comparison at different team sizes:**
 
-| Team size | GitHub + Copilot + Actions* | render-open-forge |
+| Team size | Cursor Business + GitHub + Actions* | render-open-forge |
 |---|---|---|
-| 5 engineers | ~$165/mo | ~$194/mo (infra + ~$100 LLM) |
-| 20 engineers | ~$660/mo | ~$394/mo (infra + ~$300 LLM) |
-| 50 engineers | ~$1,650/mo | ~$694/mo (infra + ~$600 LLM) |
-| 100 engineers | ~$3,300/mo | ~$1,094/mo (infra + ~$1,000 LLM) |
+| 5 engineers | ~$270/mo | ~$194/mo (infra + ~$100 LLM) |
+| 20 engineers | ~$1,080/mo | ~$394/mo (infra + ~$300 LLM) |
+| 50 engineers | ~$2,700/mo | ~$694/mo (infra + ~$600 LLM) |
+| 100 engineers | ~$5,400/mo | ~$1,094/mo (infra + ~$1,000 LLM) |
 
-<sub>*GitHub Team ($4/user) + Copilot Business ($19/user) + Actions (~$10/user for moderate CI). Real-world GitHub Actions bills vary widely. render-open-forge LLM estimates assume moderate agent usage; heavy usage (autonomous debugging, large refactors) will be higher.</sub>
+<sub>*Cursor Business ($40/user) + GitHub Team ($4/user) + Actions (~$10/user for moderate CI). Cursor's seat price includes limited fast requests; heavy agentic usage burns through the included quota, and Cursor's effective per-token cost is higher than direct API access. render-open-forge calls LLM providers (Anthropic, OpenAI) at cost with your own API keys. LLM estimates assume moderate agent usage; heavy usage (autonomous debugging, large refactors) will be higher.</sub>
 
 ## Documentation
 
