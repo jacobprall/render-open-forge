@@ -15,7 +15,7 @@ function bashInvokesRemoteGit(command: string): boolean {
 export function bashTool() {
   return tool({
     description:
-      "Execute a bash command in the session workspace. Do not use this for `git push`, `git fetch`, or `git pull` — use the git tool for those so forge authentication is applied.",
+      "Execute a bash command in the session workspace (repo root). Each invocation starts in the same working directory — `cd` does not persist between calls. Use relative paths. Do not use this for `git push`, `git fetch`, or `git pull` — use the git tool for those so forge authentication is applied.",
     inputSchema: bashInputSchema,
     execute: async ({ command, timeoutMs }, { experimental_context }) => {
       if (bashInvokesRemoteGit(command)) {

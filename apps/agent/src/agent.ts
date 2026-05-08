@@ -363,7 +363,7 @@ function buildWorkspaceContext(
     `- **Repository:** ${sessionRow.forgejoRepoPath}`,
     `- **Branch:** ${sessionRow.branch || "main"}`,
     `- **Base branch:** ${sessionRow.baseBranch || "main"}`,
-    `- **Working directory:** /workspace (repo root, already cloned)`,
+    `- **Working directory:** The repo is cloned into the session workspace (your \`cwd\`). All bash and git commands execute here automatically — do NOT use \`cd\` to navigate elsewhere.`,
   ];
 
   if (ctx.repoOwner && ctx.repoName) {

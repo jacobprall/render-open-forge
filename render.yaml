@@ -30,7 +30,15 @@ services:
         sync: false
       - key: AUTH_SECRET
         generateValue: true
+      - key: CSRF_SECRET
+        generateValue: true
       - key: AUTH_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -66,6 +74,8 @@ services:
           type: keyvalue
           property: connectionString
       - key: FORGEJO_INTERNAL_URL
+        value: http://openforge-forgejo:3000
+      - key: FORGEJO_SANDBOX_URL
         value: http://openforge-forgejo:3000
       - key: FORGEJO_AGENT_TOKEN
         sync: false

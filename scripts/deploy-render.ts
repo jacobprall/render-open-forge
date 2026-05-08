@@ -294,8 +294,16 @@ async function main() {
   await setEnvVar(web.id, "ANTHROPIC_API_KEY", ANTHROPIC_API_KEY);
   await setEnvVar(agent.id, "ANTHROPIC_API_KEY", ANTHROPIC_API_KEY);
   await setEnvVar(web.id, "RENDER_API_KEY", RENDER_API_KEY);
+  await setEnvVar(web.id, "AUTH_URL", webUrl);
+  await setEnvVar(web.id, "NEXT_PUBLIC_APP_URL", webUrl);
+  await setEnvVar(web.id, "ADMIN_EMAIL", FORGEJO_ADMIN_EMAIL);
+  await setEnvVar(web.id, "ADMIN_PASSWORD", FORGEJO_ADMIN_PASSWORD);
   console.log("  ✓ ANTHROPIC_API_KEY → web, agent");
-  console.log("  ✓ RENDER_API_KEY → web\n");
+  console.log("  ✓ RENDER_API_KEY → web");
+  console.log(`  ✓ AUTH_URL → web (${webUrl})`);
+  console.log(`  ✓ NEXT_PUBLIC_APP_URL → web (${webUrl})`);
+  console.log(`  ✓ ADMIN_EMAIL → web`);
+  console.log(`  ✓ ADMIN_PASSWORD → web\n`);
 
   // Step 3: Set Forgejo URLs
   console.log("Step 3: Setting Forgejo URLs...");
@@ -356,25 +364,36 @@ async function main() {
   await setEnvVar(gateway.id, "FORGEJO_WEBHOOK_SECRET", webhookSecret);
   console.log(`  ✓ FORGEJO_WEBHOOK_SECRET → gateway (${webhookSecret})\n`);
 
-  // Step 8: Push DB schema
+  // Step 8: Push DB schema (generate + migrate to avoid Forgejo table conflicts)
   if (process.env.SKIP_DB_PUSH !== "true") {
     console.log("Step 8: Pushing database schema...");
     const dbEnvVars = await getEnvVars(web.id);
     const dbUrl = dbEnvVars.find((v) => v.key === "DATABASE_URL")?.value;
     if (dbUrl) {
-      const proc = Bun.spawn(["bun", "run", "db:push"], {
-        env: { ...process.env, DATABASE_URL: dbUrl },
+      const dbEnv = { ...process.env, DATABASE_URL: dbUrl };
+      const generate = Bun.spawn(["npx", "drizzle-kit", "generate"], {
+        cwd: "apps/web",
+        env: dbEnv,
         stdout: "inherit",
         stderr: "inherit",
       });
-      const exitCode = await proc.exited;
-      if (exitCode !== 0) {
-        console.log("  ⚠ db:push failed — you may need to run it manually with the external DB URL\n");
+      if ((await generate.exited) !== 0) {
+        console.log("  ⚠ drizzle-kit generate failed — run manually from apps/web\n");
       } else {
-        console.log("  ✓ Schema pushed\n");
+        const migrate = Bun.spawn(["npx", "drizzle-kit", "migrate"], {
+          cwd: "apps/web",
+          env: dbEnv,
+          stdout: "inherit",
+          stderr: "inherit",
+        });
+        if ((await migrate.exited) !== 0) {
+          console.log("  ⚠ drizzle-kit migrate failed — run manually from apps/web\n");
+        } else {
+          console.log("  ✓ Schema migrated\n");
+        }
       }
     } else {
-      console.log("  ⚠ Could not find DATABASE_URL — run db:push manually\n");
+      console.log("  ⚠ Could not find DATABASE_URL — run drizzle-kit generate/migrate manually\n");
     }
   } else {
     console.log("Step 8: Skipping DB push (SKIP_DB_PUSH=true)\n");
