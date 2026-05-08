@@ -5,10 +5,18 @@
  * decoupled from any specific forge implementation.
  */
 
-import type { ForgeProvider } from "@openforge/platform/forge";
+import type { ForgeProvider, ForgeProviderType } from "@openforge/platform/forge";
 import type { SandboxAdapter } from "@openforge/sandbox";
 
 export type { SandboxAdapter };
+
+export interface UpstreamMirrorInfo {
+  provider: ForgeProviderType;
+  remoteRepoUrl: string;
+  forge: ForgeProvider;
+  remoteOwner: string;
+  remoteRepo: string;
+}
 
 export interface ForgeAgentContext {
   __brand: "ForgeAgentContext";
@@ -19,6 +27,8 @@ export interface ForgeAgentContext {
   branch: string;
   baseBranch: string;
   adapter: SandboxAdapter;
+  /** When the repo is a pull mirror, contains the upstream provider for push/PR. */
+  upstream?: UpstreamMirrorInfo;
   onFileChanged?: (event: FileChangedEvent) => void | Promise<void>;
   /** Called after a PR is successfully created (e.g. to persist session state). */
   onPrCreated?: (event: { prNumber: number; prStatus: string }) => void | Promise<void>;

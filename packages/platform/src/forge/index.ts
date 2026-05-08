@@ -68,6 +68,8 @@ export type {
 
 // Concrete adapters
 export { ForgejoProvider } from "./forgejo-adapter";
+export { GitHubProvider } from "./github-adapter";
+export { GitLabProvider } from "./gitlab-adapter";
 
 // Factory
 export { createForgeProvider, getDefaultForgeProvider } from "./factory";

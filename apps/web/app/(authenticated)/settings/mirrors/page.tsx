@@ -149,7 +149,7 @@ export default function MirrorsPage() {
           href="/repos/import"
           className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
         >
-          Import & Mirror
+          New Mirror
         </Link>
       </div>
 

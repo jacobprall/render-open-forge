@@ -12,7 +12,7 @@ const GIT_COMMANDS_NEEDING_AUTH = new Set(["push", "fetch", "pull"]);
 export function gitTool() {
   return tool({
     description:
-      "Run a git command in the session workspace. For push/fetch/pull, authentication is handled automatically via the internal forge. Use this instead of bash for git operations.",
+      "Run a git command in the session workspace. For push/fetch/pull, authentication is handled automatically. If the repo is a pull mirror, push targets the upstream provider (e.g. GitHub). Use this instead of bash for git operations.",
     inputSchema: gitInputSchema,
     execute: async ({ args }, { experimental_context }) => {
       const { adapter, sessionId } = getSandboxContext(experimental_context);
@@ -21,7 +21,25 @@ export function gitTool() {
       const needsAuth = subcommand && GIT_COMMANDS_NEEDING_AUTH.has(subcommand);
 
       if (needsAuth && isForgeAgentContext(experimental_context)) {
-        const { forge, repoOwner, repoName } = experimental_context;
+        const { forge, repoOwner, repoName, upstream } = experimental_context;
+
+        // For push on a mirrored repo, target the upstream provider
+        if (subcommand === "push" && upstream) {
+          const upstreamAuthUrl = upstream.forge.git.authenticatedCloneUrl(
+            upstream.remoteOwner,
+            upstream.remoteRepo,
+          );
+          const forgejoPlainUrl = rewriteForSandbox(forge.git.plainCloneUrl(repoOwner, repoName));
+
+          await adapter.git(sessionId, ["remote", "set-url", "origin", upstreamAuthUrl]);
+          try {
+            return await adapter.git(sessionId, args);
+          } finally {
+            await adapter.git(sessionId, ["remote", "set-url", "origin", forgejoPlainUrl]).catch(() => {});
+          }
+        }
+
+        // Default: use the internal Forgejo forge for auth
         const authUrl = rewriteForSandbox(forge.git.authenticatedCloneUrl(repoOwner, repoName));
         const plainUrl = rewriteForSandbox(forge.git.plainCloneUrl(repoOwner, repoName));
 

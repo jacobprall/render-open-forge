@@ -107,7 +107,13 @@ async function forgejoApi<T>(path: string, options: RequestInit = {}): Promise<T
     throw new Error(`Forgejo API ${res.status}: ${res.statusText} - ${body}`);
   }
   if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  if (!text || !text.trim()) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return undefined as T;
+  }
 }
 
 // ─── Push mirror setup ──────────────────────────────────────────────────────

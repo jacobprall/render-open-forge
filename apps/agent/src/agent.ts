@@ -1,17 +1,17 @@
 import { generateText, stepCountIs, type LanguageModel, type ModelMessage, type ToolSet } from "ai";
 import type Redis from "ioredis";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { agentRuns, chats, chatMessages, specs, sessions, prEvents } from "@openforge/db";
+import { agentRuns, chats, chatMessages, specs, sessions, prEvents, mirrors, syncConnections } from "@openforge/db";
 import { AppError } from "@openforge/shared";
 import { resolveLlmApiKeys, type ResolvedLlmKeys, type PlatformContainer, type PlatformDb, type EventBus } from "@openforge/platform";
-import { getDefaultForgeProvider, type ForgeProvider } from "@openforge/platform/forge";
+import { getDefaultForgeProvider, createForgeProvider, type ForgeProvider, type ForgeProviderType } from "@openforge/platform/forge";
 import {
   SharedHttpSandboxProvider,
   type SandboxAdapter,
   type SandboxSessionAuth,
 } from "@openforge/sandbox";
-import type { ForgeAgentContext } from "./context/agent-context";
+import type { ForgeAgentContext, UpstreamMirrorInfo } from "./context/agent-context";
 import { jobMessagesToModelMessages, sanitizeMessages } from "./messages";
 import { buildAgentSystemPrompt } from "./system-prompt";
 import {
@@ -81,6 +81,85 @@ function getForgeProvider(): ForgeProvider {
   const token = process.env.FORGEJO_AGENT_TOKEN;
   if (!token) throw new Error("FORGEJO_AGENT_TOKEN not configured");
   return getDefaultForgeProvider(token);
+}
+
+/** Fire-and-forget: tell Forgejo to pull from upstream so the mirror reflects new branches. */
+function triggerMirrorSync(forge: ForgeProvider, owner: string, repo: string): void {
+  forge.mirrors.sync(owner, repo).catch((err) => {
+    console.warn(`[agent] mirror sync failed for ${owner}/${repo}:`, err);
+  });
+}
+
+/**
+ * Extract (owner, repo) from a remote URL.
+ * Handles https://github.com/user/repo.git, git@github.com:user/repo.git, etc.
+ */
+function parseRemoteUrl(url: string): { owner: string; repo: string } | null {
+  // HTTPS: https://github.com/owner/repo.git
+  const httpsMatch = url.match(/(?:https?:\/\/[^/]+)\/([^/]+)\/([^/]+?)(?:\.git)?$/);
+  if (httpsMatch?.[1] && httpsMatch[2]) {
+    return { owner: httpsMatch[1], repo: httpsMatch[2] };
+  }
+  // SSH: git@github.com:owner/repo.git
+  const sshMatch = url.match(/git@[^:]+:([^/]+)\/([^/]+?)(?:\.git)?$/);
+  if (sshMatch?.[1] && sshMatch[2]) {
+    return { owner: sshMatch[1], repo: sshMatch[2] };
+  }
+  return null;
+}
+
+function providerBaseUrl(provider: string): string {
+  switch (provider) {
+    case "github": return "https://api.github.com";
+    case "gitlab": return "https://gitlab.com";
+    default: return "https://api.github.com";
+  }
+}
+
+async function resolveUpstreamMirror(
+  db: PlatformDb,
+  forgejoRepoPath: string,
+): Promise<UpstreamMirrorInfo | undefined> {
+  if (!forgejoRepoPath) return undefined;
+
+  const [mirrorRow] = await db
+    .select({
+      remoteRepoUrl: mirrors.remoteRepoUrl,
+      direction: mirrors.direction,
+      syncConnectionId: mirrors.syncConnectionId,
+    })
+    .from(mirrors)
+    .where(eq(mirrors.forgejoRepoPath, forgejoRepoPath))
+    .limit(1);
+
+  if (!mirrorRow) return undefined;
+  if (mirrorRow.direction !== "pull" && mirrorRow.direction !== "bidirectional") return undefined;
+
+  const [conn] = await db
+    .select({
+      provider: syncConnections.provider,
+      accessToken: syncConnections.accessToken,
+    })
+    .from(syncConnections)
+    .where(eq(syncConnections.id, mirrorRow.syncConnectionId))
+    .limit(1);
+
+  if (!conn?.accessToken) return undefined;
+
+  const parsed = parseRemoteUrl(mirrorRow.remoteRepoUrl);
+  if (!parsed) return undefined;
+
+  const provider = conn.provider as ForgeProviderType;
+  const baseUrl = providerBaseUrl(provider);
+  const forge = createForgeProvider({ type: provider, baseUrl, token: conn.accessToken });
+
+  return {
+    provider,
+    remoteRepoUrl: mirrorRow.remoteRepoUrl,
+    forge,
+    remoteOwner: parsed.owner,
+    remoteRepo: parsed.repo,
+  };
 }
 
 let _sandboxProvider: SharedHttpSandboxProvider | null = null;
@@ -272,6 +351,34 @@ function buildSystemPromptForJob(job: AgentJob): string {
   return appended ? `${base}\n\n${appended}` : base;
 }
 
+function buildWorkspaceContext(
+  sessionRow: { forgejoRepoPath: string; branch: string; baseBranch: string } | undefined,
+  ctx: ForgeAgentContext,
+): string | null {
+  if (!sessionRow?.forgejoRepoPath) return null;
+
+  const lines = [
+    "# Workspace",
+    "",
+    `- **Repository:** ${sessionRow.forgejoRepoPath}`,
+    `- **Branch:** ${sessionRow.branch || "main"}`,
+    `- **Base branch:** ${sessionRow.baseBranch || "main"}`,
+    `- **Working directory:** /workspace (repo root, already cloned)`,
+  ];
+
+  if (ctx.repoOwner && ctx.repoName) {
+    lines.push(`- **Owner:** ${ctx.repoOwner}`);
+  }
+
+  if (ctx.upstream) {
+    lines.push(
+      `- **Upstream:** ${ctx.upstream.provider} — ${ctx.upstream.remoteOwner}/${ctx.upstream.remoteRepo} (push and PRs target the upstream, not the internal forge)`,
+    );
+  }
+
+  return lines.join("\n");
+}
+
 async function buildForgeContext(params: {
   job: AgentJob;
   db: PlatformDb;
@@ -292,6 +399,11 @@ async function buildForgeContext(params: {
   const repoPath = sessionRow?.forgejoRepoPath ?? "";
   const [repoOwner, repoName] = repoPath.split("/");
 
+  const upstream = await resolveUpstreamMirror(db, repoPath);
+  if (upstream) {
+    console.log(`[agent] upstream mirror detected: ${upstream.provider} ${upstream.remoteOwner}/${upstream.remoteRepo}`);
+  }
+
   const forgeContext: ForgeAgentContext = {
     __brand: "ForgeAgentContext",
     sessionId: job.sessionId,
@@ -301,6 +413,7 @@ async function buildForgeContext(params: {
     repoName: repoName ?? "",
     branch: sessionRow?.branch ?? "main",
     baseBranch: sessionRow?.baseBranch ?? "main",
+    upstream,
     onFileChanged: async (p) => {
       const ev: StreamEvent = { type: "file_changed", path: p.path, additions: p.additions, deletions: p.deletions };
       await publishEvent(events, job.runId, ev, reqId);
@@ -323,6 +436,12 @@ async function buildForgeContext(params: {
         actionNeeded: true,
         metadata: { createdByAgent: true, runId: job.runId },
       });
+
+      // After creating a PR on an upstream, trigger a mirror sync so
+      // the Forgejo copy reflects the new branch/PR promptly.
+      if (upstream && repoOwner && repoName) {
+        triggerMirrorSync(forge, repoOwner, repoName);
+      }
     },
   };
 
@@ -346,14 +465,17 @@ async function runTurn(params: {
   const { job, redis, events, db, adapter, llmKeys } = params;
   const model = getModel(job.modelId, llmKeys);
   const thinkingOptions = buildProviderOptions(job, llmKeys);
-  const systemPrompt = buildSystemPromptForJob(job);
 
   const reqId = job.requestId;
   let accumulatedText = "";
   const assistantParts: AssistantPart[] = [];
   let stepCount = 0;
 
-  const { forgeContext } = await buildForgeContext({ job, db, events, adapter, assistantParts });
+  const { forgeContext, sessionRow } = await buildForgeContext({ job, db, events, adapter, assistantParts });
+
+  const basePrompt = buildSystemPromptForJob(job);
+  const workspaceBlock = buildWorkspaceContext(sessionRow, forgeContext);
+  const systemPrompt = workspaceBlock ? `${basePrompt}\n\n${workspaceBlock}` : basePrompt;
 
   const skillsSuffix = job.resolvedSkills.length > 0
     ? `## Important notes\n- All git operations target the internal Forgejo instance. Authentication is automatic.\n- When creating a PR, push your branch first with the git tool, then use create_pull_request.\n- The repository is already cloned in your workspace. Use glob/grep to explore it.`
@@ -493,7 +615,6 @@ async function persistAssistantMessage(
     role: "assistant",
     parts: parts as unknown as Record<string, unknown>[],
     modelMessages: responseMessages as unknown as Record<string, unknown>[],
-    createdAt: new Date(),
   });
   return id;
 }

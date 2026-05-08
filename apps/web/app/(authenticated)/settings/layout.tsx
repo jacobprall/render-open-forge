@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, Sparkles, Key, Link2, ArrowLeftRight, Wrench } from "lucide-react";
+import { User, Key, Link2, ArrowLeftRight, Wrench } from "lucide-react";
 
 const navItems = [
   { label: "Profile & Preferences", href: "/settings", exact: true, icon: User },
-  { label: "Models", href: "/settings/models", exact: false, icon: Sparkles },
   { label: "API Keys", href: "/settings/api-keys", exact: false, icon: Key },
   { label: "Connections", href: "/settings/connections", exact: false, icon: Link2 },
   { label: "Mirrors", href: "/settings/mirrors", exact: false, icon: ArrowLeftRight },

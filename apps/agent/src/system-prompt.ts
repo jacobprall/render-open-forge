@@ -91,10 +91,11 @@ Guidance:
 
 const OPERATIONAL_NOTES = `# Operational notes
 
-- All git operations target the internal Forgejo instance. Authentication is automatic — never hardcode credentials.
+- Authentication is automatic for all git operations — never hardcode credentials.
 - When creating a PR: push your branch first with the git tool, then use create_pull_request.
 - The repository is already cloned in your workspace at the session's working directory.
 - Git push/pull commands must use the git tool, not bash (the git tool handles auth injection).
+- If the repo is a **pull mirror** from an upstream provider (GitHub, GitLab), pushes and PRs automatically target the upstream — this is handled transparently by the tools. Do not attempt to push to the internal forge for mirror repos.
 - When reporting completion, be accurate: if tests fail, say so. If you didn't run verification, say that rather than implying success. Don't claim "all tests pass" when output shows failures.`;
 
 // ─── Assembly ────────────────────────────────────────────────────────────────

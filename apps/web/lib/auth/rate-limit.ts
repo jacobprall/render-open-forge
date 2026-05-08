@@ -1,5 +1,3 @@
-import { getSharedRedisClient, isRedisConfigured } from "@/lib/redis";
-
 export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
@@ -7,29 +5,29 @@ export interface RateLimitResult {
 }
 
 /**
- * Fixed-window rate limiter backed by Redis.
- * Falls back to an in-memory Map when Redis is unavailable (dev only).
+ * In-memory fixed-window rate limiter. Safe for Edge Runtime (middleware).
+ * For distributed Redis-backed limiting in route handlers, use {@link checkRateLimitAsync}.
  */
 export function checkRateLimit(
   key: string,
   maxRequests: number,
   windowMs: number,
 ): RateLimitResult {
-  if (isRedisConfigured()) {
-    return checkRateLimitSync(key, maxRequests, windowMs);
-  }
   return checkInMemoryRateLimit(key, maxRequests, windowMs);
 }
 
 /**
  * Async version that uses Redis INCR + PEXPIRE for distributed rate limiting.
  * Use this in async contexts (route handlers) for accurate multi-instance limiting.
+ * Dynamically imports ioredis to avoid polluting the Edge Runtime bundle.
  */
 export async function checkRateLimitAsync(
   key: string,
   maxRequests: number,
   windowMs: number,
 ): Promise<RateLimitResult> {
+  const { isRedisConfigured, getSharedRedisClient } = await import("@/lib/redis");
+
   if (!isRedisConfigured()) {
     return checkInMemoryRateLimit(key, maxRequests, windowMs);
   }
@@ -80,14 +78,6 @@ export function cleanupExpiredEntries(): void {
 if (typeof setInterval === "function" && !cleanupIntervalStarted) {
   cleanupIntervalStarted = true;
   setInterval(cleanupExpiredEntries, 60_000);
-}
-
-function checkRateLimitSync(
-  key: string,
-  maxRequests: number,
-  windowMs: number,
-): RateLimitResult {
-  return checkInMemoryRateLimit(key, maxRequests, windowMs);
 }
 
 function checkInMemoryRateLimit(

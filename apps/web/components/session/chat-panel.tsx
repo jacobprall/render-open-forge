@@ -85,13 +85,15 @@ export function ChatPanel({
     if (!fp) return;
     setLiveFileChanges((prev) => {
       const rest = prev.filter((x) => x.path !== fp);
-      const next = [...rest, { path: fp, additions, deletions }].sort((a, b) =>
+      return [...rest, { path: fp, additions, deletions }].sort((a, b) =>
         a.path.localeCompare(b.path),
       );
-      onFileChangesRef.current?.(next);
-      return next;
     });
   }, []);
+
+  useEffect(() => {
+    onFileChangesRef.current?.(liveFileChanges);
+  }, [liveFileChanges]);
 
   const scrollToBottom = useCallback(() => {
     const el = scrollContainerRef.current;
@@ -104,24 +106,21 @@ export function ChatPanel({
   }, [messages, streamingParts, scrollToBottom]);
 
   const finishStreaming = useCallback(() => {
-    setIsStreaming(false);
     setStreamingParts((parts) => {
       if (parts.length > 0) {
-        const snapshot = parts;
-        queueMicrotask(() => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: "assistant",
-              parts: snapshot,
-              createdAt: new Date().toISOString(),
-            },
-          ]);
-        });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            parts,
+            createdAt: new Date().toISOString(),
+          },
+        ]);
       }
       return [];
     });
+    setIsStreaming(false);
     setLiveFileChanges([]);
     onFileChangesRef.current?.([]);
   }, []);
@@ -370,15 +369,12 @@ export function ChatPanel({
           ) : null}
 
           {isStreaming && streamingParts.length === 0 ? (
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
+            <div className="flex items-center gap-2.5 text-xs text-zinc-400">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent/70 animate-[bounce_1.4s_ease-in-out_infinite]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-accent/70 animate-[bounce_1.4s_ease-in-out_0.2s_infinite]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-accent/70 animate-[bounce_1.4s_ease-in-out_0.4s_infinite]" />
+              </span>
               Thinking…
             </div>
           ) : null}
@@ -598,7 +594,11 @@ function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streamin
         }
       })}
       {streaming ? (
-        <span className="inline-block w-1 h-3.5 bg-accent/50 animate-pulse rounded-sm" />
+        <span className="inline-flex items-center gap-0.5 py-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent/60 animate-[bounce_1.4s_ease-in-out_infinite]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-accent/60 animate-[bounce_1.4s_ease-in-out_0.2s_infinite]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-accent/60 animate-[bounce_1.4s_ease-in-out_0.4s_infinite]" />
+        </span>
       ) : null}
     </div>
   );

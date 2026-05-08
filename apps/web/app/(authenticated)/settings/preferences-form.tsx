@@ -199,23 +199,6 @@ export function PreferencesForm({ prefs }: { prefs: UserPreferencesData | null }
           </div>
         </div>
 
-        {/* Workflow Mode */}
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-300">
-            Workflow Mode
-          </label>
-          <select
-            name="defaultWorkflowMode"
-            defaultValue={prefs?.defaultWorkflowMode || "standard"}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-          >
-            <option value="full">Full — Spec review, verification, PR delivery</option>
-            <option value="standard">Standard — Implement, verify, deliver</option>
-            <option value="fast">Fast — Implement and deliver, skip verification</option>
-            <option value="yolo">YOLO — Minimal checks, maximum speed</option>
-          </select>
-        </div>
-
         {/* Toggles */}
         <div className="space-y-4">
           <label className="flex cursor-pointer items-center justify-between rounded-lg border border-zinc-700 p-4 transition hover:border-zinc-600">

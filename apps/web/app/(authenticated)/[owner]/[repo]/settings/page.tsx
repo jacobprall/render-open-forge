@@ -1,10 +1,14 @@
 import { getSession } from "@/lib/auth/session";
 import { createForgeProvider } from "@/lib/forgejo/client";
 import { redirect, notFound } from "next/navigation";
+import { getDb } from "@/lib/db";
+import { mirrors } from "@openforge/db";
+import { eq } from "drizzle-orm";
 import { DeleteRepoButton } from "./delete-button";
 import { BranchProtectionSettings } from "./branch-protection-settings";
 import { PipelineEditor } from "./pipeline-editor";
 import { SecretsSettings } from "./secrets-settings";
+import { MirrorSync } from "./mirror-sync";
 
 export default async function RepoSettingsPage({
   params,
@@ -23,6 +27,19 @@ export default async function RepoSettingsPage({
   } catch {
     notFound();
   }
+
+  const repoPath = `${owner}/${repo}`;
+  const [mirrorRow] = await getDb()
+    .select({
+      id: mirrors.id,
+      remoteRepoUrl: mirrors.remoteRepoUrl,
+      direction: mirrors.direction,
+      lastSyncAt: mirrors.lastSyncAt,
+      status: mirrors.status,
+    })
+    .from(mirrors)
+    .where(eq(mirrors.forgejoRepoPath, repoPath))
+    .limit(1);
 
   return (
     <div className="space-y-8">
@@ -61,6 +78,19 @@ export default async function RepoSettingsPage({
           </div>
         </div>
       </section>
+
+      {mirrorRow && (
+        <section>
+          <h2 className="mb-4 text-lg font-semibold text-zinc-100">Mirror</h2>
+          <MirrorSync
+            mirrorId={mirrorRow.id}
+            remoteRepoUrl={mirrorRow.remoteRepoUrl}
+            direction={mirrorRow.direction}
+            lastSyncAt={mirrorRow.lastSyncAt?.toISOString() ?? null}
+            status={mirrorRow.status}
+          />
+        </section>
+      )}
 
       <section>
         <h2 className="mb-4 text-lg font-semibold text-zinc-100">Branch protection</h2>

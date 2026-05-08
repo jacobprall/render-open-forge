@@ -111,10 +111,10 @@ export function SessionWorkspace({
               </a>
             ) : null}
             {hasLineStats ? (
-              <span className="font-mono tabular-nums">
+              <span className="inline-flex items-center font-mono tabular-nums leading-none">
                 <span className="text-accent-text/70">+{session.linesAdded ?? 0}</span>
                 <span className="text-zinc-700 mx-0.5">/</span>
-                <span className="text-danger/70">-{session.linesRemoved ?? 0}</span>
+                <span className="text-danger/70">&minus;{session.linesRemoved ?? 0}</span>
               </span>
             ) : null}
           </div>

@@ -7,6 +7,7 @@ import {
   prEvents,
   sessions,
   specs,
+  userPreferences,
 } from "@openforge/db";
 import type { CiEvent, SessionPhase } from "@openforge/db";
 import {
@@ -111,6 +112,13 @@ export class SessionService {
     const sessionId = crypto.randomUUID();
     const chatId = crypto.randomUUID();
 
+    const [prefsRow] = await this.db
+      .select({ data: userPreferences.data })
+      .from(userPreferences)
+      .where(eq(userPreferences.userId, auth.userId))
+      .limit(1);
+    const preferredModel = prefsRow?.data?.defaultModelId ?? undefined;
+
     await this.db.insert(sessions).values({
       id: sessionId,
       userId: auth.userId,
@@ -129,6 +137,7 @@ export class SessionService {
       id: chatId,
       sessionId,
       title,
+      ...(preferredModel ? { modelId: preferredModel } : {}),
     });
 
     return { sessionId };

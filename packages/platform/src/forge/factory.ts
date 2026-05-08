@@ -9,6 +9,8 @@
 
 import type { ForgeProvider, ForgeProviderType } from "./provider";
 import { ForgejoProvider } from "./forgejo-adapter";
+import { GitHubProvider } from "./github-adapter";
+import { GitLabProvider } from "./gitlab-adapter";
 
 export interface ForgeProviderConfig {
   type: ForgeProviderType;
@@ -19,7 +21,6 @@ export interface ForgeProviderConfig {
 
 /**
  * Build a ForgeProvider from explicit config.
- * Throws if the provider type isn't implemented yet.
  */
 export function createForgeProvider(config: ForgeProviderConfig): ForgeProvider {
   switch (config.type) {
@@ -27,16 +28,10 @@ export function createForgeProvider(config: ForgeProviderConfig): ForgeProvider 
       return new ForgejoProvider(config.baseUrl, config.token, config.webhookSecret);
 
     case "github":
-      throw new Error(
-        "GitHub provider not yet implemented. " +
-        "Contribute a GitHubProvider that implements ForgeProvider.",
-      );
+      return new GitHubProvider(config.baseUrl, config.token);
 
     case "gitlab":
-      throw new Error(
-        "GitLab provider not yet implemented. " +
-        "Contribute a GitLabProvider that implements ForgeProvider.",
-      );
+      return new GitLabProvider(config.baseUrl, config.token);
 
     default:
       throw new Error(`Unknown forge provider type: ${config.type}`);

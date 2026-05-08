@@ -68,6 +68,19 @@ The tables below describe what each **service** needs at deploy time on Render
 | `MAX_CONCURRENT_RUNS` | No | Default `5`; max parallel agent jobs per worker |
 | `ASK_USER_TIMEOUT_SEC` | No | Default `900`; max time the worker blocks on `ask_user_question` |
 
+## Gateway (`apps/gateway`)
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | Yes | Auto-wired by `render.yaml` |
+| `REDIS_URL` | Yes | Auto-wired by `render.yaml` |
+| `GATEWAY_API_SECRET` | Yes | Bearer token for authenticating all gateway requests |
+| `GATEWAY_PORT` | No | Default `4100` |
+| `FORGEJO_INTERNAL_URL` | Yes | Auto-wired (`http://openforge-forgejo:3000`) |
+| `FORGEJO_AGENT_TOKEN` | Yes | Agent service account token |
+| `ENCRYPTION_KEY` | Yes | Must match web and agent — decrypts UI-managed LLM keys |
+| `CI_RUNNER_SECRET` | No | Required if gateway handles CI result callbacks |
+
 ## Sandbox service (`packages/sandbox`)
 
 | Variable | Required | Notes |

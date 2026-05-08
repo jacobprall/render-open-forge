@@ -61,7 +61,7 @@ Forgejo webhooks drive both CI execution and the agent:
 - **Pull requests:** create, review, merge/close; per-repo and global dashboard with filtering
 - **Actions:** Forgejo Actions run logs and test results
 - **Sessions:** chat with SSE streaming, skill and model selection, spec review
-- **Settings:** skill management, AI model config, GitHub/GitLab sync, mirrors
+- **Settings:** skill management, API key management, GitHub/GitLab connections, mirrors, preferences (default model)
 - **Organizations:** member management, usage dashboards (tokens, sandbox minutes, storage)
 - **Search:** cross-repo code search
 - **Activity:** global activity feed
