@@ -1,14 +1,7 @@
 import Redis from "ioredis";
 import { eq } from "drizzle-orm";
 import { agentRuns, chats } from "@render-open-forge/db";
-import {
-  ensureConsumerGroup,
-  readOneJob,
-  ackJob,
-  reclaimStalePending,
-  publishRunEvent,
-  type ValidatedAgentJob,
-} from "@render-open-forge/shared";
+import { ensureConsumerGroup, readOneJob, ackJob, reclaimStalePending, publishRunEvent, type ValidatedAgentJob } from "@render-open-forge/platform";
 import { runAgentTurn } from "./agent";
 import { fetchAvailableModels } from "./models";
 import { getDb } from "./db";

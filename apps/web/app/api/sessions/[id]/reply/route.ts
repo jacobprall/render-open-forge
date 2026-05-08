@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { agentRuns, chats, sessions } from "@render-open-forge/db";
 import { and, desc, eq } from "drizzle-orm";
-import { askUserReplyQueueKey } from "@render-open-forge/shared";
+import { askUserReplyQueueKey } from "@render-open-forge/platform";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
 
 /**

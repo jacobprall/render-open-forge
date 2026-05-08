@@ -1,6 +1,6 @@
 import type Redis from "ioredis";
 import type { ResolvedSkill } from "@render-open-forge/skills";
-import { enqueueJob, ensureConsumerGroup } from "@render-open-forge/shared";
+import { enqueueJob, ensureConsumerGroup } from "@render-open-forge/platform";
 
 export type EnqueueAgentChatMessage = {
   role: "user" | "assistant";

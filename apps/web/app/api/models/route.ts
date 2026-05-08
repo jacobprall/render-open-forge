@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolveLlmApiKeys } from "@render-open-forge/shared";
+import { resolveLlmApiKeys } from "@render-open-forge/platform";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { fetchModelsForSession } from "@/lib/models/anthropic-models";

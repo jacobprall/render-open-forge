@@ -14,6 +14,7 @@
     "@ai-sdk/openai": "catalog:",
     "@render-open-forge/db": "workspace:*",
     "@render-open-forge/sandbox": "workspace:*",
+    "@render-open-forge/platform": "workspace:*",
     "@render-open-forge/shared": "workspace:*",
     "@render-open-forge/skills": "workspace:*",
     "ai": "catalog:",

@@ -9,11 +9,8 @@ import {
   specs,
 } from "@render-open-forge/db";
 import { and, asc, desc, eq } from "drizzle-orm";
-import {
-  enqueueJob,
-  ensureConsumerGroup,
-  logger,
-} from "@render-open-forge/shared";
+import { enqueueJob, ensureConsumerGroup } from "@render-open-forge/platform";
+import { logger } from "@render-open-forge/shared";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
 import { createForgeProvider } from "@/lib/forgejo/client";
 import { resolveSkillsForSessionRow } from "@/lib/skills/resolve-for-session";

@@ -1,5 +1,5 @@
 import type { sessions } from "@render-open-forge/db";
-import type { ForgeProvider } from "@render-open-forge/shared/lib/forge";
+import type { ForgeProvider } from "@render-open-forge/platform/forge";
 import {
   ensureUserSkillsRepo,
   getBuiltinRaw,

@@ -1,4 +1,4 @@
-import type { ForgeProvider } from "@render-open-forge/shared/lib/forge";
+import type { ForgeProvider } from "@render-open-forge/platform/forge";
 import { ciEvents } from "@render-open-forge/db";
 import { eq } from "drizzle-orm";
 import { logger } from "@render-open-forge/shared";

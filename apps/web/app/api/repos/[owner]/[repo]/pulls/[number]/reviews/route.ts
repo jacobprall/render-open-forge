@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { createForgeProvider } from "@/lib/forgejo/client";
-import type { ReviewEvent } from "@render-open-forge/shared/lib/forge";
+import type { ReviewEvent } from "@render-open-forge/platform/forge";
 
 export async function GET(
   _req: Request,

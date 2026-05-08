@@ -7,27 +7,18 @@
   "exports": {
     ".": "./index.ts",
     "./client": "./client.ts",
-    "./lib/forge": "./lib/forge/index.ts",
-    "./lib/forge/*": "./lib/forge/*.ts",
-    "./lib/*": "./lib/*.ts",
-    "./hooks/*": "./hooks/*.tsx"
+    "./lib/*": "./lib/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@render-open-forge/db": "workspace:*",
-    "drizzle-orm": "^0.45.1",
-    "ioredis": "^5.9.2",
     "zod": "catalog:"
-  },
-  "peerDependencies": {
-    "react": "^18 || ^19"
   },
   "devDependencies": {
     "@types/bun": "1.3.12",
     "@types/node": "^22",
-    "@types/react": "^19",
     "typescript": "^5"
   }
 }

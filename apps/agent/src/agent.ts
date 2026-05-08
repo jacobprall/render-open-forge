@@ -3,13 +3,9 @@ import type Redis from "ioredis";
 import { desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { agentRuns, chats, chatMessages, specs, sessions, prEvents } from "@render-open-forge/db";
-import {
-  AppError,
-  publishRunEvent,
-  resolveLlmApiKeys,
-  type ResolvedLlmKeys,
-} from "@render-open-forge/shared";
-import { getDefaultForgeProvider, type ForgeProvider } from "@render-open-forge/shared/lib/forge";
+import { AppError } from "@render-open-forge/shared";
+import { publishRunEvent, resolveLlmApiKeys, type ResolvedLlmKeys } from "@render-open-forge/platform";
+import { getDefaultForgeProvider, type ForgeProvider } from "@render-open-forge/platform/forge";
 import {
   SharedHttpSandboxProvider,
   type SandboxAdapter,

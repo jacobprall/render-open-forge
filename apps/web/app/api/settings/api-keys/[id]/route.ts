@@ -10,7 +10,7 @@ import {
   llmKeyHint,
   validateAnthropicApiKey,
   validateOpenAiApiKey,
-} from "@render-open-forge/shared";
+} from "@render-open-forge/platform";
 
 const patchSchema = z
   .object({

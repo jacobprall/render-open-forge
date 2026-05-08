@@ -10,7 +10,7 @@ import {
   llmKeyHint,
   validateAnthropicApiKey,
   validateOpenAiApiKey,
-} from "@render-open-forge/shared";
+} from "@render-open-forge/platform";
 
 const postSchema = z.object({
   provider: z.enum(["anthropic", "openai"]),

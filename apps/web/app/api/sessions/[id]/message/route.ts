@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { sessions, chats, chatMessages, agentRuns } from "@render-open-forge/db";
 import { eq, and, desc, asc, count } from "drizzle-orm";
-import { resolveLlmApiKeys } from "@render-open-forge/shared";
+import { resolveLlmApiKeys } from "@render-open-forge/platform";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
 import { enqueueAgentMessage } from "@/lib/sessions/enqueue-message";
 import { createForgeProvider } from "@/lib/forgejo/client";

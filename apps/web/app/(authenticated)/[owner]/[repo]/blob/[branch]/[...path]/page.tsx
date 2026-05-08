@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { createForgeProvider } from "@/lib/forgejo/client";
-import type { ForgeFileContent } from "@render-open-forge/shared/lib/forge/types";
+import type { ForgeFileContent } from "@render-open-forge/platform/forge/types";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { formatBytes } from "@/lib/utils";

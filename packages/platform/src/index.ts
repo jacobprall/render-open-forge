@@ -1,0 +1,130 @@
+// Core interfaces
+export type { PlatformDb } from "./interfaces/database";
+export { createDb } from "./interfaces/database";
+export type { AuthContext } from "./interfaces/auth";
+export type { QueueAdapter } from "./interfaces/queue";
+export { RedisQueueAdapter } from "./interfaces/queue";
+export type { EventBus } from "./interfaces/events";
+export { RedisEventBus } from "./interfaces/events";
+
+// Forge provider abstraction
+export { ForgejoProvider, createForgeProvider, getDefaultForgeProvider } from "./forge";
+export type {
+  ForgeProvider,
+  ForgeProviderType,
+  ForgeProviderConfig,
+  ForgeRepo,
+  ForgeBranch,
+  ForgePullRequest,
+  ForgeFileContent,
+  ForgeCommit,
+  ForgeReview,
+  ForgeComment,
+  ForgeUser,
+  ForgeOrg,
+  ForgeOrgMember,
+  ForgeArtifact,
+  ForgeCommitStatus,
+  ForgeCombinedStatus,
+  ForgeWebhookEvent,
+  ForgePushEvent,
+  ForgePREvent,
+  ForgeWorkflowRunEvent,
+  ForgeStatusEvent,
+  MirrorConfig,
+  MirrorSyncResult,
+  MirrorConflictResult,
+  BranchProtectionRule,
+  CreateRepoParams,
+  CreatePRParams,
+  MirrorDirection,
+  ConflictStrategy,
+  ReviewEvent,
+  MergeMethod,
+} from "./forge";
+
+// Forgejo helpers
+export {
+  getWorkflowTemplate,
+  WORKFLOW_TEMPLATES,
+  type WorkflowTemplateKey,
+} from "./forgejo/ci-helpers";
+export {
+  verifyForgejoWebhookSignature,
+  isForgejoWebhookVerificationConfigured,
+  shouldAllowUnsignedForgejoWebhooks,
+} from "./forgejo/webhook-signature";
+
+// Redis Streams agent job queue
+export {
+  AGENT_JOBS_GROUP,
+  AGENT_JOBS_STREAM,
+  AgentJobSchema,
+  ackJob,
+  enqueueJob,
+  ensureConsumerGroup,
+  reclaimStalePending,
+  readOneJob,
+  type ValidatedAgentJob,
+} from "./queue/job-queue";
+
+// Dead letter queue
+export {
+  DEAD_LETTER_KEY,
+  moveToDeadLetter,
+  listDeadLetterJobs,
+  retryDeadLetterJob,
+  discardDeadLetterJob,
+} from "./queue/dead-letter";
+
+// Run event stream
+export {
+  askUserReplyQueueKey,
+  publishRunEvent,
+  readRunEventHistory,
+  readRunEventHistoryDetailed,
+  readRunEventPayloadsAfterId,
+  runEventStreamKey,
+} from "./events/run-stream";
+
+// LLM API keys (encrypted storage + resolution)
+export {
+  decryptLlmApiKey,
+  encryptLlmApiKey,
+  isLlmKeyEncryptionConfigured,
+} from "./auth/encryption";
+export {
+  llmKeyHint,
+  validateAnthropicApiKey,
+  validateOpenAiApiKey,
+} from "./auth/llm-key-validation";
+export { resolveLlmApiKeys, type ResolvedLlmKeys } from "./auth/api-key-resolver";
+
+// Observability
+export { metrics, type MetricEntry } from "./observability/metrics";
+
+// Services
+export { SessionService } from "./services/session";
+export type {
+  CreateSessionParams,
+  SendMessageParams,
+  ReplyParams,
+  SpecActionParams,
+  ReviewJobParams,
+  AutoTitleResult,
+  AgentTrigger,
+} from "./services/session";
+
+// Object storage
+export type {
+  StorageAdapter,
+  StorageObject,
+  ListObjectsOptions,
+  ListObjectsResult,
+  PutObjectOptions,
+  GetObjectResult,
+  S3StorageConfig,
+} from "./interfaces/storage";
+export { S3StorageAdapter } from "./storage/s3-adapter";
+export { LocalStorageAdapter } from "./storage/local-adapter";
+export { MemoryStorageAdapter } from "./storage/memory-adapter";

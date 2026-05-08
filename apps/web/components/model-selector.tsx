@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
-import type { ModelSummary } from "@render-open-forge/shared/client";
+import type { ModelSummary } from "@render-open-forge/shared";
 
 interface ModelSelectorProps {
   value: string;

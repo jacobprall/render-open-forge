@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import type { AssistantPart } from "@render-open-forge/shared/client";
+import type { AssistantPart } from "@render-open-forge/ui";
 import { ModelSelector } from "@/components/model-selector";
 import { PrSummaryPanel } from "./pr-summary-panel";
 import type { Message, LiveFileChange } from "./chat-panel";

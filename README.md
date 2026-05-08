@@ -36,10 +36,13 @@ graph LR
     subgraph Infrastructure
         direction TB
         Forgejo["forge-forgejo · Git forge"]
+        MinIO["forge-minio · S3 storage"]
         Sandbox["forge-sandbox · Docker"]
         Redis[("Redis · Valkey")]
         Postgres[("Postgres")]
     end
+
+    Forgejo -->|"LFS, attachments, avatars, packages"| MinIO
 ```
 
 - **forge-web**: Next.js app serving auth, chat UI, REST API, SSE streaming, and the forge browser.
@@ -47,6 +50,7 @@ graph LR
 - **forge-ci**: Render Workflows task worker. Clones repos, runs CI shell steps, posts results to the web app.
 - **forge-sandbox**: isolated Docker container (no public IP, bearer-token auth). Filesystem, shell, git, and search over an internal HTTP API.
 - **forge-forgejo**: Forgejo running as a private service. Repos, PRs, code review, branch protection, orgs, CI workflow definitions.
+- **forge-minio**: S3-compatible object storage (MinIO). Forgejo stores LFS objects, attachments, avatars, packages, and repo-archives here instead of local disk, providing durability independent of the Forgejo container. Swappable for AWS S3 or any S3-compatible service by changing the endpoint and credentials.
 - **Postgres**: all application state via Drizzle ORM.
 - **Redis (Valkey)**: job queue (Streams), Pub/Sub for SSE, worker heartbeats.
 
@@ -61,6 +65,7 @@ packages/sandbox         Sandbox HTTP adapter + Bun server + Docker image
 packages/shared          Shared types, forge provider abstraction, queue helpers
 packages/skills          Skill types, resolution, builtins, provisioning, parsing
 infrastructure/forgejo   Forgejo Dockerfile + app.ini config + setup script
+infrastructure/minio     MinIO Dockerfile + entrypoint (S3-compatible object storage for Forgejo)
 infrastructure/runner    Legacy Forgejo Actions runner image (optional, not used by the default Render blueprint)
 ```
 
@@ -82,7 +87,7 @@ bun install
 bun run infra:up
 ```
 
-This starts Postgres, Redis, Forgejo, and the sandbox. Forgejo will be at `http://localhost:3000` (admin-only, end users don't need it).
+This starts Postgres, Redis, Forgejo, MinIO, and the sandbox. Forgejo will be at `http://localhost:3000` (admin-only, end users don't need it). The MinIO console is at `http://localhost:9001` (credentials: `minioadmin` / `minioadmin`).
 
 **3. Run first-time Forgejo setup**
 
@@ -220,10 +225,11 @@ Infrastructure cost is flat and doesn't scale with headcount.
 | Agent worker | Starter | $7 |
 | Sandbox (Docker) | Standard + 20 GB disk | ~$29 |
 | Forgejo (git forge) | Standard + 10 GB disk | ~$27 |
+| MinIO (object storage) | Starter + 20 GB disk | ~$12 |
 | CI worker (Render Workflows) | Starter | $7 |
 | Redis | Starter | $10 |
 | Postgres | Basic 256 MB | $7 |
-| **Infrastructure total** | | **~$94/mo** |
+| **Infrastructure total** | | **~$106/mo** |
 
 LLM costs (Anthropic / OpenAI) depend on usage. A team of 10 engineers averaging 20 agent sessions/day typically runs $200–400/mo in API tokens. Scale the agent worker plan or Render Workflows concurrency as load grows.
 
@@ -231,10 +237,10 @@ LLM costs (Anthropic / OpenAI) depend on usage. A team of 10 engineers averaging
 
 | Team size | Cursor Business + GitHub + Actions* | render-open-forge |
 |---|---|---|
-| 5 engineers | ~$270/mo | ~$194/mo (infra + ~$100 LLM) |
-| 20 engineers | ~$1,080/mo | ~$394/mo (infra + ~$300 LLM) |
-| 50 engineers | ~$2,700/mo | ~$694/mo (infra + ~$600 LLM) |
-| 100 engineers | ~$5,400/mo | ~$1,094/mo (infra + ~$1,000 LLM) |
+| 5 engineers | ~$270/mo | ~$206/mo (infra + ~$100 LLM) |
+| 20 engineers | ~$1,080/mo | ~$406/mo (infra + ~$300 LLM) |
+| 50 engineers | ~$2,700/mo | ~$706/mo (infra + ~$600 LLM) |
+| 100 engineers | ~$5,400/mo | ~$1,106/mo (infra + ~$1,000 LLM) |
 
 <sub>*Cursor Business ($40/user) + GitHub Team ($4/user) + Actions (~$10/user for moderate CI). Cursor's seat price includes limited fast requests; heavy agentic usage burns through the included quota, and Cursor's effective per-token cost is higher than direct API access. render-open-forge calls LLM providers (Anthropic, OpenAI) at cost with your own API keys. LLM estimates assume moderate agent usage; heavy usage (autonomous debugging, large refactors) will be higher.</sub>
 
@@ -245,6 +251,16 @@ The `docs/` directory has the long-form material:
 - [`docs/architecture.md`](docs/architecture.md): authentication, architectural decisions, Forgejo, skills system, data ownership
 - [`docs/capabilities.md`](docs/capabilities.md): agent tools, skills, mirroring, CI reactions, web UI, persistence, org quotas, operations
 - [`docs/environment.md`](docs/environment.md): environment variable reference for all services, security notes
+
+## Object storage
+
+Forgejo's blob storage (LFS objects, attachments, avatars, packages, repo-archives) is backed by MinIO, an S3-compatible object store deployed alongside Forgejo. This decouples blob durability from the Forgejo container's local disk.
+
+**Swapping to managed S3:** change the `FORGEJO__storage__MINIO_ENDPOINT` to your S3-compatible provider (e.g. `s3.amazonaws.com`), set `MINIO_USE_SSL=true`, and supply the appropriate credentials. No code or Dockerfile changes needed.
+
+**What stays on local disk:** git bare repositories (`/data/git/repositories/`) remain on Forgejo's persistent disk. Git requires POSIX filesystem access; this is a Forgejo/git constraint. Back up these repos via scheduled mirror pushes or volume snapshots.
+
+See [`docs/environment.md`](docs/environment.md) for the full list of MinIO and Forgejo storage environment variables.
 
 ## Future work
 

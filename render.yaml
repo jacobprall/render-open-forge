@@ -101,6 +101,26 @@ services:
       - key: SANDBOX_SESSION_SECRET
         generateValue: true
 
+  # MinIO (S3-compatible object storage)
+  - type: web
+    name: forge-minio
+    runtime: docker
+    plan: starter
+    dockerfilePath: infrastructure/minio/Dockerfile
+    dockerContext: infrastructure/minio
+    healthCheckPath: /minio/health/live
+    disk:
+      name: minio-data
+      mountPath: /data
+      sizeGB: 20
+    envVars:
+      - key: MINIO_ROOT_USER
+        generateValue: true
+      - key: MINIO_ROOT_PASSWORD
+        generateValue: true
+      - key: MINIO_DEFAULT_BUCKET
+        value: forgejo
+
   # Forgejo (Internal Forge)
   - type: web
     name: forge-forgejo
@@ -140,6 +160,27 @@ services:
         sync: false
       - key: GOOGLE_OAUTH_CLIENT_SECRET
         sync: false
+      # Object storage — route LFS, attachments, avatars, packages to MinIO
+      - key: FORGEJO__storage__STORAGE_TYPE
+        value: minio
+      - key: FORGEJO__storage__MINIO_ENDPOINT
+        value: forge-minio:9000
+      - key: FORGEJO__storage__MINIO_ACCESS_KEY_ID
+        fromService:
+          name: forge-minio
+          type: web
+          envVarKey: MINIO_ROOT_USER
+      - key: FORGEJO__storage__MINIO_SECRET_ACCESS_KEY
+        fromService:
+          name: forge-minio
+          type: web
+          envVarKey: MINIO_ROOT_PASSWORD
+      - key: FORGEJO__storage__MINIO_BUCKET
+        value: forgejo
+      - key: FORGEJO__storage__MINIO_LOCATION
+        value: us-east-1
+      - key: FORGEJO__storage__MINIO_USE_SSL
+        value: "false"
 
   # CI Runner (Render Workflows)
   # Note: Render Workflows doesn't yet support Blueprint definitions.

@@ -1,7 +1,7 @@
 import { getDb } from "@/lib/db";
 import { sessions, chatMessages, chats } from "@render-open-forge/db";
 import { eq, and, asc } from "drizzle-orm";
-import { resolveLlmApiKeys } from "@render-open-forge/shared";
+import { resolveLlmApiKeys } from "@render-open-forge/platform";
 
 export type AutoTitleResult =
   | { ok: true; title: string }

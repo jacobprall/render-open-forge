@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { metrics } from "@render-open-forge/shared/lib/metrics";
+import { metrics } from "@render-open-forge/platform/observability";
 
 export async function GET() {
   const body = metrics.toPrometheus();

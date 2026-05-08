@@ -1,4 +1,5 @@
-import type { ForgeFileContent, ForgeProvider } from "@render-open-forge/shared/lib/forge";
+import type { ForgeFileContent } from "@render-open-forge/shared/lib/forge/types";
+import type { ForgeProvider } from "@render-open-forge/shared/lib/forge/provider";
 import {
   decodeForgeFileContent,
   getBuiltinRaw,

@@ -6,7 +6,7 @@ import { eq, and, desc } from "drizzle-orm";
 import {
   readRunEventHistoryDetailed,
   readRunEventPayloadsAfterId,
-} from "@render-open-forge/shared";
+} from "@render-open-forge/platform";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
 import { subscribeToRun } from "@/lib/sse/shared-subscriber";
 import {

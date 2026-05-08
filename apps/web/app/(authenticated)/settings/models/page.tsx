@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { resolveLlmApiKeys } from "@render-open-forge/shared";
+import { resolveLlmApiKeys } from "@render-open-forge/platform";
 import { userPreferences } from "@render-open-forge/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";

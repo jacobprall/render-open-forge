@@ -5,7 +5,7 @@ import { getDb } from "@/lib/db";
 import { sessions, chats, chatMessages, userPreferences } from "@render-open-forge/db";
 import { eq, and, desc } from "drizzle-orm";
 import { SessionWorkspace } from "@/components/session/session-workspace";
-import type { AssistantPart } from "@render-open-forge/shared/client";
+import type { AssistantPart } from "@render-open-forge/ui";
 
 export async function generateMetadata({
   params,

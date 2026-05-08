@@ -1,7 +1,7 @@
-import { getDefaultForgeProvider, type ForgeProvider } from "@render-open-forge/shared/lib/forge";
-import { ForgejoProvider } from "@render-open-forge/shared/lib/forge/forgejo-adapter";
+import { getDefaultForgeProvider, type ForgeProvider } from "@render-open-forge/platform/forge";
+import { ForgejoProvider } from "@render-open-forge/platform/forge/forgejo-adapter";
 
-export type { ForgeProvider } from "@render-open-forge/shared/lib/forge";
+export type { ForgeProvider } from "@render-open-forge/platform/forge";
 
 const FORGEJO_URL = process.env.FORGEJO_INTERNAL_URL || "http://localhost:3000";
 

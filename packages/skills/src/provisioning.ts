@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { ForgeProvider } from "@render-open-forge/shared/lib/forge";
+import type { ForgeProvider } from "@render-open-forge/shared/lib/forge/provider";
 import {
   decodeForgeFileContent,
   getBuiltinRaw,
