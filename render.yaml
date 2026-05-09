@@ -4,7 +4,7 @@ services:
     name: openforge-web
     runtime: node
     plan: starter
-    autoDeploy: false
+    autoDeploy: true
     buildCommand: bun install && npx turbo build --filter=@openforge/web
     startCommand: cd apps/web && bun run start
     healthCheckPath: /api/health
