@@ -118,7 +118,7 @@ export function RepoBranchPicker({ value, onChange }: RepoBranchPickerProps) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-80 border border-stroke-subtle bg-surface-1 shadow-lg">
+        <div className="absolute left-0 bottom-full z-50 mb-1 w-80 border border-stroke-subtle bg-surface-1 shadow-lg">
           <div className="flex items-center gap-2 border-b border-stroke-subtle px-(--of-space-sm) py-(--of-space-xs)">
             <Search className="h-3 w-3 text-text-tertiary shrink-0" />
             <input

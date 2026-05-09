@@ -54,7 +54,7 @@ export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) 
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 top-full z-50 mt-1 max-h-72 w-72 overflow-y-auto border border-stroke-default bg-surface-1 shadow-xl">
+        <div className="absolute right-0 bottom-full z-50 mb-1 max-h-72 w-72 overflow-y-auto border border-stroke-default bg-surface-1 shadow-xl">
           {models.map((model) => (
             <button
               key={model.id}
