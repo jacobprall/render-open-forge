@@ -21,6 +21,7 @@ export interface UpstreamMirrorInfo {
 export interface ForgeAgentContext {
   __brand: "ForgeAgentContext";
   sessionId: string;
+  projectId: string | null;
   forge: ForgeProvider;
   repoOwner: string;
   repoName: string;

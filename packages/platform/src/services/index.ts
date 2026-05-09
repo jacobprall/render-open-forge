@@ -42,9 +42,17 @@ export { WebhookService } from "./webhook";
 export { OrgService } from "./org";
 export type {
   CreateOrgParams,
+  OrgMember,
   QuotaEntry,
   UsageResult,
 } from "./org";
+
+export { ProjectService } from "./project";
+export type {
+  CreateProjectParams,
+  UpdateProjectParams,
+  ProjectWithRepos,
+} from "./project";
 
 export { InboxService } from "./inbox";
 export type {

@@ -1,7 +1,7 @@
 import { generateText, stepCountIs, type LanguageModel, type ModelMessage, type ToolSet } from "ai";
 import type Redis from "ioredis";
 import { eq } from "drizzle-orm";
-import { agentRuns, chats, sessions, prEvents } from "@openforge/db";
+import { agentRuns, chats, sessions, prEvents, projects, projectRepos } from "@openforge/db";
 import { AppError } from "@openforge/shared";
 import { resolveLlmApiKeys, type ResolvedLlmKeys, type PlatformContainer, type PlatformDb, type EventBus } from "@openforge/platform";
 import type { SandboxAdapter } from "@openforge/sandbox";
@@ -157,6 +157,7 @@ interface SessionRowContext {
   title: string;
   forgeType: string | null;
   userId: string;
+  projectId: string | null;
 }
 
 async function buildForgeContext(params: {
@@ -177,6 +178,7 @@ async function buildForgeContext(params: {
       title: sessions.title,
       forgeType: sessions.forgeType,
       userId: sessions.userId,
+      projectId: sessions.projectId,
     })
     .from(sessions)
     .where(eq(sessions.id, job.sessionId))
@@ -207,6 +209,7 @@ async function buildForgeContext(params: {
   const forgeContext: ForgeAgentContext = {
     __brand: "ForgeAgentContext",
     sessionId: isScratch ? `scratch/${job.userId}` : job.sessionId,
+    projectId: sessionRow?.projectId ?? null,
     adapter,
     forge,
     repoOwner: repoOwner ?? "",
@@ -247,6 +250,37 @@ async function buildForgeContext(params: {
   return { forgeContext, sessionRow };
 }
 
+// ─── Project context ─────────────────────────────────────────────────────────
+
+async function buildProjectBlock(db: PlatformDb, projectId: string | null): Promise<string | null> {
+  if (!projectId) return null;
+  try {
+    const [project] = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
+    if (!project) return null;
+
+    const lines = ["# Project", "", `- **Name:** ${project.name}`];
+
+    if (project.instructions) {
+      lines.push("", "## Project Instructions", "", project.instructions);
+    }
+
+    const repos = await db
+      .select({ repoPath: projectRepos.repoPath, isPrimary: projectRepos.isPrimary })
+      .from(projectRepos)
+      .where(eq(projectRepos.projectId, projectId));
+    if (repos.length > 0) {
+      lines.push("", "## Linked Repos");
+      for (const r of repos) {
+        lines.push(`- ${r.repoPath}${r.isPrimary ? " (primary)" : ""}`);
+      }
+    }
+
+    return lines.join("\n");
+  } catch {
+    return null;
+  }
+}
+
 // ─── Core turn execution ─────────────────────────────────────────────────────
 
 async function runTurn(params: {
@@ -281,6 +315,11 @@ async function runTurn(params: {
     : buildSystemPromptForJob(job, sessionForgeType);
   const workspaceBlock = buildWorkspaceContext(sessionRow, forgeContext);
   let systemPrompt = workspaceBlock ? `${basePrompt}\n\n${workspaceBlock}` : basePrompt;
+
+  const projectBlock = await buildProjectBlock(db, sessionRow?.projectId ?? null);
+  if (projectBlock) {
+    systemPrompt = `${systemPrompt}\n\n${projectBlock}`;
+  }
 
   const liveState = isScratch ? null : await buildLiveStateBlock(redis);
   if (liveState) {

@@ -14,9 +14,11 @@ const createSessionBodySchema = z.object({
   branch: z.string().min(1).optional(),
   baseBranch: z.string().min(1).optional(),
   title: z.string().max(200).optional(),
+  forgeType: z.enum(["forgejo", "github", "gitlab"]).optional(),
   activeSkills: z.array(activeSkillRefSchema).optional(),
   firstMessage: z.string().max(10000).optional(),
   modelId: z.string().optional(),
+  projectId: z.string().min(1).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -37,9 +39,26 @@ export async function POST(req: NextRequest) {
   try {
     const data = parsed.data;
     const branch = data.repoPath ? (data.branch || data.baseBranch || "main") : undefined;
-    const result = await getPlatform().sessions.create(auth, {
+    const platform = getPlatform();
+
+    let projectId = data.projectId;
+    if (projectId) {
+      const project = await platform.projects.get(auth, projectId);
+      if (!project) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      }
+    } else if (data.repoPath) {
+      const project = await platform.projects.findOrCreateForRepo(auth, data.repoPath, data.forgeType);
+      projectId = project.id;
+    } else {
+      const scratch = await platform.projects.getScratchProject(auth);
+      projectId = scratch.id;
+    }
+
+    const result = await platform.sessions.create(auth, {
       ...data,
       branch,
+      projectId,
     });
     return NextResponse.json({ id: result.sessionId, ...result });
   } catch (err) {

@@ -4,3 +4,4 @@ export * from "./ci";
 export * from "./sync";
 export * from "./infra";
 export * from "./platform";
+export * from "./org";

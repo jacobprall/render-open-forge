@@ -46,7 +46,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${inter.variable} ${jetbrainsMono.variable} ${lora.variable} ${ibmPlexMono.variable}`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${lora.variable} ${ibmPlexMono.variable}`}
     >
       <body className="min-h-screen bg-surface-0 font-sans text-text-primary antialiased">
         <RouteProgress />

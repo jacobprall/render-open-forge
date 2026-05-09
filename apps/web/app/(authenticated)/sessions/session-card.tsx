@@ -10,6 +10,7 @@ export type SessionCardSession = Pick<
   | "status"
   | "repoPath"
   | "branch"
+  | "projectId"
   | "lastActivityAt"
   | "createdAt"
 >;
@@ -49,7 +50,7 @@ export function SessionCard({ session }: { session: SessionCardSession }) {
           {session.title}
         </p>
         <p className="truncate text-[11px] font-mono text-text-tertiary">
-          {session.repoPath}
+          {session.repoPath ?? "scratch"}
         </p>
       </div>
       <span

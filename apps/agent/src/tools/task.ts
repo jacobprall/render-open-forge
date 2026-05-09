@@ -36,6 +36,7 @@ export function taskTool(
         const subCtx: ForgeAgentContext = {
           __brand: "ForgeAgentContext",
           sessionId,
+          projectId: parentCtx.projectId,
           adapter,
           forge: parentCtx.forge,
           repoOwner: parentCtx.repoOwner,

@@ -39,6 +39,9 @@ export const sessions = pgTable(
       .notNull()
       .default("running"),
 
+    // Project binding
+    projectId: text("project_id"),
+
     // Repo binding (forge-agnostic) — nullable for scratch/workbench sessions
     repoPath: text("repo_path"),
     forgeType: text("forge_type", {
@@ -88,7 +91,10 @@ export const sessions = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [index("sessions_user_id_idx").on(table.userId)],
+  (table) => [
+    index("sessions_user_id_idx").on(table.userId),
+    index("sessions_project_id_idx").on(table.projectId),
+  ],
 );
 
 // ---------------------------------------------------------------------------

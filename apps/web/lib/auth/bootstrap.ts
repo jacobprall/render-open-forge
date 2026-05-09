@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db";
-import { users, accounts } from "@openforge/db/schema";
+import { users, accounts, orgs, projects } from "@openforge/db/schema";
 
 const FORGEJO_URL = process.env.FORGEJO_INTERNAL_URL ?? "http://localhost:3000";
 const AGENT_TOKEN = process.env.FORGEJO_AGENT_TOKEN;
@@ -112,10 +112,18 @@ export async function bootstrapAdminIfNeeded(): Promise<void> {
   const passwordHash = await bcrypt.hash(adminPassword, 12);
   const userId = crypto.randomUUID();
 
+  const orgId = crypto.randomUUID();
+  await db.insert(orgs).values({
+    id: orgId,
+    name: "My Organization",
+    slug: "my-organization",
+  });
+
   await db.insert(users).values({
     id: userId,
     name: "Admin",
     email: adminEmail.toLowerCase(),
+    orgId,
     forgejoUserId: forgejoUser.id,
     forgejoUsername: forgejoUser.login,
     passwordHash,
@@ -130,5 +138,14 @@ export async function bootstrapAdminIfNeeded(): Promise<void> {
     access_token: forgejoToken,
   });
 
-  console.log(`[bootstrap] Admin created: ${adminEmail}`);
+  await db.insert(projects).values({
+    id: crypto.randomUUID(),
+    orgId,
+    name: "Scratch",
+    slug: `scratch-${userId}`,
+    isScratch: true,
+    createdBy: userId,
+  });
+
+  console.log(`[bootstrap] Admin created: ${adminEmail} (org: ${orgId})`);
 }

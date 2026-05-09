@@ -161,6 +161,7 @@
 /* ── Theme: Warm Analog ── */
 /* Light warm cream. Dark text. Burnt orange accents. Serif headings on clean body. */
 [data-theme="warm-analog"] {
+  --of-color-scheme: light;
   color-scheme: light;
 
   --of-font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -204,7 +205,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: var(--of-color-scheme, dark);
   font-size: var(--of-font-size-base);
   letter-spacing: var(--of-letter-spacing);
 }

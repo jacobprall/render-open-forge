@@ -1,18 +1,37 @@
 "use client";
 
-import { useState } from "react";
-import { PanelRightOpen, PanelRightClose } from "lucide-react";
+import { useState, useMemo } from "react";
+import { PanelRightOpen, PanelRightClose, Filter } from "lucide-react";
 import type { SessionCardSession } from "./session-card";
 import { SessionCard } from "./session-card";
 
-export function SessionsDrawer({ sessions }: { sessions: SessionCardSession[] }) {
+interface SessionsDrawerProps {
+  sessions: SessionCardSession[];
+  projectNames?: Record<string, string>;
+  projectFilter?: string | null;
+}
+
+export function SessionsDrawer({ sessions, projectNames, projectFilter }: SessionsDrawerProps) {
   const [open, setOpen] = useState(false);
+  const [filterProject, setFilterProject] = useState<string | null>(projectFilter ?? null);
+
+  const projectIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const s of sessions) {
+      if (s.projectId) ids.add(s.projectId);
+    }
+    return Array.from(ids);
+  }, [sessions]);
+
+  const filtered = useMemo(() => {
+    if (!filterProject) return sessions;
+    return sessions.filter((s) => s.projectId === filterProject);
+  }, [sessions, filterProject]);
 
   if (sessions.length === 0) return null;
 
   return (
     <>
-      {/* Toggle button -- fixed in top-right of the content area */}
       <button
         type="button"
         onClick={() => setOpen(prev => !prev)}
@@ -29,18 +48,41 @@ export function SessionsDrawer({ sessions }: { sessions: SessionCardSession[] })
         )}
       </button>
 
-      {/* Drawer */}
       {open && (
         <div className="shrink-0 h-full w-80 border-l border-stroke-subtle bg-surface-0 flex flex-col overflow-hidden">
           <div className="shrink-0 border-b border-stroke-subtle px-(--of-space-md) py-(--of-space-sm)">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
-              Recent sessions
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                Recent sessions
+              </h2>
+              {projectIds.length > 1 && (
+                <div className="relative">
+                  <select
+                    value={filterProject ?? ""}
+                    onChange={(e) => setFilterProject(e.target.value || null)}
+                    className="appearance-none border-none bg-transparent pr-5 text-[11px] text-text-tertiary outline-none cursor-pointer hover:text-text-secondary"
+                  >
+                    <option value="">All projects</option>
+                    {projectIds.map((pid) => (
+                      <option key={pid} value={pid}>
+                        {projectNames?.[pid] ?? pid.slice(0, 8)}
+                      </option>
+                    ))}
+                  </select>
+                  <Filter className="pointer-events-none absolute right-0 top-0.5 h-3 w-3 text-text-tertiary" />
+                </div>
+              )}
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {sessions.map((s) => (
+            {filtered.map((s) => (
               <SessionCard key={s.id} session={s} />
             ))}
+            {filtered.length === 0 && (
+              <p className="px-(--of-space-md) py-(--of-space-sm) text-[12px] text-text-tertiary">
+                No sessions match this filter
+              </p>
+            )}
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 import { createHmac, randomBytes } from "crypto";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { accounts, invites, users } from "@openforge/db/schema";
+import { accounts, invites, users, orgs, projects } from "@openforge/db/schema";
 import { ValidationError } from "@openforge/shared";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
@@ -96,12 +96,15 @@ export class InviteService {
     const inviteId = crypto.randomUUID();
     const token = createInviteToken(inviteId, expiresAt);
 
+    const [org] = await this.db.select().from(orgs).limit(1);
+
     await this.db.transaction(async (tx) => {
       await tx.insert(users).values({
         id: invitedUserId,
         name: profile.full_name || profile.login,
         email: userEmail,
         image: profile.avatar_url,
+        orgId: org?.id ?? null,
         forgejoUserId: profile.id,
         forgejoUsername: profile.login,
       });
@@ -123,6 +126,17 @@ export class InviteService {
         createdBy: auth.userId,
         expiresAt,
       });
+
+      if (org) {
+        await tx.insert(projects).values({
+          id: crypto.randomUUID(),
+          orgId: org.id,
+          name: "Scratch",
+          slug: `scratch-${invitedUserId}`,
+          isScratch: true,
+          createdBy: invitedUserId,
+        });
+      }
     });
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:4000";

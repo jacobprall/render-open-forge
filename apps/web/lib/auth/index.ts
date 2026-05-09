@@ -9,6 +9,8 @@ import {
   accounts,
   syncConnections,
   verificationTokens,
+  orgs,
+  projects,
 } from "@openforge/db/schema";
 import { credentialsProvider } from "./providers/credentials";
 
@@ -137,6 +139,29 @@ const config: NextAuthConfig = {
   },
 
   trustHost: true,
+
+  events: {
+    async createUser({ user }) {
+      if (!user.id) return;
+      try {
+        const db = getDb();
+        const [org] = await db.select().from(orgs).limit(1);
+        if (org) {
+          await db.update(users).set({ orgId: org.id }).where(eq(users.id, user.id));
+          await db.insert(projects).values({
+            id: crypto.randomUUID(),
+            orgId: org.id,
+            name: "Scratch",
+            slug: `scratch-${user.id}`,
+            isScratch: true,
+            createdBy: user.id,
+          }).onConflictDoNothing();
+        }
+      } catch (err) {
+        console.warn("[auth] failed to assign org/scratch to new user:", err);
+      }
+    },
+  },
 
   callbacks: {
     async jwt({ token, user, account, profile }) {

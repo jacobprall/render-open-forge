@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   FolderOpen,
+  Layers,
   MessageCircle,
   GitPullRequest,
   Settings,
@@ -17,6 +18,7 @@ import {
   Key,
   Link2,
   Wrench,
+  Building2,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useInboxCount } from "./use-inbox-count";
@@ -31,6 +33,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Chat", href: "/sessions", icon: MessageCircle },
+  { label: "Projects", href: "/projects", icon: Layers },
   { label: "Repos", href: "/repos", icon: FolderOpen },
   { label: "Pull Requests", href: "/pulls", icon: GitPullRequest, badgeKey: "inbox" },
   {
@@ -42,6 +45,7 @@ const navItems: NavItem[] = [
       { label: "API Keys", href: "/settings/api-keys", icon: Key },
       { label: "Connections", href: "/settings/connections", icon: Link2 },
       { label: "Skills", href: "/settings/skills", icon: Wrench },
+      { label: "Organization", href: "/settings/organization", icon: Building2 },
     ],
   },
 ];

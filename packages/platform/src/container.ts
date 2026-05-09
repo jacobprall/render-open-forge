@@ -31,6 +31,7 @@ import { SkillService } from "./services/skill";
 import { ModelService } from "./services/model";
 import { NotificationService } from "./services/notification";
 import { InviteService } from "./services/invite";
+import { ProjectService } from "./services/project";
 import { MirrorService } from "./services/mirror";
 import { CIService } from "./services/ci";
 import { WebhookService } from "./services/webhook";
@@ -80,6 +81,7 @@ export interface PlatformContainer {
   models: ModelService;
   notifications: NotificationService;
   invites: InviteService;
+  projects: ProjectService;
   mirrors: MirrorService;
   ci: CIService;
   webhooks: WebhookService;
@@ -173,6 +175,7 @@ function buildContainer(
   const models = new ModelService(db);
   const notifications = new NotificationService(db);
   const invites = new InviteService(db);
+  const projectsSvc = new ProjectService(db);
   const mirrors = new MirrorService(db);
   const ci = new CIService(db, queue, ciDispatcher);
   const webhooks = new WebhookService(db, queue, events, ci);
@@ -196,6 +199,7 @@ function buildContainer(
     models,
     notifications,
     invites,
+    projects: projectsSvc,
     mirrors,
     ci,
     webhooks,

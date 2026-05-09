@@ -6,6 +6,8 @@ import {
   ciEvents,
   infraResources,
   prEvents,
+  projects,
+  projectRepos,
   sessions,
   specs,
   userPreferences,
@@ -54,6 +56,7 @@ export interface CreateSessionParams {
   activeSkills?: Array<{ source: "builtin" | "user" | "repo"; slug: string }>;
   firstMessage?: string;
   modelId?: string;
+  projectId?: string;
 }
 
 export interface AttachRepoParams {
@@ -154,12 +157,31 @@ export class SessionService {
       }
     }
 
+    let projectConfig: Record<string, unknown> | null = null;
+    let projectContext: string | null = null;
+    if (params.projectId) {
+      try {
+        const [proj] = await this.db
+          .select({ config: projects.config, instructions: projects.instructions })
+          .from(projects)
+          .where(eq(projects.id, params.projectId))
+          .limit(1);
+        if (proj) {
+          projectConfig = proj.config as Record<string, unknown> | null;
+          projectContext = proj.instructions;
+        }
+      } catch {
+        // Non-critical: proceed without project context
+      }
+    }
+
     await this.db.insert(sessions).values({
       id: sessionId,
       userId: auth.userId,
       forgeUsername: auth.username,
       title,
       status: "running",
+      projectId: params.projectId ?? null,
       repoPath: repoPath ?? null,
       forgeType: resolvedForgeType,
       branch: resolvedBranch,
@@ -167,6 +189,8 @@ export class SessionService {
       phase: "execute",
       workflowMode: "standard",
       activeSkills: Array.isArray(activeSkills) && activeSkills.length > 0 ? activeSkills : null,
+      projectConfig,
+      projectContext,
     });
 
     const modelId = params.modelId?.trim() || preferredModel || DEFAULT_MODEL_ID;
@@ -305,6 +329,39 @@ export class SessionService {
         updatedAt: new Date(),
       })
       .where(eq(sessions.id, sessionId));
+
+    // Link repo to the session's project if not already linked
+    const [sessionFull] = await this.db
+      .select({ projectId: sessions.projectId })
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
+    if (sessionFull?.projectId) {
+      try {
+        const existing = await this.db
+          .select({ id: projectRepos.id })
+          .from(projectRepos)
+          .where(
+            and(
+              eq(projectRepos.projectId, sessionFull.projectId),
+              eq(projectRepos.repoPath, repoPath),
+            ),
+          )
+          .limit(1);
+        if (existing.length === 0) {
+          await this.db.insert(projectRepos).values({
+            id: crypto.randomUUID(),
+            projectId: sessionFull.projectId,
+            repoPath,
+            forgeType,
+            defaultBranch: resolvedBaseBranch,
+            isPrimary: false,
+          });
+        }
+      } catch {
+        // Non-critical: project_repo link failed
+      }
+    }
   }
 
   // -------------------------------------------------------------------------

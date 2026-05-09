@@ -28,6 +28,11 @@ function getSessionId(experimentalContext: unknown): string {
   return "unknown";
 }
 
+function getProjectId(experimentalContext: unknown): string {
+  if (isForgeAgentContext(experimentalContext)) return experimentalContext.projectId ?? experimentalContext.sessionId;
+  return "unknown";
+}
+
 async function logAction(
   db: PlatformDb | undefined,
   params: {
@@ -151,7 +156,7 @@ export function renderDeployTool(db?: PlatformDb) {
       const previous = deploys.find((d) => d.id !== deploy.id);
 
       await logAction(db, {
-        projectId: sessionId,
+        projectId: getProjectId(experimental_context),
         sessionId,
         kind: "deploy.triggered",
         input: { serviceId, commitId, clearCache },
@@ -297,7 +302,7 @@ export function renderSetEnvVarsTool(db?: PlatformDb) {
       const updated = await client.updateEnvVars(serviceId, envVars);
 
       await logAction(db, {
-        projectId: sessionId,
+        projectId: getProjectId(experimental_context),
         sessionId,
         kind: "env_vars.updated",
         input: { serviceId, keys: envVars.map((ev) => ev.key) },
@@ -388,7 +393,7 @@ export function renderCreateServiceTool(db?: PlatformDb) {
 
       const resourceKind = type === "background_worker" ? "worker" : "web_service" as const;
       const resourceId = await trackResource(db, {
-        projectId: sessionId,
+        projectId: getProjectId(experimental_context),
         kind: resourceKind,
         name,
         externalId: service.id,
@@ -397,7 +402,7 @@ export function renderCreateServiceTool(db?: PlatformDb) {
       });
 
       await logAction(db, {
-        projectId: sessionId,
+        projectId: getProjectId(experimental_context),
         sessionId,
         kind: "resource.created",
         input: { name, type, plan, runtime },
@@ -464,7 +469,7 @@ export function renderCreatePostgresTool(db?: PlatformDb) {
       const costCents = estimateMonthlyCostCents("postgres", plan);
 
       const resourceId = await trackResource(db, {
-        projectId: sessionId,
+        projectId: getProjectId(experimental_context),
         kind: "postgres",
         name,
         externalId: pg.id,
@@ -472,7 +477,7 @@ export function renderCreatePostgresTool(db?: PlatformDb) {
       });
 
       await logAction(db, {
-        projectId: sessionId,
+        projectId: getProjectId(experimental_context),
         sessionId,
         kind: "resource.created",
         input: { name, plan, version },
@@ -521,7 +526,7 @@ export function renderCreateRedisTool(db?: PlatformDb) {
       const costCents = estimateMonthlyCostCents("redis", plan);
 
       const resourceId = await trackResource(db, {
-        projectId: sessionId,
+        projectId: getProjectId(experimental_context),
         kind: "redis",
         name,
         externalId: redisInst.id,
@@ -529,7 +534,7 @@ export function renderCreateRedisTool(db?: PlatformDb) {
       });
 
       await logAction(db, {
-        projectId: sessionId,
+        projectId: getProjectId(experimental_context),
         sessionId,
         kind: "resource.created",
         input: { name, plan },
@@ -606,7 +611,7 @@ export function renderCreatePreviewTool(db?: PlatformDb) {
       const costCents = estimateMonthlyCostCents("web_service", plan);
 
       const resourceId = await trackResource(db, {
-        projectId: sessionId,
+        projectId: getProjectId(experimental_context),
         kind: "web_service",
         name: serviceName,
         externalId: service.id,
@@ -615,7 +620,7 @@ export function renderCreatePreviewTool(db?: PlatformDb) {
       });
 
       await logAction(db, {
-        projectId: sessionId,
+        projectId: getProjectId(experimental_context),
         sessionId,
         kind: "preview.created",
         input: { repo, branch, serviceName, plan },
@@ -670,7 +675,7 @@ export function renderDeletePreviewTool(db?: PlatformDb) {
       }
 
       await logAction(db, {
-        projectId: sessionId,
+        projectId: getProjectId(experimental_context),
         sessionId,
         kind: "preview.deleted",
         input: { serviceId },

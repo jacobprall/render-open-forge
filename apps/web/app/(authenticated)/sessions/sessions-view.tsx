@@ -27,9 +27,11 @@ interface ActiveSession {
 interface SessionsViewProps {
   defaultModelId?: string;
   sessions: SessionCardSession[];
+  projectNames?: Record<string, string>;
+  projectFilter?: string;
 }
 
-export function SessionsView({ defaultModelId, sessions }: SessionsViewProps) {
+export function SessionsView({ defaultModelId, sessions, projectNames, projectFilter }: SessionsViewProps) {
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const router = useRouter();
 
@@ -88,7 +90,7 @@ export function SessionsView({ defaultModelId, sessions }: SessionsViewProps) {
         </div>
       </div>
 
-      <SessionsDrawer sessions={sessions} />
+      <SessionsDrawer sessions={sessions} projectNames={projectNames} projectFilter={projectFilter} />
     </div>
   );
 }

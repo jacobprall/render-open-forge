@@ -1,5 +1,6 @@
 import { eq, sql } from "drizzle-orm";
-import { sessions, usageEvents } from "@openforge/db";
+import { sessions, usageEvents, orgs, users } from "@openforge/db";
+import type { Org } from "@openforge/db";
 import type { ForgeOrg, ForgeOrgMember } from "../forge/types";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
@@ -37,12 +38,73 @@ export interface UsageResult {
   quotas: QuotaEntry[];
 }
 
+export interface OrgMember {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  isAdmin: boolean;
+  createdAt: Date;
+}
+
 // ---------------------------------------------------------------------------
 // OrgService
 // ---------------------------------------------------------------------------
 
 export class OrgService {
   constructor(private db: PlatformDb) {}
+
+  // =========================================================================
+  // Platform org methods (single-org-per-deployment model)
+  // =========================================================================
+
+  async getPlatformOrg(): Promise<Org | null> {
+    const rows = await this.db.select().from(orgs).limit(1);
+    return rows[0] ?? null;
+  }
+
+  async getOrRequireOrg(): Promise<Org> {
+    const org = await this.getPlatformOrg();
+    if (!org) throw new Error("Organization not configured. Please run setup.");
+    return org;
+  }
+
+  async createPlatformOrg(name: string, slug: string): Promise<Org> {
+    const existing = await this.getPlatformOrg();
+    if (existing) return existing;
+    const id = crypto.randomUUID();
+    const [row] = await this.db.insert(orgs).values({ id, name, slug }).returning();
+    return row;
+  }
+
+  async updatePlatformOrg(auth: AuthContext, updates: { name?: string; slug?: string }): Promise<Org> {
+    if (!auth.isAdmin) throw new Error("Only admins can update the organization");
+    const org = await this.getOrRequireOrg();
+    const [row] = await this.db
+      .update(orgs)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(orgs.id, org.id))
+      .returning();
+    return row;
+  }
+
+  async listPlatformMembers(): Promise<OrgMember[]> {
+    const org = await this.getPlatformOrg();
+    if (!org) return [];
+    const rows = await this.db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        image: users.image,
+        isAdmin: users.isAdmin,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.orgId, org.id))
+      .orderBy(users.createdAt);
+    return rows;
+  }
 
   // -------------------------------------------------------------------------
   // listOrgs — GET /api/orgs

@@ -31,5 +31,8 @@ export default defineConfig({
     "infra_resources",
     "infra_actions",
     "infra_observations",
+    "orgs",
+    "projects",
+    "project_repos",
   ],
 });

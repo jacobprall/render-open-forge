@@ -28,6 +28,9 @@ export const users = pgTable("users", {
   /** Set when the user completes invite password setup; bcrypt hash. */
   passwordHash: text("password_hash"),
 
+  /** FK to the org this user belongs to (single org per deployment). */
+  orgId: text("org_id"),
+
   /** Platform admin — can manage platform-scoped LLM API keys and sees global key metadata. */
   isAdmin: boolean("is_admin").notNull().default(false),
 
