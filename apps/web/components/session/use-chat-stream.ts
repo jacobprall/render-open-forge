@@ -86,6 +86,10 @@ export function useChatStream({
     onFileChangesRef.current?.([]);
   }, [setMessages]);
 
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noRunRetries = useRef(0);
+  const MAX_NO_RUN_RETRIES = 15;
+
   const streamMessageRef = useRef<(event: MessageEvent) => void>(() => {});
   streamMessageRef.current = (event: MessageEvent) => {
     const rawData =
@@ -94,7 +98,23 @@ export function useChatStream({
       const raw = JSON.parse(rawData) as Record<string, unknown>;
       const type = raw.type as string;
 
-      if (type === STREAM_EVENT.CONNECTED || type === STREAM_EVENT.NO_ACTIVE_RUN) return;
+      if (type === STREAM_EVENT.CONNECTED) return;
+
+      if (type === STREAM_EVENT.NO_ACTIVE_RUN) {
+        if (noRunRetries.current < MAX_NO_RUN_RETRIES) {
+          noRunRetries.current++;
+          if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+          retryTimerRef.current = setTimeout(() => {
+            setStreamGeneration((g) => g + 1);
+          }, 1000);
+        } else {
+          setError("Agent job did not start. Try sending another message.");
+          finishStreaming();
+        }
+        return;
+      }
+
+      noRunRetries.current = 0;
 
       if (type === STREAM_EVENT.ASK_USER) {
         setAskUserPrompt({
@@ -152,11 +172,13 @@ export function useChatStream({
     enabled: isStreaming,
     onMessage: onStreamMessage,
     onError: onStreamError,
-    maxReconnectAttempts: 0,
+    maxReconnectAttempts: 3,
   });
 
   const startStreaming = useCallback(() => {
     setStreamingParts([]);
+    noRunRetries.current = 0;
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
     setStreamGeneration((g) => g + 1);
     setIsStreaming(true);
   }, []);

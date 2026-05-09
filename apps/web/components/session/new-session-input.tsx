@@ -11,7 +11,7 @@ interface NewSessionInputProps {
   defaultRepo?: string;
   defaultBranch?: string;
   projectId?: string;
-  onSessionCreated?: (session: { id: string; firstMessage: string; modelId: string }) => void;
+  onSessionCreated?: (session: { id: string; firstMessage: string; modelId: string }, context?: { repo?: string; branch?: string }) => void;
 }
 
 export function NewSessionInput({ defaultModelId, defaultRepo, defaultBranch, projectId, onSessionCreated }: NewSessionInputProps) {
@@ -58,7 +58,10 @@ export function NewSessionInput({ defaultModelId, defaultRepo, defaultBranch, pr
           }
 
           const data = await res.json();
-          onSessionCreated?.({ id: data.id, firstMessage: message.trim(), modelId });
+          onSessionCreated?.(
+            { id: data.id, firstMessage: message.trim(), modelId },
+            repoBranch ? { repo: repoBranch.repo, branch: repoBranch.branch } : undefined,
+          );
         } catch (err) {
           setError(err instanceof Error ? err.message : "Something went wrong");
         }
