@@ -21,6 +21,7 @@ COPY packages/shared/package.json packages/shared/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/skills/package.json packages/skills/package.json
 COPY packages/sandbox/package.json packages/sandbox/package.json
+COPY packages/render-client/package.json packages/render-client/package.json
 COPY packages/ui/package.json packages/ui/package.json
 
 RUN bun install --frozen-lockfile --production
