@@ -67,6 +67,12 @@ export function NewSessionInput({ defaultModelId }: NewSessionInputProps) {
   return (
     <form onSubmit={handleSubmit}>
       <div className="border border-stroke-default bg-surface-1 transition-colors duration-(--of-duration-instant) focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/25">
+        {/* Selectors -- above the textarea so dropdowns open downward naturally */}
+        <div className="flex items-center gap-2 border-b border-stroke-subtle px-(--of-space-md) py-(--of-space-sm)">
+          <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />
+          <ModelSelector value={modelId} onChange={setModelId} compact />
+        </div>
+
         <textarea
           ref={textareaRef}
           value={message}
@@ -78,12 +84,7 @@ export function NewSessionInput({ defaultModelId }: NewSessionInputProps) {
           disabled={loading}
         />
 
-        {/* Toolbar -- repo/branch, model, send */}
-        <div className="flex items-center justify-between gap-3 border-t border-stroke-subtle px-(--of-space-md) py-(--of-space-sm)">
-          <div className="flex items-center gap-2">
-            <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />
-            <ModelSelector value={modelId} onChange={setModelId} compact />
-          </div>
+        <div className="flex items-center justify-end border-t border-stroke-subtle px-(--of-space-md) py-(--of-space-sm)">
           <button
             type="submit"
             disabled={!canSubmit}

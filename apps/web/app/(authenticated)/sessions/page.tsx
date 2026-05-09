@@ -22,15 +22,10 @@ export default async function SessionsPage() {
         id: sessions.id,
         title: sessions.title,
         status: sessions.status,
-        prNumber: sessions.prNumber,
-        prStatus: sessions.prStatus,
         repoPath: sessions.repoPath,
-        activeSkills: sessions.activeSkills,
         branch: sessions.branch,
         lastActivityAt: sessions.lastActivityAt,
         createdAt: sessions.createdAt,
-        linesAdded: sessions.linesAdded,
-        linesRemoved: sessions.linesRemoved,
       })
       .from(sessions)
       .where(eq(sessions.userId, String(session.userId)))
@@ -41,7 +36,7 @@ export default async function SessionsPage() {
   const defaultModelId = prefsRow?.data?.defaultModelId ?? undefined;
 
   return (
-    <div className="relative flex h-full">
+    <div className="absolute inset-0 flex">
       {/* Chat window -- fills available space */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Message area -- empty on new session, scrollable */}

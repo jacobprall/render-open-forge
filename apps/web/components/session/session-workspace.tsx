@@ -83,7 +83,7 @@ export function SessionWorkspace({
     session.linesAdded != null || session.linesRemoved != null;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="absolute inset-0 flex flex-col">
       <header className="shrink-0 border-b border-stroke-subtle">
         <div className="flex items-center justify-between px-4 pt-2 pb-1">
           <div className="flex items-center gap-2 min-w-0 text-[11px]">
