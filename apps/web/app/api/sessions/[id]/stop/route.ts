@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 export async function POST(
   _req: NextRequest,
@@ -12,10 +12,6 @@ export async function POST(
     const result = await getPlatform().sessions.stop(auth, id);
     return NextResponse.json({ success: true, runId: result.runId });
   } catch (err) {
-    if (err instanceof Response) throw err;
-    if (isPlatformError(err)) {
-      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
-    }
-    throw err;
+    return handlePlatformError(err);
   }
 }

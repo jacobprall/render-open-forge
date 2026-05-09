@@ -7,6 +7,9 @@ export {
   badRequest,
   serverError,
   formatApiError,
+  isPlatformError,
+  handlePlatformError,
+  parseJsonBody,
 } from "./errors";
 export { ApiClient, ApiClientError, api } from "./client";
 export type * from "./types";

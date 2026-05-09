@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 export async function POST(req: NextRequest) {
   const auth = await requireAuth();
@@ -17,12 +17,6 @@ export async function POST(req: NextRequest) {
     await getPlatform().inbox.markRead(auth, { ids, markAll });
     return NextResponse.json({ success: true });
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to mark read" },
-      { status: 502 },
-    );
+    return handlePlatformError(e);
   }
 }

@@ -10,7 +10,7 @@ import {
 import { enqueueJob, ensureConsumerGroup } from "@openforge/platform";
 import type { ForgeProviderType } from "@openforge/platform/forge";
 import type { ForgeDb } from "@/lib/db";
-import { createForgeProvider, getAgentForgeProvider } from "@/lib/forgejo/client";
+import { createForgeProvider, getAgentForgeProvider } from "@/lib/forge/client";
 import { resolveSkillsForSessionRow } from "@/lib/skills/resolve-for-session";
 
 type Db = ForgeDb;
@@ -121,7 +121,7 @@ export async function enqueueSessionTriggerJob(
 
   const runId = crypto.randomUUID();
 
-  const forgeType = (sessionRow.forgeType ?? "forgejo") as ForgeProviderType;
+  const forgeType = (sessionRow.forgeType ?? "github") as ForgeProviderType;
   let forge;
   if (forgeType === "forgejo") {
     forge = getAgentForgeProvider();

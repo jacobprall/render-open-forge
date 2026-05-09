@@ -44,7 +44,6 @@ import type {
 } from "./types";
 
 import type {
-  ForgeProvider,
   RepoOperations,
   FileOperations,
   BranchOperations,
@@ -60,6 +59,9 @@ import type {
   WebhookOperations,
   GitOperations,
 } from "./provider";
+
+import { BaseForgeProvider } from "./base-provider";
+import { mapReviewState, mapPushCommits, mapWebhookBaseEvent } from "./shared-mappers";
 
 import {
   ForgejoClient,
@@ -145,20 +147,10 @@ function mapCommit(c: NativeCommit): ForgeCommit {
 }
 
 function mapReview(r: Record<string, unknown>): ForgeReview {
-  const stateStr = String(r.state ?? "commented").toUpperCase();
-  const stateMap: Record<string, ForgeReview["state"]> = {
-    APPROVED: "approved",
-    REQUEST_CHANGES: "changes_requested",
-    CHANGES_REQUESTED: "changes_requested",
-    COMMENT: "commented",
-    COMMENTED: "commented",
-    PENDING: "pending",
-    DISMISSED: "dismissed",
-  };
   return {
     id: (r.id as number) ?? 0,
     author: ((r.user as Record<string, unknown>)?.login as string) ?? "unknown",
-    state: stateMap[stateStr] ?? "commented",
+    state: mapReviewState(String(r.state ?? "commented")),
     body: (r.body as string) ?? "",
     submittedAt: (r.submitted_at as string) ?? (r.created_at as string) ?? "",
   };
@@ -180,40 +172,17 @@ function mapComment(c: Record<string, unknown>): ForgeComment {
   };
 }
 
-// ─── Forgejo Review Event Mapping ────────────────────────────────────────────
-
-const REVIEW_EVENT_MAP: Record<ReviewEvent, "APPROVE" | "REQUEST_CHANGES" | "COMMENT"> = {
-  approve: "APPROVE",
-  request_changes: "REQUEST_CHANGES",
-  comment: "COMMENT",
-};
-
 // ─── Adapter ─────────────────────────────────────────────────────────────────
 
-export class ForgejoProvider implements ForgeProvider {
+export class ForgejoProvider extends BaseForgeProvider {
   readonly type = "forgejo" as const;
   readonly label = "Forgejo";
-  readonly baseUrl: string;
 
   private client: ForgejoClient;
   private webhookSecret: string;
 
-  repos: RepoOperations;
-  files: FileOperations;
-  branches: BranchOperations;
-  commits: CommitOperations;
-  pulls: PullRequestOperations;
-  reviews: ReviewOperations;
-  ci: CIOperations;
-  secrets: RepoSecretOperations;
-  orgs: OrgOperations;
-  mirrors: MirrorOperations;
-  auth: AuthOperations;
-  webhooks: WebhookOperations;
-  git: GitOperations;
-
   constructor(baseUrl: string, token: string, webhookSecret?: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, "");
+    super(baseUrl);
     this.webhookSecret = webhookSecret ?? process.env.FORGEJO_WEBHOOK_SECRET ?? "";
     this.client = new ForgejoClient(baseUrl, token);
 
@@ -470,7 +439,7 @@ export class ForgejoProvider implements ForgeProvider {
         }));
         const raw = await c.createPullReview(
           owner, repo, prNumber,
-          REVIEW_EVENT_MAP[event],
+          BaseForgeProvider.REVIEW_EVENT_MAP[event],
           body,
           forgejoComments,
         );
@@ -747,19 +716,11 @@ export class ForgejoProvider implements ForgeProvider {
       parseEvent(headers, body): ForgeWebhookEvent {
         const eventType = headers["x-forgejo-event"] ?? headers["x-gitea-event"] ?? "";
         const raw = body as Record<string, unknown>;
-        const repoObj = raw.repository as Record<string, unknown> | undefined;
-        const senderObj = raw.sender as Record<string, unknown> | undefined;
 
         const base: ForgeWebhookEvent = {
           type: mapForgejoEventType(eventType),
           action: raw.action as string | undefined,
-          repo: {
-            owner: (repoObj?.owner as Record<string, unknown>)?.login as string ?? "",
-            name: (repoObj?.name as string) ?? "",
-            fullName: (repoObj?.full_name as string) ?? "",
-          },
-          sender: (senderObj?.login as string) ?? "",
-          raw: body,
+          ...mapWebhookBaseEvent(body),
         };
 
         switch (base.type) {
@@ -833,13 +794,7 @@ function parsePushEvent(base: ForgeWebhookEvent, raw: Record<string, unknown>): 
     branch: ref.replace("refs/heads/", ""),
     before: (raw.before as string) ?? "",
     after: (raw.after as string) ?? "",
-    commits: commits.map(c => ({
-      id: (c.id as string) ?? "",
-      message: (c.message as string) ?? "",
-      added: (c.added as string[]) ?? [],
-      removed: (c.removed as string[]) ?? [],
-      modified: (c.modified as string[]) ?? [],
-    })),
+    commits: mapPushCommits(commits),
   };
 }
 

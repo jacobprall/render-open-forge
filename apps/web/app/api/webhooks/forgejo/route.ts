@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@openforge/shared";
 import { getPlatform } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,11 +18,7 @@ export async function POST(request: NextRequest) {
   try {
     await webhooks.handleForgejoWebhook(rawBody, signature);
   } catch (err) {
-    if (isPlatformError(err)) {
-      logger.warn("forgejo webhook rejected: invalid signature", {});
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    }
-    throw err;
+    return handlePlatformError(err);
   }
 
   const event =

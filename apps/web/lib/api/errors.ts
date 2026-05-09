@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+
 export class ApiError extends Error {
   constructor(
     public readonly code: string,
@@ -43,4 +45,32 @@ export const serverError = (message = "Internal server error") => new ApiError("
  */
 export function isPlatformError(err: unknown): err is { message: string; httpStatus: number; code: string } {
   return err instanceof Error && typeof (err as unknown as Record<string, unknown>).httpStatus === "number";
+}
+
+/**
+ * Unified catch handler for platform service calls in route handlers.
+ * Re-throws Response instances (e.g. auth 401), maps platform errors
+ * to JSON responses, and re-throws everything else for Next.js to handle.
+ */
+export function handlePlatformError(err: unknown): NextResponse {
+  if (err instanceof Response) throw err;
+  if (isPlatformError(err)) {
+    return NextResponse.json({ error: err.message }, { status: err.httpStatus });
+  }
+  throw err;
+}
+
+/**
+ * Parse a JSON request body, returning a typed result. Throws a 400
+ * Response on invalid JSON so it integrates with handlePlatformError.
+ */
+export async function parseJsonBody<T = unknown>(req: Request | NextResponse): Promise<T> {
+  try {
+    return (await req.json()) as T;
+  } catch {
+    throw new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 }

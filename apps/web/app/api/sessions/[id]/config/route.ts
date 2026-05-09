@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError, parseJsonBody } from "@/lib/api/errors";
 
 export async function PATCH(
   req: NextRequest,
@@ -9,23 +9,17 @@ export async function PATCH(
   const auth = await requireAuth();
   const { id } = await params;
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  const body = await parseJsonBody<Record<string, unknown>>(req);
 
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Expected JSON object" }, { status: 400 });
   }
 
-  const b = body as Record<string, unknown>;
   const shallow =
-    typeof b.projectConfigPatch === "object" && b.projectConfigPatch !== null
-      ? (b.projectConfigPatch as Record<string, unknown>)
-      : typeof b.projectConfig === "object" && b.projectConfig !== null
-        ? (b.projectConfig as Record<string, unknown>)
+    typeof body.projectConfigPatch === "object" && body.projectConfigPatch !== null
+      ? (body.projectConfigPatch as Record<string, unknown>)
+      : typeof body.projectConfig === "object" && body.projectConfig !== null
+        ? (body.projectConfig as Record<string, unknown>)
         : null;
 
   if (!shallow) {
@@ -36,10 +30,6 @@ export async function PATCH(
     const projectConfig = await getPlatform().sessions.updateConfig(auth, id, shallow);
     return NextResponse.json({ success: true, projectConfig });
   } catch (err) {
-    if (err instanceof Response) throw err;
-    if (isPlatformError(err)) {
-      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
-    }
-    throw err;
+    return handlePlatformError(err);
   }
 }

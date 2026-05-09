@@ -48,7 +48,7 @@ export async function requireAuth(): Promise<AuthContext> {
     userId: session.user.id,
     username: session.forgeUsername,
     forgeToken: session.forgeToken,
-    forgeType: session.forgeType ?? "forgejo",
+    forgeType: session.forgeType ?? "github",
     isAdmin: session.isAdmin,
   };
 }

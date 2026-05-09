@@ -122,7 +122,7 @@ export async function startAgentJob(
   };
   const forge = getForgeProviderForAuth({
     forgeToken,
-    forgeType: (sessionRow.forgeType ?? "forgejo") as ForgeProviderType,
+    forgeType: (sessionRow.forgeType ?? "github") as ForgeProviderType,
   });
   const resolvedSkills = await resolveSkillsForSession(
     sessionForResolve,

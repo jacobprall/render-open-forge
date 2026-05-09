@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError, parseJsonBody } from "@/lib/api/errors";
 
 export async function PUT(
   req: NextRequest,
@@ -9,24 +9,13 @@ export async function PUT(
   const auth = await requireAuth();
   const { owner, repo, name } = await params;
 
-  let body: { value?: string };
-  try {
-    body = (await req.json()) as { value?: string };
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  const body = await parseJsonBody<{ value?: string }>(req);
 
   try {
     await getPlatform().repos.setSecret(auth, owner, repo, name, body.value ?? "");
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to set secret" },
-      { status: 502 },
-    );
+    return handlePlatformError(e);
   }
 }
 
@@ -41,12 +30,6 @@ export async function DELETE(
     await getPlatform().repos.deleteSecret(auth, owner, repo, name);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to delete secret" },
-      { status: 502 },
-    );
+    return handlePlatformError(e);
   }
 }

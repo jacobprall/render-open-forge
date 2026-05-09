@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthorizedObservabilityRequest } from "@/lib/api/observability-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function isAuthorizedObservabilityRequest(req: NextRequest): boolean {
-  const secret = process.env.OBSERVABILITY_SECRET;
-  if (!secret) return true; // no secret configured — allow (dev mode)
-  const auth = req.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
-}
 
 type CheckStatus = "ok" | "error";
 

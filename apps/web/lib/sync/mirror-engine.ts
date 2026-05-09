@@ -1,7 +1,7 @@
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { mirrors, syncConnections } from "@openforge/db";
 import type { ForgeDb } from "@/lib/db";
-import { getAgentForgeProvider } from "@/lib/forgejo/client";
+import { getAgentForgeProvider } from "@/lib/forge/client";
 import { logger } from "@openforge/shared";
 
 // ─── Token helpers ──────────────────────────────────────────────────────────

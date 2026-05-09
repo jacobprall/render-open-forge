@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string; path: string[] }>;
@@ -17,13 +17,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     const file = await getPlatform().repos.getFileContents(auth, owner, repo, filePath, ref);
     return NextResponse.json(file);
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to get file contents" },
-      { status: 502 },
-    );
+    return handlePlatformError(e);
   }
 }
 
@@ -42,12 +36,6 @@ export async function PUT(request: Request, { params }: RouteParams) {
     });
     return NextResponse.json(result);
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to write file" },
-      { status: 502 },
-    );
+    return handlePlatformError(e);
   }
 }

@@ -3,7 +3,7 @@ import { ciEvents, sessions, syncConnections } from "@openforge/db";
 import { logger } from "@openforge/shared";
 import type { ForgeProviderType } from "@openforge/platform/forge";
 import type { ForgeDb } from "@/lib/db";
-import { createForgeProvider, getAgentForgeProvider } from "@/lib/forgejo/client";
+import { createForgeProvider, getAgentForgeProvider } from "@/lib/forge/client";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
 import { enqueueSessionTriggerJob } from "@/lib/agent/enqueue-session-job";
 import type { CIResultPayload } from "./ci-result-schema";
@@ -81,7 +81,7 @@ export async function handleCIResult(
       : undefined;
 
   try {
-    const forgeType = (session.forgeType ?? "forgejo") as ForgeProviderType;
+    const forgeType = (session.forgeType ?? "github") as ForgeProviderType;
     let forge;
     if (forgeType === "forgejo") {
       forge = getAgentForgeProvider();

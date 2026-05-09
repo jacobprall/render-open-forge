@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 const specActionSchema = z.object({
   action: z.enum(["approve", "reject"]),
@@ -28,10 +28,6 @@ export async function POST(
     const result = await getPlatform().sessions.handleSpecAction(auth, sessionId, parsed.data);
     return NextResponse.json({ success: true, runId: result.runId });
   } catch (err) {
-    if (err instanceof Response) throw err;
-    if (isPlatformError(err)) {
-      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
-    }
-    throw err;
+    return handlePlatformError(err);
   }
 }

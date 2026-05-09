@@ -3,6 +3,8 @@ import type { ResolvedSkill } from "@openforge/skills";
 
 export type { StreamEvent, ResolvedSkill };
 
+export type AssistantPart = Record<string, unknown>;
+
 export interface AgentJob {
   runId: string;
   chatId: string;

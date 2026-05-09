@@ -52,6 +52,14 @@ export class RenderClient {
     return data.service;
   }
 
+  async deleteService(serviceId: string): Promise<void> {
+    await this.delete(`/services/${serviceId}`);
+  }
+
+  async suspendService(serviceId: string): Promise<void> {
+    await this.post(`/services/${serviceId}/suspend`, {});
+  }
+
   // -------------------------------------------------------------------------
   // Postgres & Redis
   // -------------------------------------------------------------------------
@@ -170,6 +178,10 @@ export class RenderClient {
     return this.request<T>("PUT", path, body);
   }
 
+  private async delete<T = void>(path: string): Promise<T> {
+    return this.request<T>("DELETE", path);
+  }
+
   private async request<T>(
     method: string,
     path: string,
@@ -194,6 +206,11 @@ export class RenderClient {
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       throw new RenderApiError(res.status, method, path, text);
+    }
+
+    const contentLength = res.headers.get("content-length");
+    if (res.status === 204 || contentLength === "0") {
+      return undefined as T;
     }
 
     return res.json() as Promise<T>;

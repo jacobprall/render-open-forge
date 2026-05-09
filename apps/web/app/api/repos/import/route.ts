@@ -1,7 +1,7 @@
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError, parseJsonBody } from "@/lib/api/errors";
 
 const importRepoBodySchema = z.object({
   clone_addr: z.string().url(),
@@ -20,12 +20,7 @@ const importRepoBodySchema = z.object({
 export async function POST(req: Request) {
   const auth = await requireAuth();
 
-  let raw: unknown;
-  try {
-    raw = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  const raw = await parseJsonBody(req);
 
   const parsed = importRepoBodySchema.safeParse(raw);
   if (!parsed.success) {
@@ -54,12 +49,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ repo }, { status: 201 });
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Migration failed" },
-      { status: 502 },
-    );
+    return handlePlatformError(e);
   }
 }

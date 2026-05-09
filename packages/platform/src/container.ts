@@ -174,7 +174,7 @@ function buildContainer(
   const notifications = new NotificationService(db);
   const invites = new InviteService(db);
   const mirrors = new MirrorService(db);
-  const ci = new CIService(db, queue, events, ciDispatcher);
+  const ci = new CIService(db, queue, ciDispatcher);
   const webhooks = new WebhookService(db, queue, events, ci);
 
   return {

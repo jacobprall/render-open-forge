@@ -42,7 +42,6 @@ import type {
 } from "./types";
 
 import type {
-  ForgeProvider,
   RepoOperations,
   FileOperations,
   BranchOperations,
@@ -59,34 +58,22 @@ import type {
   GitOperations,
 } from "./provider";
 
+import { BaseForgeProvider } from "./base-provider";
+import { mapReviewState, mapPushCommits, mapWebhookBaseEvent } from "./shared-mappers";
+
 function notImplemented(op: string): never {
   throw new Error(`GitHubProvider: ${op} not yet implemented`);
 }
 
-export class GitHubProvider implements ForgeProvider {
+export class GitHubProvider extends BaseForgeProvider {
   readonly type = "github" as const;
   readonly label = "GitHub";
-  readonly baseUrl: string;
 
   private token: string;
   private webhookSecret: string;
 
-  repos: RepoOperations;
-  files: FileOperations;
-  branches: BranchOperations;
-  commits: CommitOperations;
-  pulls: PullRequestOperations;
-  reviews: ReviewOperations;
-  ci: CIOperations;
-  secrets: RepoSecretOperations;
-  orgs: OrgOperations;
-  mirrors: MirrorOperations;
-  auth: AuthOperations;
-  webhooks: WebhookOperations;
-  git: GitOperations;
-
   constructor(baseUrl: string, token: string, webhookSecret?: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, "");
+    super(baseUrl);
     this.token = token;
     this.webhookSecret = webhookSecret ?? process.env.GITHUB_WEBHOOK_SECRET ?? "";
 
@@ -575,7 +562,7 @@ export class GitHubProvider implements ForgeProvider {
           return {
             id: r.id as number,
             author: (user?.login as string) ?? "",
-            state: this.mapReviewState(r.state as string),
+            state: mapReviewState(r.state as string),
             body: (r.body as string) ?? "",
             submittedAt: (r.submitted_at as string) ?? "",
           };
@@ -619,13 +606,8 @@ export class GitHubProvider implements ForgeProvider {
         body?: string,
         comments?: InlineCommentParams[],
       ): Promise<ForgeReview> => {
-        const eventMap: Record<ReviewEvent, string> = {
-          approve: "APPROVE",
-          request_changes: "REQUEST_CHANGES",
-          comment: "COMMENT",
-        };
         const payload: Record<string, unknown> = {
-          event: eventMap[event],
+          event: BaseForgeProvider.REVIEW_EVENT_MAP[event],
         };
         if (body) payload.body = body;
         if (comments?.length) {
@@ -646,7 +628,7 @@ export class GitHubProvider implements ForgeProvider {
         return {
           id: raw.id as number,
           author: (user?.login as string) ?? "",
-          state: this.mapReviewState(raw.state as string),
+          state: mapReviewState(raw.state as string),
           body: (raw.body as string) ?? "",
           submittedAt: (raw.submitted_at as string) ?? "",
         };
@@ -670,19 +652,6 @@ export class GitHubProvider implements ForgeProvider {
       resolveComment: () => notImplemented("reviews.resolveComment"),
       unresolveComment: () => notImplemented("reviews.unresolveComment"),
     };
-  }
-
-  private mapReviewState(
-    state: string,
-  ): "approved" | "changes_requested" | "commented" | "pending" | "dismissed" {
-    const mapping: Record<string, "approved" | "changes_requested" | "commented" | "pending" | "dismissed"> = {
-      APPROVED: "approved",
-      CHANGES_REQUESTED: "changes_requested",
-      COMMENTED: "commented",
-      PENDING: "pending",
-      DISMISSED: "dismissed",
-    };
-    return mapping[state?.toUpperCase()] ?? "commented";
   }
 
   private mapComment(raw: Record<string, unknown>): ForgeComment {
@@ -745,19 +714,7 @@ export class GitHubProvider implements ForgeProvider {
       ): ForgeWebhookEvent {
         const eventType = headers["x-github-event"] ?? headers["X-GitHub-Event"] ?? "unknown";
         const raw = body as Record<string, unknown>;
-        const repoData = raw.repository as Record<string, unknown> | undefined;
-        const owner = repoData?.owner as Record<string, unknown> | undefined;
-        const sender = raw.sender as Record<string, unknown> | undefined;
-
-        const baseEvent = {
-          repo: {
-            owner: (owner?.login as string) ?? "",
-            name: (repoData?.name as string) ?? "",
-            fullName: (repoData?.full_name as string) ?? "",
-          },
-          sender: (sender?.login as string) ?? "",
-          raw: body,
-        };
+        const baseEvent = mapWebhookBaseEvent(body);
 
         switch (eventType) {
           case "push": {
@@ -771,13 +728,7 @@ export class GitHubProvider implements ForgeProvider {
               branch,
               before: (raw.before as string) ?? "",
               after: (raw.after as string) ?? "",
-              commits: commits.map((c) => ({
-                id: (c.id as string) ?? "",
-                message: (c.message as string) ?? "",
-                added: (c.added as string[]) ?? [],
-                removed: (c.removed as string[]) ?? [],
-                modified: (c.modified as string[]) ?? [],
-              })),
+              commits: mapPushCommits(commits),
             } as ForgePushEvent;
           }
 

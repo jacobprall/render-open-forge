@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 const activeSkillRefSchema = z.object({
   source: z.enum(["builtin", "user", "repo"]),
@@ -11,6 +11,7 @@ const activeSkillRefSchema = z.object({
 const createSessionBodySchema = z.object({
   repoPath: z.string().min(1),
   branch: z.string().min(1),
+  baseBranch: z.string().min(1).optional(),
   title: z.string().max(200).optional(),
   activeSkills: z.array(activeSkillRefSchema).optional(),
 });
@@ -31,10 +32,6 @@ export async function POST(req: NextRequest) {
     const result = await getPlatform().sessions.create(auth, parsed.data);
     return NextResponse.json(result);
   } catch (err) {
-    if (err instanceof Response) throw err;
-    if (isPlatformError(err)) {
-      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
-    }
-    throw err;
+    return handlePlatformError(err);
   }
 }

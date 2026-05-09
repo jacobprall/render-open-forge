@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forge/client";
 import { redirect } from "next/navigation";
 
 const slugPartSchema = z

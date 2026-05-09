@@ -53,7 +53,7 @@ export function getDefaultForgeProvider(token: string): ForgeProvider {
  * Falls back to the internal Forgejo instance when forgeType is unset.
  */
 export function getForgeProviderForAuth(auth: { forgeToken: string; forgeType?: ForgeProviderType }): ForgeProvider {
-  const forgeType = auth.forgeType ?? "forgejo";
+  const forgeType = auth.forgeType ?? "github";
 
   if (forgeType === "github") {
     return createForgeProvider({

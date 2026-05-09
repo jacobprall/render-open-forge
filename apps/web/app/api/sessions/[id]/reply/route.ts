@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 const replyBodySchema = z.object({
   toolCallId: z.string().min(1),
@@ -38,10 +38,6 @@ export async function POST(
     });
     return NextResponse.json({ success: true });
   } catch (err) {
-    if (err instanceof Response) throw err;
-    if (isPlatformError(err)) {
-      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
-    }
-    throw err;
+    return handlePlatformError(err);
   }
 }

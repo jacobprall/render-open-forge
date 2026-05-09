@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forge/client";
 import { redirect, notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { mirrors } from "@openforge/db";

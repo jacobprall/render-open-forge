@@ -4,9 +4,9 @@ import { SignInForm } from "./sign-in-form";
 
 const features = [
   {
-    title: "Code Hosting",
+    title: "Connect your repos",
     description:
-      "Self-hosted Git repositories with a clean web UI. Browse code, manage branches, and collaborate with your team.",
+      "Sign in with GitHub and your repositories are ready. No mirroring, no setup — just pick a repo and go.",
     icon: (
       <svg
         className="h-6 w-6"
@@ -18,15 +18,15 @@ const features = [
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
-          d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"
+          d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
         />
       </svg>
     ),
   },
   {
-    title: "AI Agent",
+    title: "Describe what you need",
     description:
-      "An autonomous coding agent that understands your codebase. Describe what you need and let it write, test, and iterate.",
+      "Tell the AI agent what to build. It reads your code, writes changes, runs tests, and opens a pull request — all autonomously.",
     icon: (
       <svg
         className="h-6 w-6"
@@ -44,9 +44,9 @@ const features = [
     ),
   },
   {
-    title: "CI/CD",
+    title: "Deploy to Render",
     description:
-      "Built-in continuous integration and deployment pipelines. Run tests, build artifacts, and deploy with every push.",
+      "Preview environments spin up for every PR. Merge and your changes deploy automatically. The full loop, from idea to production.",
     icon: (
       <svg
         className="h-6 w-6"
@@ -58,15 +58,15 @@ const features = [
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
-          d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3"
+          d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"
         />
       </svg>
     ),
   },
   {
-    title: "Code Review",
+    title: "Own everything",
     description:
-      "Pull requests with inline comments, diff views, and merge controls. Review code changes before they land.",
+      "Open source and self-hosted on your Render account. Your data, your infrastructure, your models. Nothing proprietary in the way.",
     icon: (
       <svg
         className="h-6 w-6"
@@ -78,7 +78,7 @@ const features = [
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
-          d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
+          d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"
         />
       </svg>
     ),
@@ -94,7 +94,6 @@ export default async function Home() {
 
   return (
     <main className="flex min-h-screen flex-col">
-      {/* Nav */}
       <nav className="flex items-center justify-between border-b border-zinc-800/50 px-6 py-4">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-bg">
@@ -119,9 +118,16 @@ export default async function Home() {
           </div>
           <span className="text-lg font-semibold">OpenForge</span>
         </div>
+        <a
+          href="https://github.com/render-oss/render-open-forge"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-zinc-400 transition hover:text-zinc-200"
+        >
+          GitHub
+        </a>
       </nav>
 
-      {/* Hero */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-24">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent-bg px-4 py-1.5 text-sm text-accent-text">
@@ -138,24 +144,23 @@ export default async function Home() {
                 d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"
               />
             </svg>
-            Self-hosted agentic forge
+            Open source, deploy on Render
           </div>
           <h1 className="text-5xl font-bold tracking-tight sm:text-6xl">
-            Code, build &amp; ship
+            AI coding agent
             <br />
-            <span className="text-accent-text">with AI at the core</span>
+            <span className="text-accent-text">that ships to production</span>
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-zinc-400">
-            A self-hosted platform that combines Git hosting, CI/CD pipelines,
-            and an autonomous coding agent — all in one place. Own your code,
-            your data, and your development workflow.
+            Connect your GitHub repos, describe what you want built, and let the
+            agent write code, run tests, and open pull requests. Deploy the
+            result to Render with one click.
           </p>
           <div className="mt-10 flex flex-col items-center gap-6">
             <SignInForm />
           </div>
         </div>
 
-        {/* Features Grid */}
         <div className="mx-auto mt-24 grid max-w-4xl gap-6 sm:grid-cols-2">
           {features.map((feature) => (
             <div
@@ -174,9 +179,8 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="border-t border-zinc-800/50 px-6 py-6 text-center text-sm text-zinc-500">
-        OpenForge &mdash; Self-hosted agentic development platform
+        OpenForge &mdash; Open-source AI coding agent, powered by Render
       </footer>
     </main>
   );

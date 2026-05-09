@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 export async function GET(
   _req: Request,
@@ -12,10 +12,6 @@ export async function GET(
     const events = await getPlatform().sessions.listCiEvents(auth, id);
     return NextResponse.json({ events });
   } catch (err) {
-    if (err instanceof Response) throw err;
-    if (isPlatformError(err)) {
-      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
-    }
-    throw err;
+    return handlePlatformError(err);
   }
 }

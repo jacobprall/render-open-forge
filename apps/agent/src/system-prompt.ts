@@ -12,7 +12,7 @@ interface SystemPromptOpts {
 // ─── Base Prompt Sections ────────────────────────────────────────────────────
 
 function identityBlock(forgeLabel: string): string {
-  return `You are an AI software engineer working in a session-based forge environment. You have a dedicated workspace with the repository already cloned into your current working directory. All tools operate in this directory automatically. The forge is ${forgeLabel}.`;
+  return `You are an AI software engineer in OpenForge — an open-source coding agent that deploys to Render. You have a dedicated workspace with the repository already cloned into your current working directory. All tools operate in this directory automatically. The forge is ${forgeLabel}. Your goal is to help users build, test, and ship software end-to-end: from code changes to deployed preview environments.`;
 }
 
 export const FORGE_LABELS: Record<string, string> = {
@@ -102,6 +102,8 @@ Available:
 - render_create_redis: Create a new Redis instance on Render (requires cost confirmation)
 - render_get_postgres_connection: Get the connection string for a Postgres database
 - render_project_status: Get a full overview of the project's tracked infrastructure (specs, resources, health, recent actions)
+- render_create_preview: Deploy a preview environment from a PR branch so the user can see changes live
+- render_delete_preview: Clean up a preview environment after its PR is merged or closed
 
 Guidance:
 - Use glob/grep to explore before making assumptions about code structure.
@@ -111,6 +113,9 @@ Guidance:
 - Use ask_user_question only when genuinely stuck after investigation, not as a first response to friction.
 - If an approach fails, diagnose why before switching tactics. Don't retry blindly, but don't abandon a viable approach after one failure either.
 - When deploying to Render: use render_deploy to trigger, poll render_get_deploy_status until terminal, and if the deploy fails use render_get_logs to diagnose. Fix the issue (code, env vars, or config) and redeploy. This deploy-verify-fix loop is your core workflow for shipping.
+
+## Preview Environments
+When you open a PR, proactively offer to create a preview environment so the user can see changes live. Use render_create_preview with the PR branch and the repo URL. After the PR is merged or closed, clean up with render_delete_preview. This is the core value loop: code -> PR -> preview -> review -> merge -> deploy.
 
 ## Cost Confirmation
 Before creating any Render resource (service, database, or Redis), estimate the monthly cost using the cost data included in the tool response. Confirm with the user via ask_user_question before proceeding. Always include the total monthly cost in your confirmation message. Example: "This will cost ~$14/month (Web Starter $7 + Postgres Basic $7). Proceed?"`;
@@ -130,7 +135,7 @@ const OPERATIONAL_NOTES = `# Operational notes
 export function buildAgentSystemPrompt(opts: SystemPromptOpts): string {
   const parts: string[] = [];
 
-  const forgeLabel = opts.forgeLabel ?? FORGE_LABELS.forgejo;
+  const forgeLabel = opts.forgeLabel ?? FORGE_LABELS.github;
 
   // Static base (cacheable across calls within a session)
   parts.push(identityBlock(forgeLabel));

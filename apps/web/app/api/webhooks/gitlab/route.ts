@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { logger } from "@openforge/shared";
 import { getPlatform } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,11 +16,7 @@ export async function POST(req: Request) {
   try {
     await webhooks.handleGitlabWebhook(rawBody, gitlabToken);
   } catch (err) {
-    if (isPlatformError(err)) {
-      logger.warn("gitlab webhook: signature verification failed", {});
-      return NextResponse.json({ error: err.message }, { status: 403 });
-    }
-    throw err;
+    return handlePlatformError(err);
   }
 
   try {

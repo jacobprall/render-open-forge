@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
-import { getForgeRepoCached } from "@/lib/forgejo/cached-repo";
+import { createForgeProvider } from "@/lib/forge/client";
+import { getForgeRepoCached } from "@/lib/forge/cached-repo";
 import type { ForgeFileContent } from "@openforge/platform/forge/types";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";

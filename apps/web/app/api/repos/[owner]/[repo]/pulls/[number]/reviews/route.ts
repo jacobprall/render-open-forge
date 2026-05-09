@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError, parseJsonBody } from "@/lib/api/errors";
 import type { ReviewEvent } from "@openforge/platform";
 
 const REVIEW_EVENTS = ["APPROVE", "REQUEST_CHANGES", "COMMENT"] as const;
@@ -25,13 +25,7 @@ export async function GET(
     const reviews = await getPlatform().pullRequests.listReviews(auth, owner, repo, n);
     return NextResponse.json({ reviews });
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to fetch reviews" },
-      { status: 502 },
-    );
+    return handlePlatformError(e);
   }
 }
 
@@ -46,23 +40,17 @@ export async function POST(
     return NextResponse.json({ error: "Invalid PR number" }, { status: 400 });
   }
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  const body = await parseJsonBody<Record<string, unknown>>(req);
 
-  const b = body as Record<string, unknown>;
-  const rawEvent = typeof b.event === "string" ? b.event.toUpperCase() : "";
+  const rawEvent = typeof body.event === "string" ? body.event.toUpperCase() : "";
   if (!REVIEW_EVENTS.includes(rawEvent as (typeof REVIEW_EVENTS)[number])) {
     return NextResponse.json({ error: "Invalid event — use APPROVE, REQUEST_CHANGES, or COMMENT" }, { status: 400 });
   }
 
   const event = EVENT_MAP[rawEvent]!;
-  const reviewBody = typeof b.body === "string" ? b.body : undefined;
-  const comments = Array.isArray(b.comments)
-    ? (b.comments as Array<Record<string, unknown>>).map((c) => ({
+  const reviewBody = typeof body.body === "string" ? body.body : undefined;
+  const comments = Array.isArray(body.comments)
+    ? (body.comments as Array<Record<string, unknown>>).map((c) => ({
         body: String(c.body ?? ""),
         path: String(c.path ?? ""),
         newLine: typeof c.new_line_num === "number" ? c.new_line_num : undefined,
@@ -78,12 +66,6 @@ export async function POST(
     });
     return NextResponse.json({ review });
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to submit review" },
-      { status: 502 },
-    );
+    return handlePlatformError(e);
   }
 }

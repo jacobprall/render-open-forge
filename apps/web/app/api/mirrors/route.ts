@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError, parseJsonBody } from "@/lib/api/errors";
 import { paginationSchema, paginatedResponse } from "@/lib/api/pagination";
 
 export async function GET(request: NextRequest) {
@@ -29,33 +29,21 @@ export async function GET(request: NextRequest) {
       pagination: page.pagination,
     });
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to list mirrors" },
-      { status: 502 },
-    );
+    return handlePlatformError(e);
   }
 }
 
 export async function POST(req: Request) {
   const auth = await requireAuth();
 
-  let body: {
+  const body = await parseJsonBody<{
     syncConnectionId: string;
     localRepoPath: string;
     remoteRepoUrl: string;
     direction: "pull" | "push" | "bidirectional";
     remoteToken?: string;
     sessionId?: string;
-  };
-
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  }>(req);
 
   try {
     const mirror = await getPlatform().mirrors.create(auth, {
@@ -68,12 +56,6 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ mirror }, { status: 201 });
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to create mirror" },
-      { status: 500 },
-    );
+    return handlePlatformError(e);
   }
 }

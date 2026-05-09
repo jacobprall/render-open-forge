@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { getForgeRepoCached } from "@/lib/forgejo/cached-repo";
+import { getForgeRepoCached } from "@/lib/forge/cached-repo";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { RepoTabNav } from "@/components/repo/repo-tab-nav";

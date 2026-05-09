@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forge/client";
 
 export async function GET() {
   const userSession = await getSession();

@@ -8,25 +8,24 @@ All three application processes (web, gateway, agent) create one `PlatformContai
 
 ## Authentication
 
-OpenForge uses **NextAuth v5** with a **credentials provider** (email + password) backed by Postgres. Forgejo runs as headless infrastructure — users never interact with its UI directly.
+OpenForge uses **NextAuth v5** with **GitHub OAuth** as the primary authentication provider. Users sign in with GitHub and their OAuth token is used for all repository operations.
 
-- User accounts live in the `users` table with a bcrypt `passwordHash`. Each user has a linked `accounts` row containing a Forgejo API token, provisioned automatically at invite time.
-- Sessions use **encrypted JWTs** (no server-side session store). The JWT carries the user's Forgejo token so server components and API routes can call the Forgejo API without an extra DB lookup.
-- The Forgejo user account is created headlessly via the admin API when an invite is issued.
+- **GitHub OAuth** handles both authentication and authorization. The OAuth token grants access to the user's GitHub repositories.
+- User accounts live in the `users` table. OAuth tokens are stored in the `accounts` table (managed by NextAuth) and also bridged to `syncConnections` for agent use.
+- Sessions use **encrypted JWTs** (no server-side session store). The JWT carries the user's forge token and `forgeType` so server components and API routes can call the correct forge API.
+- A **credentials provider** (email + password) is also available as a fallback for admin accounts.
+
+### ForgeType
+
+Each session and user token is tagged with a `forgeType` (`github`, `gitlab`, or `forgejo`) that determines which forge provider adapter handles API calls. GitHub is the default.
 
 ### First admin setup
 
-On first startup, if the `users` table is empty, the app creates an admin account from `ADMIN_EMAIL` and `ADMIN_PASSWORD` and provisions the corresponding Forgejo user and API token. This runs via the Next.js instrumentation hook.
-
-To run it manually:
-
-```bash
-bun run apps/web/scripts/bootstrap-admin.ts
-```
+On first startup, if the `users` table is empty, the app creates an admin account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`. This runs via the Next.js instrumentation hook.
 
 ### Inviting users
 
-Authenticated users can invite others via `POST /api/invites`. This creates a Forgejo user, provisions an API token, and returns an invite URL. When the invited user visits the link, they set a password and are signed in. Invites expire after 7 days.
+Users can sign in directly with GitHub OAuth. Admins can also invite users via `POST /api/invites` for email/password accounts. Invites expire after 7 days.
 
 ### AuthContext
 

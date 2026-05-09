@@ -47,6 +47,7 @@ export type { AgentTrigger } from "./session-agent-jobs";
 export interface CreateSessionParams {
   repoPath: string;
   branch: string;
+  baseBranch?: string;
   title?: string;
   forgeType?: "forgejo" | "github" | "gitlab";
   activeSkills?: Array<{ source: "builtin" | "user" | "repo"; slug: string }>;
@@ -107,7 +108,7 @@ export class SessionService {
   // -------------------------------------------------------------------------
 
   async create(auth: AuthContext, params: CreateSessionParams): Promise<{ sessionId: string }> {
-    const { repoPath, branch, activeSkills, forgeType } = params;
+    const { repoPath, branch, activeSkills, forgeType, baseBranch } = params;
     const title = (params.title && String(params.title).trim()) || "New session";
 
     const sessionId = crypto.randomUUID();
@@ -120,6 +121,23 @@ export class SessionService {
       .limit(1);
     const preferredModel = prefsRow?.data?.defaultModelId ?? undefined;
 
+    // Auto-detect baseBranch: use explicit value, fall back to repo default, then "main"
+    let resolvedBaseBranch = baseBranch || "main";
+    if (!baseBranch) {
+      try {
+        const forge = getForgeProviderForAuth(auth);
+        const slashIdx = repoPath.indexOf("/");
+        const owner = slashIdx > 0 ? repoPath.slice(0, slashIdx) : "";
+        const name = slashIdx > 0 ? repoPath.slice(slashIdx + 1) : "";
+        if (owner && name) {
+          const repo = await forge.repos.get(owner, name);
+          resolvedBaseBranch = repo.defaultBranch || "main";
+        }
+      } catch {
+        // Fall back to "main" -- forge may be unreachable or repos.get not implemented (e.g. GitLab)
+      }
+    }
+
     await this.db.insert(sessions).values({
       id: sessionId,
       userId: auth.userId,
@@ -127,9 +145,9 @@ export class SessionService {
       title,
       status: "running",
       repoPath,
-      forgeType: forgeType ?? auth.forgeType ?? "forgejo",
+      forgeType: forgeType ?? auth.forgeType ?? "github",
       branch,
-      baseBranch: "main",
+      baseBranch: resolvedBaseBranch,
       phase: "execute",
       workflowMode: "standard",
       activeSkills: Array.isArray(activeSkills) && activeSkills.length > 0 ? activeSkills : null,

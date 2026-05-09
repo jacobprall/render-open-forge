@@ -8,13 +8,22 @@ import {
 export type { ForgeProvider } from "@openforge/platform/forge";
 
 /**
- * Create a ForgeProvider from a token.
- * Defaults to the internal Forgejo instance.
- * Pass forgeType to create a provider for GitHub or GitLab instead.
+ * Get a ForgeProvider authenticated with the server-side agent token.
+ * Falls back to Forgejo if configured, otherwise throws.
+ */
+export function getAgentForgeProvider(): ForgeProvider {
+  const token = process.env.FORGEJO_AGENT_TOKEN;
+  if (!token) throw new Error("FORGEJO_AGENT_TOKEN not configured");
+  return getDefaultForgeProvider(token);
+}
+
+/**
+ * Create a ForgeProvider from a token and forge type.
+ * Defaults to GitHub. Pass forgeType to use a different provider.
  */
 export function createForgeProvider(
   token: string,
-  forgeType: ForgeProviderType = "forgejo",
+  forgeType: ForgeProviderType = "github",
 ): ForgeProvider {
   if (forgeType === "github") {
     return createForgeProviderFromConfig({
@@ -37,10 +46,4 @@ export function createForgeProvider(
     token,
     webhookSecret: process.env.FORGEJO_WEBHOOK_SECRET,
   });
-}
-
-export function getAgentForgeProvider(): ForgeProvider {
-  const token = process.env.FORGEJO_AGENT_TOKEN;
-  if (!token) throw new Error("FORGEJO_AGENT_TOKEN not configured");
-  return getDefaultForgeProvider(token);
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 const postSchema = z.object({
   provider: z.enum(["anthropic", "openai"]),
@@ -32,10 +32,6 @@ export async function POST(req: Request) {
     const result = await getPlatform().settings.createOrUpdateApiKey(auth, parsed.data);
     return NextResponse.json(result);
   } catch (err) {
-    if (isPlatformError(err)) {
-      const status = err.message.includes("encryption") ? 503 : err.httpStatus;
-      return NextResponse.json({ error: err.message }, { status });
-    }
-    throw err;
+    return handlePlatformError(err);
   }
 }

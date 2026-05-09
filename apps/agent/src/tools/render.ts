@@ -548,6 +548,146 @@ export function renderCreateRedisTool(db?: PlatformDb) {
 }
 
 // ---------------------------------------------------------------------------
+// render_create_preview
+// ---------------------------------------------------------------------------
+
+export function renderCreatePreviewTool(db?: PlatformDb) {
+  return tool({
+    description:
+      "Create a preview environment on Render for a pull request branch. " +
+      "This deploys a temporary web service from the given branch so the user can " +
+      "review changes live before merging. The preview service name is prefixed with " +
+      "'preview-' and auto-deploys from the branch. Returns the service URL and ID. " +
+      "Remember to clean up previews with render_delete_preview after the PR is merged.",
+    inputSchema: z.object({
+      repo: z.string().describe("GitHub repository URL (e.g. https://github.com/owner/repo)"),
+      branch: z.string().describe("Branch name to deploy (typically the PR branch)"),
+      name: z.string().optional().describe("Override preview service name (defaults to preview-<branch>)"),
+      runtime: z
+        .enum(["node", "python", "docker", "go", "rust", "ruby", "elixir"])
+        .optional()
+        .default("node")
+        .describe("Runtime (default node)"),
+      buildCommand: z.string().optional().describe("Build command"),
+      startCommand: z.string().optional().describe("Start command"),
+      plan: z.string().optional().default("starter").describe("Instance plan (default starter)"),
+      envVars: z
+        .array(z.object({ key: z.string(), value: z.string() }))
+        .optional()
+        .describe("Environment variables for the preview"),
+    }),
+    execute: async (
+      { repo, branch, name, runtime, buildCommand, startCommand, plan, envVars },
+      { experimental_context },
+    ) => {
+      const sessionId = getSessionId(experimental_context);
+      const ownerId = process.env.RENDER_OWNER_ID;
+      if (!ownerId) throw new Error("RENDER_OWNER_ID not configured");
+
+      const client = getRenderClient();
+      const safeBranch = branch.replace(/[^a-zA-Z0-9-]/g, "-").slice(0, 40);
+      const serviceName = name || `preview-${safeBranch}`;
+
+      const params: CreateServiceParams = {
+        name: serviceName,
+        ownerId,
+        type: "web_service",
+        runtime: runtime ?? "node",
+        plan,
+        repo,
+        branch,
+        autoDeploy: "yes",
+        ...(buildCommand ? { buildCommand } : {}),
+        ...(startCommand ? { startCommand } : {}),
+        ...(envVars ? { envVars } : {}),
+      };
+
+      const service = await client.createService(params);
+      const costCents = estimateMonthlyCostCents("web_service", plan);
+
+      const resourceId = await trackResource(db, {
+        projectId: sessionId,
+        kind: "web_service",
+        name: serviceName,
+        externalId: service.id,
+        externalUrl: service.serviceDetails?.url,
+        actual: { ...service, isPreview: true, sourceBranch: branch },
+      });
+
+      await logAction(db, {
+        projectId: sessionId,
+        sessionId,
+        kind: "preview.created",
+        input: { repo, branch, serviceName, plan },
+        output: { serviceId: service.id, url: service.serviceDetails?.url },
+        status: "success",
+        resourceId,
+      });
+
+      return {
+        serviceId: service.id,
+        name: serviceName,
+        url: service.serviceDetails?.url ?? null,
+        branch,
+        status: "deploying",
+        estimatedMonthlyCost: formatCost(costCents),
+        hint: `Preview environment created. It will auto-deploy from branch "${branch}". ` +
+          `Use render_get_deploy_status to monitor. Clean up with render_delete_preview after merging.`,
+      };
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// render_delete_preview
+// ---------------------------------------------------------------------------
+
+export function renderDeletePreviewTool(db?: PlatformDb) {
+  return tool({
+    description:
+      "Delete a preview environment after its PR has been merged or closed. " +
+      "Pass the service ID from render_create_preview. This stops and removes the service.",
+    inputSchema: z.object({
+      serviceId: z.string().describe("The Render service ID of the preview to delete"),
+    }),
+    execute: async ({ serviceId }, { experimental_context }) => {
+      const sessionId = getSessionId(experimental_context);
+      const client = getRenderClient();
+
+      let serviceName = serviceId;
+      try {
+        const service = await client.getService(serviceId);
+        serviceName = service.name;
+      } catch {
+        // Service may already be deleted -- proceed with delete attempt
+      }
+
+      try {
+        await client.deleteService(serviceId);
+      } catch (err) {
+        const isNotFound = err instanceof Error && err.message.includes("404");
+        if (!isNotFound) throw err;
+      }
+
+      await logAction(db, {
+        projectId: sessionId,
+        sessionId,
+        kind: "preview.deleted",
+        input: { serviceId },
+        output: { name: serviceName },
+        status: "success",
+      });
+
+      return {
+        deleted: true,
+        serviceId,
+        name: serviceName,
+      };
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
 // render_get_postgres_connection
 // ---------------------------------------------------------------------------
 

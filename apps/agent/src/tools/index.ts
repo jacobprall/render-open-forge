@@ -38,4 +38,6 @@ export {
   renderCreateRedisTool,
   renderGetPostgresConnectionTool,
   renderProjectStatusTool,
+  renderCreatePreviewTool,
+  renderDeletePreviewTool,
 } from "./render";

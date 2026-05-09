@@ -1,73 +1,28 @@
 import { generateText, stepCountIs, type LanguageModel, type ModelMessage, type ToolSet } from "ai";
 import type Redis from "ioredis";
-import { and, desc, eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
-import { agentRuns, chats, chatMessages, specs, sessions, prEvents, mirrors, syncConnections } from "@openforge/db";
+import { eq } from "drizzle-orm";
+import { agentRuns, chats, sessions, prEvents } from "@openforge/db";
 import { AppError } from "@openforge/shared";
 import { resolveLlmApiKeys, type ResolvedLlmKeys, type PlatformContainer, type PlatformDb, type EventBus } from "@openforge/platform";
-import { getDefaultForgeProvider, createForgeProvider, type ForgeProvider, type ForgeProviderType } from "@openforge/platform/forge";
-import {
-  SharedHttpSandboxProvider,
-  type SandboxAdapter,
-  type SandboxSessionAuth,
-} from "@openforge/sandbox";
-import type { ForgeAgentContext, UpstreamMirrorInfo } from "./context/agent-context";
+import type { SandboxAdapter } from "@openforge/sandbox";
+import type { ForgeAgentContext } from "./context/agent-context";
 import { jobMessagesToModelMessages, sanitizeMessages } from "./messages";
 import { buildAgentSystemPrompt, FORGE_LABELS } from "./system-prompt";
-import {
-  bashTool,
-  readFileTool,
-  writeFileTool,
-  globTool,
-  grepTool,
-  gitTool,
-  createPullRequestTool,
-  editFileTool,
-  webFetchTool,
-  taskTool,
-  todoWriteTool,
-  askUserQuestionTool,
-  mergePrTool,
-  closePrTool,
-  addPrCommentTool,
-  requestReviewTool,
-  approvePrTool,
-  createRepoTool,
-  readBuildLogTool,
-  pullRequestDiffTool,
-  reviewPrTool,
-  resolveCommentTool,
-  submitSpecTool,
-  type SubmitSpecInput,
-  renderListServicesTool,
-  renderDeployTool,
-  renderGetDeployStatusTool,
-  renderGetLogsTool,
-  renderListEnvVarsTool,
-  renderSetEnvVarsTool,
-  renderGetServiceTool,
-  renderCreateServiceTool,
-  renderListPostgresTool,
-  renderCreatePostgresTool,
-  renderCreateRedisTool,
-  renderGetPostgresConnectionTool,
-  renderProjectStatusTool,
-} from "./tools";
 import { getModel, getModelDef } from "./models";
-import type { AgentJob, StreamEvent } from "./types";
+import type { AgentJob, StreamEvent, AssistantPart } from "./types";
 import { isDeliverComplete, transitionToComplete } from "./lib/deliver";
 import { RenderClient } from "@openforge/render-client";
 import { rewriteForSandbox } from "./sandbox-url";
+import { getForgeProvider, getForgeProviderForSession, resolveUpstreamMirror, getAdapter, triggerMirrorSync } from "./providers";
+import { buildToolSet } from "./tool-registry";
+import { publishEvent, expireRunStream, mergeToolResults, persistAssistantMessage, updateRunStatus } from "./run-persistence";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_STEPS = 50;
 const RUN_STATUS_TTL = 3600;
-const EVENT_STREAM_TTL = 86_400; // 24h
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-type AssistantPart = Record<string, unknown>;
 
 class AbortError extends Error {
   constructor(public readonly parts: AssistantPart[]) {
@@ -81,172 +36,6 @@ async function isAborted(events: EventBus, runId: string): Promise<boolean> {
   return val === "1";
 }
 
-async function publishEvent(events: EventBus, runId: string, event: StreamEvent, requestId?: string): Promise<void> {
-  const payload = JSON.stringify({ ...event, requestId });
-  await events.publish(runId, payload);
-}
-
-/** Expire the run event stream after a terminal event so keys don't accumulate. */
-async function expireRunStream(redis: Redis, runId: string): Promise<void> {
-  await redis.expire(`run:${runId}:events`, EVENT_STREAM_TTL).catch(() => {});
-}
-
-function getForgeProvider(): ForgeProvider {
-  const token = process.env.FORGEJO_AGENT_TOKEN;
-  if (!token) throw new Error("FORGEJO_AGENT_TOKEN not configured");
-  return getDefaultForgeProvider(token);
-}
-
-/**
- * Build a ForgeProvider appropriate for the session's forge type.
- * For Forgejo sessions, uses the internal agent token.
- * For GitHub/GitLab sessions, resolves the token from sync connections.
- */
-async function getForgeProviderForSession(
-  db: PlatformDb,
-  session: { forgeType: string | null; userId: string },
-): Promise<ForgeProvider> {
-  const forgeType = (session.forgeType ?? "forgejo") as ForgeProviderType;
-
-  if (forgeType === "forgejo") {
-    return getForgeProvider();
-  }
-
-  const [conn] = await db
-    .select({ accessToken: syncConnections.accessToken })
-    .from(syncConnections)
-    .where(and(eq(syncConnections.userId, session.userId), eq(syncConnections.provider, forgeType)))
-    .limit(1);
-
-  const envFallback = forgeType === "github"
-    ? process.env.GITHUB_TOKEN
-    : process.env.GITLAB_TOKEN;
-  const token = conn?.accessToken ?? envFallback;
-  if (!token) {
-    throw new Error(`No ${forgeType} token found for user ${session.userId} — check sync connections or env`);
-  }
-
-  const baseUrl = forgeType === "github"
-    ? "https://api.github.com"
-    : "https://gitlab.com";
-
-  return createForgeProvider({ type: forgeType, baseUrl, token });
-}
-
-/** Fire-and-forget: tell Forgejo to pull from upstream so the mirror reflects new branches. */
-function triggerMirrorSync(forge: ForgeProvider, owner: string, repo: string): void {
-  forge.mirrors.sync(owner, repo).catch((err) => {
-    console.warn(`[agent] mirror sync failed for ${owner}/${repo}:`, err);
-  });
-}
-
-/**
- * Extract (owner, repo) from a remote URL.
- * Handles https://github.com/user/repo.git, git@github.com:user/repo.git, etc.
- */
-function parseRemoteUrl(url: string): { owner: string; repo: string } | null {
-  // HTTPS: https://github.com/owner/repo.git
-  const httpsMatch = url.match(/(?:https?:\/\/[^/]+)\/([^/]+)\/([^/]+?)(?:\.git)?$/);
-  if (httpsMatch?.[1] && httpsMatch[2]) {
-    return { owner: httpsMatch[1], repo: httpsMatch[2] };
-  }
-  // SSH: git@github.com:owner/repo.git
-  const sshMatch = url.match(/git@[^:]+:([^/]+)\/([^/]+?)(?:\.git)?$/);
-  if (sshMatch?.[1] && sshMatch[2]) {
-    return { owner: sshMatch[1], repo: sshMatch[2] };
-  }
-  return null;
-}
-
-function providerBaseUrl(provider: string): string {
-  switch (provider) {
-    case "github": return "https://api.github.com";
-    case "gitlab": return "https://gitlab.com";
-    default:
-      throw new Error(`Unknown upstream provider: ${provider}`);
-  }
-}
-
-async function resolveUpstreamMirror(
-  db: PlatformDb,
-  repoPath: string,
-): Promise<UpstreamMirrorInfo | undefined> {
-  if (!repoPath) return undefined;
-
-  const [mirrorRow] = await db
-    .select({
-      remoteRepoUrl: mirrors.remoteRepoUrl,
-      direction: mirrors.direction,
-      syncConnectionId: mirrors.syncConnectionId,
-    })
-    .from(mirrors)
-    .where(eq(mirrors.localRepoPath, repoPath))
-    .limit(1);
-
-  if (!mirrorRow) return undefined;
-  if (mirrorRow.direction !== "pull" && mirrorRow.direction !== "bidirectional") return undefined;
-
-  const [conn] = await db
-    .select({
-      provider: syncConnections.provider,
-      accessToken: syncConnections.accessToken,
-    })
-    .from(syncConnections)
-    .where(eq(syncConnections.id, mirrorRow.syncConnectionId))
-    .limit(1);
-
-  if (!conn?.accessToken) return undefined;
-
-  const parsed = parseRemoteUrl(mirrorRow.remoteRepoUrl);
-  if (!parsed) return undefined;
-
-  const provider = conn.provider as ForgeProviderType;
-  const baseUrl = providerBaseUrl(provider);
-  const forge = createForgeProvider({ type: provider, baseUrl, token: conn.accessToken });
-
-  return {
-    provider,
-    remoteRepoUrl: mirrorRow.remoteRepoUrl,
-    forge,
-    remoteOwner: parsed.owner,
-    remoteRepo: parsed.repo,
-  };
-}
-
-let _sandboxProvider: SharedHttpSandboxProvider | null = null;
-let _sandboxProviderCreatedAt = 0;
-const SANDBOX_PROVIDER_MAX_AGE_MS = 10 * 60 * 1000; // 10 min
-
-function getSandboxProvider(): SharedHttpSandboxProvider {
-  const now = Date.now();
-  if (_sandboxProvider && now - _sandboxProviderCreatedAt < SANDBOX_PROVIDER_MAX_AGE_MS) {
-    return _sandboxProvider;
-  }
-  const host = process.env.SANDBOX_SERVICE_HOST;
-  if (!host) throw new Error("SANDBOX_SERVICE_HOST not configured");
-  const secret = process.env.SANDBOX_SHARED_SECRET;
-  const sessionSecret = process.env.SANDBOX_SESSION_SECRET;
-  const sessionAuth: SandboxSessionAuth | undefined = sessionSecret
-    ? { secret: sessionSecret, userId: "openforge-agent" }
-    : undefined;
-  _sandboxProvider = new SharedHttpSandboxProvider(host, secret, sessionAuth);
-  _sandboxProviderCreatedAt = now;
-  return _sandboxProvider;
-}
-
-async function getAdapter(sessionId: string): Promise<SandboxAdapter> {
-  try {
-    const provider = getSandboxProvider();
-    return await provider.provision(sessionId);
-  } catch {
-    // Invalidate cached provider on connection failure and retry once
-    _sandboxProvider = null;
-    _sandboxProviderCreatedAt = 0;
-    const provider = getSandboxProvider();
-    return provider.provision(sessionId);
-  }
-}
-
 // ─── Message building ────────────────────────────────────────────────────────
 
 function buildModelMessages(job: AgentJob): ModelMessage[] {
@@ -256,139 +45,7 @@ function buildModelMessages(job: AgentJob): ModelMessage[] {
   return sanitizeMessages(raw, job.chatId);
 }
 
-// ─── Part normalization ──────────────────────────────────────────────────────
-
-/**
- * Merge standalone tool_result parts into their corresponding tool_call parts
- * so persisted chat history matches the shape appendStreamEvent produces for
- * live streaming (tool_call with embedded result).
- */
-function mergeToolResults(parts: AssistantPart[]): AssistantPart[] {
-  const toolCallMap = new Map<string, AssistantPart>();
-  const merged: AssistantPart[] = [];
-
-  for (const part of parts) {
-    if (part.type === "tool_call" && typeof part.toolCallId === "string") {
-      toolCallMap.set(part.toolCallId, part);
-      merged.push(part);
-    } else if (part.type === "tool_result" && typeof part.toolCallId === "string") {
-      const tc = toolCallMap.get(part.toolCallId);
-      if (tc) {
-        tc.result = part.result;
-      }
-      // Don't push standalone tool_result — it's merged into tool_call
-    } else {
-      merged.push(part);
-    }
-  }
-
-  return merged;
-}
-
-// ─── Tool registry ───────────────────────────────────────────────────────────
-
-function buildSubagentToolSet(db?: PlatformDb): ToolSet {
-  return {
-    bash: bashTool(),
-    read_file: readFileTool(),
-    write_file: writeFileTool(),
-    edit: editFileTool(),
-    glob: globTool(),
-    grep: grepTool(),
-    git: gitTool(),
-    create_pull_request: createPullRequestTool(),
-    web_fetch: webFetchTool(),
-    ...(process.env.RENDER_API_KEY
-      ? {
-          render_list_services: renderListServicesTool(),
-          render_deploy: renderDeployTool(db),
-          render_get_deploy_status: renderGetDeployStatusTool(),
-          render_get_logs: renderGetLogsTool(),
-          render_list_env_vars: renderListEnvVarsTool(),
-          render_set_env_vars: renderSetEnvVarsTool(db),
-          render_get_service: renderGetServiceTool(),
-          render_create_service: renderCreateServiceTool(db),
-          render_list_postgres: renderListPostgresTool(),
-          render_create_postgres: renderCreatePostgresTool(db),
-          render_create_redis: renderCreateRedisTool(db),
-          render_get_postgres_connection: renderGetPostgresConnectionTool(),
-          render_project_status: renderProjectStatusTool(db),
-        }
-      : {}),
-  };
-}
-
-function buildToolSet(
-  events: EventBus,
-  redis: Redis,
-  db: PlatformDb,
-  job: AgentJob,
-  model: LanguageModel,
-  skillsPromptSuffix: string,
-): ToolSet {
-  const reqId = job.requestId;
-  const makeSubTools = () => buildSubagentToolSet(db);
-  return {
-    ...makeSubTools(),
-    task: taskTool(
-      async (event) => {
-        await publishEvent(events, job.runId, event as unknown as StreamEvent, reqId);
-      },
-      makeSubTools,
-      model,
-      skillsPromptSuffix,
-    ),
-    todo_write: todoWriteTool(),
-    ask_user_question: askUserQuestionTool(job.runId, () => redis.duplicate(), async (event) => {
-      await publishEvent(events, job.runId, event as unknown as StreamEvent, reqId);
-    }),
-    merge_pr: mergePrTool(),
-    close_pr: closePrTool(),
-    add_pr_comment: addPrCommentTool(),
-    request_review: requestReviewTool(),
-    approve_pr: approvePrTool(),
-    create_repo: createRepoTool(),
-    read_build_log: readBuildLogTool(),
-    pull_request_diff: pullRequestDiffTool(),
-    review_pr: reviewPrTool(),
-    resolve_comment: resolveCommentTool(),
-    submit_spec: submitSpecTool(
-      async (event) => {
-        await publishEvent(events, job.runId, event, reqId);
-      },
-      async (spec) => {
-        await persistSubmittedSpec(db, job.sessionId, spec);
-      },
-    ),
-  };
-}
-
-async function persistSubmittedSpec(db: PlatformDb, sessionId: string, spec: SubmitSpecInput): Promise<void> {
-  const [latest] = await db
-    .select()
-    .from(specs)
-    .where(eq(specs.sessionId, sessionId))
-    .orderBy(desc(specs.version))
-    .limit(1);
-
-  await db.insert(specs).values({
-    id: nanoid(),
-    sessionId,
-    version: (latest?.version ?? 0) + 1,
-    status: "draft",
-    goal: spec.goal,
-    approach: spec.approach,
-    filesToModify: spec.filesToModify ?? [],
-    filesToCreate: spec.filesToCreate ?? [],
-    risks: spec.risks ?? [],
-    outOfScope: spec.outOfScope ?? [],
-    verificationPlan: spec.verificationPlan,
-    estimatedComplexity: spec.estimatedComplexity ?? "small",
-    createdAt: new Date(),
-  });
-}
-
-// ─── Core turn execution ─────────────────────────────────────────────────────
+// ─── System prompt & context ─────────────────────────────────────────────────
 
 function buildProviderOptions(job: AgentJob, llmKeys: ResolvedLlmKeys) {
   const modelDef = getModelDef(job.modelId);
@@ -416,7 +73,7 @@ function buildSystemPromptForJob(job: AgentJob, forgeType?: string): string {
     skills: job.resolvedSkills,
     projectContext: job.projectContext,
     projectConfig: job.projectConfig,
-    forgeLabel: FORGE_LABELS[forgeType ?? "forgejo"],
+    forgeLabel: FORGE_LABELS[forgeType ?? "github"],
   });
   return appended ? `${base}\n\n${appended}` : base;
 }
@@ -479,6 +136,8 @@ async function buildLiveStateBlock(redis: Redis): Promise<string | null> {
   }
 }
 
+// ─── Forge context construction ──────────────────────────────────────────────
+
 async function buildForgeContext(params: {
   job: AgentJob;
   db: PlatformDb;
@@ -502,14 +161,13 @@ async function buildForgeContext(params: {
     .where(eq(sessions.id, job.sessionId))
     .limit(1);
 
-  const forgeType = sessionRow?.forgeType ?? "forgejo";
+  const forgeType = sessionRow?.forgeType ?? "github";
   const forge = forgeType === "forgejo"
     ? getForgeProvider()
     : await getForgeProviderForSession(db, { forgeType, userId: sessionRow?.userId ?? job.userId });
   const repoPath = sessionRow?.repoPath ?? "";
   const [repoOwner, repoName] = repoPath.split("/");
 
-  // For non-Forgejo sessions, the session's forge IS the upstream -- no mirror needed
   const upstream = forgeType === "forgejo"
     ? await resolveUpstreamMirror(db, repoPath)
     : undefined;
@@ -550,8 +208,6 @@ async function buildForgeContext(params: {
         metadata: { createdByAgent: true, runId: job.runId },
       });
 
-      // After creating a PR on an upstream, trigger a mirror sync so
-      // the Forgejo copy reflects the new branch/PR promptly.
       if (upstream && repoOwner && repoName) {
         triggerMirrorSync(forge, repoOwner, repoName);
       }
@@ -560,6 +216,8 @@ async function buildForgeContext(params: {
 
   return { forgeContext, sessionRow };
 }
+
+// ─── Core turn execution ─────────────────────────────────────────────────────
 
 async function runTurn(params: {
   job: AgentJob;
@@ -586,7 +244,7 @@ async function runTurn(params: {
 
   const { forgeContext, sessionRow } = await buildForgeContext({ job, db, events, adapter, assistantParts });
 
-  const sessionForgeType = sessionRow?.forgeType ?? "forgejo";
+  const sessionForgeType = sessionRow?.forgeType ?? "github";
   const basePrompt = buildSystemPromptForJob(job, sessionForgeType);
   const workspaceBlock = buildWorkspaceContext(sessionRow, forgeContext);
   let systemPrompt = workspaceBlock ? `${basePrompt}\n\n${workspaceBlock}` : basePrompt;
@@ -675,10 +333,9 @@ async function ensureRepoCloned(db: PlatformDb, job: AgentJob, adapter: SandboxA
   const [owner, repo] = session.repoPath.split("/");
   if (!owner || !repo) return;
 
-  const forgeType = session.forgeType ?? "forgejo";
+  const forgeType = session.forgeType ?? "github";
   const isForgejo = forgeType === "forgejo";
 
-  // Only rewrite URLs for Forgejo (internal network); GitHub/GitLab are public
   const rawAuthUrl = forge.git.authenticatedCloneUrl(owner, repo);
   const rawPlainUrl = forge.git.plainCloneUrl(owner, repo);
   const authenticatedUrl = isForgejo ? rewriteForSandbox(rawAuthUrl) : rawAuthUrl;
@@ -695,7 +352,6 @@ async function ensureRepoCloned(db: PlatformDb, job: AgentJob, adapter: SandboxA
       result.stderr?.includes("Remote branch") && result.stderr?.includes("not found");
 
     if (branchNotFound && session.branch) {
-      // Branch doesn't exist remotely — clone default branch, then create it locally
       console.log(`[clone] branch "${session.branch}" not found, cloning default branch`);
       const defaultArgs = ["clone", "--depth", "50", authenticatedUrl, "."];
       const defaultResult = await adapter.git(job.sessionId, defaultArgs);
@@ -709,7 +365,6 @@ async function ensureRepoCloned(db: PlatformDb, job: AgentJob, adapter: SandboxA
         return;
       }
     } else {
-      // Try full clone as fallback (non-branch-related failure)
       console.error(`[clone] failed for session ${job.sessionId}:`, result.stderr);
       const fullArgs = ["clone"];
       if (session.branch) fullArgs.push("--branch", session.branch);
@@ -723,52 +378,6 @@ async function ensureRepoCloned(db: PlatformDb, job: AgentJob, adapter: SandboxA
   }
   console.log(`[clone] success for session ${job.sessionId}`);
   await adapter.git(job.sessionId, ["remote", "set-url", "origin", plainUrl]);
-}
-
-// ─── Persistence helpers ─────────────────────────────────────────────────────
-
-async function persistAssistantMessage(
-  db: PlatformDb,
-  job: AgentJob,
-  parts: AssistantPart[],
-  responseMessages: ModelMessage[],
-): Promise<string> {
-  const id = nanoid();
-  await db.insert(chatMessages).values({
-    id,
-    chatId: job.chatId,
-    role: "assistant",
-    parts: parts as unknown as Record<string, unknown>[],
-    modelMessages: responseMessages as unknown as Record<string, unknown>[],
-  });
-  return id;
-}
-
-async function updateRunStatus(
-  db: PlatformDb,
-  job: AgentJob,
-  status: "completed" | "failed" | "aborted",
-  usage?: { promptTokens?: number; completionTokens?: number },
-): Promise<void> {
-  const finishedAt = new Date();
-  const [row] = await db
-    .select({ startedAt: agentRuns.startedAt })
-    .from(agentRuns)
-    .where(eq(agentRuns.id, job.runId))
-    .limit(1);
-  const totalDurationMs = row?.startedAt ? finishedAt.getTime() - row.startedAt.getTime() : null;
-
-  const updateData: Record<string, unknown> = { status, finishedAt, totalDurationMs };
-  if (usage?.promptTokens != null) updateData.promptTokens = usage.promptTokens;
-  if (usage?.completionTokens != null) updateData.completionTokens = usage.completionTokens;
-
-  await db
-    .update(agentRuns)
-    .set(updateData)
-    .where(eq(agentRuns.id, job.runId));
-
-  await db.update(chats).set({ activeRunId: null, updatedAt: new Date() }).where(eq(chats.id, job.chatId));
-  await db.update(sessions).set({ lastActivityAt: finishedAt, updatedAt: finishedAt }).where(eq(sessions.id, job.sessionId));
 }
 
 // ─── Public entry point ───────────────────────────────────────────────────────

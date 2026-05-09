@@ -1,6 +1,6 @@
 import { invites, users, accounts } from "@openforge/db/schema";
 import { createInviteToken, generateSecurePassword } from "@/lib/auth/invite-tokens";
-import { createForgejoApiTokenForUser } from "@/lib/forgejo/create-api-token";
+import { createForgejoApiTokenForUser } from "@/lib/forge/create-api-token";
 import type { ForgeDb } from "@/lib/db";
 
 const FORGEJO_INTERNAL_URL =

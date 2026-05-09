@@ -195,12 +195,14 @@ export function NewSessionForm() {
 
     startTransition(async () => {
       try {
+        const repoDefault = repos.find((r) => r.fullName === selectedRepo)?.defaultBranch ?? "main";
         const res = await fetch("/api/sessions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             repoPath: selectedRepo,
             branch: effectiveBranch,
+            baseBranch: repoDefault,
             ...(title.trim() ? { title: title.trim() } : {}),
             activeSkills,
           }),

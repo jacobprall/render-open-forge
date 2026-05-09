@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { createForgeProvider } from "@/lib/forgejo/client";
+import { createForgeProvider } from "@/lib/forge/client";
 import Link from "next/link";
 import { Suspense } from "react";
 import { RepoSearch } from "./search";

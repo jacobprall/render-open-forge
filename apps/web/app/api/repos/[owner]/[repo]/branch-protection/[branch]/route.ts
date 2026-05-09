@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 export async function GET(
   _req: Request,
@@ -14,13 +14,7 @@ export async function GET(
     const protection = await getPlatform().repos.getBranchProtection(auth, owner, repo, decoded);
     return NextResponse.json({ protection });
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Forgejo unreachable" },
-      { status: 502 },
-    );
+    return handlePlatformError(e);
   }
 }
 
@@ -36,12 +30,6 @@ export async function DELETE(
     await getPlatform().repos.deleteBranchProtection(auth, owner, repo, decoded);
     return NextResponse.json({ success: true });
   } catch (e) {
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to delete branch protection" },
-      { status: 502 },
-    );
+    return handlePlatformError(e);
   }
 }

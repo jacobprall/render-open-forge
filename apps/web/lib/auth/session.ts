@@ -24,7 +24,7 @@ async function readSession(): Promise<UserSession | null> {
 
   return {
     forgeToken: session.forgeToken,
-    forgeType: session.forgeType ?? "forgejo",
+    forgeType: session.forgeType ?? "github",
     userId: session.user.id,
     username: session.forgeUsername,
     email: session.user.email ?? "",

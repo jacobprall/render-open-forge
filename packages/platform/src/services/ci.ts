@@ -16,7 +16,6 @@ import {
 import type { ResolvedSkill } from "@openforge/skills";
 import type { PlatformDb } from "../interfaces/database";
 import type { QueueAdapter } from "../interfaces/queue";
-import type { EventBus } from "../interfaces/events";
 import type { CIDispatcher, CIJobInput } from "../interfaces/ci-dispatcher";
 import { getDefaultForgeProvider, getForgeProviderForAuth } from "../forge/factory";
 import type { ForgeProvider, ForgeProviderType } from "../forge/provider";
@@ -108,13 +107,12 @@ export class CIService {
   constructor(
     private db: PlatformDb,
     private queue: QueueAdapter,
-    private events: EventBus,
     private ciDispatcher?: CIDispatcher,
   ) {}
 
   /** Resolve a ForgeProvider for a session, respecting its forgeType. */
   private async getForgeForSession(session: { forgeType: string | null; userId: string }): Promise<ForgeProvider> {
-    const forgeType = (session.forgeType ?? "forgejo") as ForgeProviderType;
+    const forgeType = (session.forgeType ?? "github") as ForgeProviderType;
     if (forgeType === "forgejo") {
       return getDefaultForgeProvider(process.env.FORGEJO_AGENT_TOKEN ?? "");
     }

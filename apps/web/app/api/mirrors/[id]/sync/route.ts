@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth, getPlatform } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 export async function POST(
   _req: Request,
@@ -13,14 +13,6 @@ export async function POST(
     await getPlatform().mirrors.sync(auth, id);
     return NextResponse.json({ synced: true });
   } catch (e) {
-    if (e instanceof Response) return e;
-    if (isPlatformError(e)) {
-      return NextResponse.json({ error: e.message }, { status: e.httpStatus });
-    }
-    console.error("[mirrors/sync] error:", e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Sync failed" },
-      { status: 500 },
-    );
+    return handlePlatformError(e);
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPlatform, requireAuth } from "@/lib/platform";
-import { isPlatformError } from "@/lib/api/errors";
+import { handlePlatformError } from "@/lib/api/errors";
 
 export async function GET(
   _req: NextRequest,
@@ -12,11 +12,7 @@ export async function GET(
     const activeSkills = await getPlatform().sessions.getSkills(auth, id);
     return NextResponse.json({ activeSkills });
   } catch (err) {
-    if (err instanceof Response) throw err;
-    if (isPlatformError(err)) {
-      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
-    }
-    throw err;
+    return handlePlatformError(err);
   }
 }
 
@@ -36,10 +32,6 @@ export async function PATCH(
     await getPlatform().sessions.updateSkills(auth, id, activeSkills);
     return NextResponse.json({ success: true });
   } catch (err) {
-    if (err instanceof Response) throw err;
-    if (isPlatformError(err)) {
-      return NextResponse.json({ error: err.message }, { status: err.httpStatus });
-    }
-    throw err;
+    return handlePlatformError(err);
   }
 }

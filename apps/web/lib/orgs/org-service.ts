@@ -1,4 +1,4 @@
-import type { ForgeProvider } from "@/lib/forgejo/client";
+import type { ForgeProvider } from "@/lib/forge/client";
 
 export async function createOrg(
   forge: ForgeProvider,
