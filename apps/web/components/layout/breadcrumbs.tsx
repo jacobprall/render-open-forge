@@ -11,14 +11,14 @@ interface BreadcrumbsProps {
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">
+    <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 overflow-hidden text-sm">
       {items.map((item, i) => {
         const isLast = i === items.length - 1;
         return (
           <span key={i} className="flex items-center gap-1.5">
             {i > 0 && <span className="text-text-tertiary">/</span>}
             {isLast || !item.href ? (
-              <span className={isLast ? "text-text-primary" : "text-text-tertiary"}>
+              <span className={`truncate ${isLast ? "text-text-primary" : "text-text-tertiary"}`}>
                 {item.label}
               </span>
             ) : (

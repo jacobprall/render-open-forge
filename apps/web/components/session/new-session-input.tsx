@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useTransition } from "react";
 import { Send } from "lucide-react";
 import { RepoBranchPicker } from "./repo-branch-picker";
 import { ModelSelector } from "@/components/model-selector";
@@ -8,56 +8,63 @@ import { DEFAULT_MODEL_ID } from "@/lib/model-defaults";
 
 interface NewSessionInputProps {
   defaultModelId?: string;
+  defaultRepo?: string;
+  defaultBranch?: string;
+  projectId?: string;
   onSessionCreated?: (session: { id: string; firstMessage: string; modelId: string }) => void;
 }
 
-export function NewSessionInput({ defaultModelId, onSessionCreated }: NewSessionInputProps) {
+export function NewSessionInput({ defaultModelId, defaultRepo, defaultBranch, projectId, onSessionCreated }: NewSessionInputProps) {
   const [message, setMessage] = useState("");
-  const [repoBranch, setRepoBranch] = useState<{ repo: string; branch: string } | null>(null);
+  const [repoBranch, setRepoBranch] = useState<{ repo: string; branch: string } | null>(
+    defaultRepo ? { repo: defaultRepo, branch: defaultBranch ?? "main" } : null,
+  );
   const [modelId, setModelId] = useState(defaultModelId || DEFAULT_MODEL_ID);
-  const [loading, setLoading] = useState(false);
+  const [loading, startLoading] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const canSubmit = message.trim() && !loading;
 
   const handleSubmit = useCallback(
-    async (e?: React.FormEvent) => {
+    (e?: React.FormEvent) => {
       e?.preventDefault();
       if (!canSubmit) return;
 
-      setLoading(true);
       setError(null);
+      startLoading(async () => {
+        try {
+          const body: Record<string, string> = {
+            firstMessage: message.trim(),
+            modelId,
+          };
+          if (repoBranch) {
+            body.repoPath = repoBranch.repo;
+            body.baseBranch = repoBranch.branch;
+          }
+          if (projectId) {
+            body.projectId = projectId;
+          }
 
-      try {
-        const body: Record<string, string> = {
-          firstMessage: message.trim(),
-          modelId,
-        };
-        if (repoBranch) {
-          body.repoPath = repoBranch.repo;
-          body.baseBranch = repoBranch.branch;
+          const res = await fetch("/api/sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error ?? `Failed to create session (${res.status})`);
+          }
+
+          const data = await res.json();
+          onSessionCreated?.({ id: data.id, firstMessage: message.trim(), modelId });
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Something went wrong");
         }
-
-        const res = await fetch("/api/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error ?? `Failed to create session (${res.status})`);
-        }
-
-        const data = await res.json();
-        onSessionCreated?.({ id: data.id, firstMessage: message.trim(), modelId });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
-        setLoading(false);
-      }
+      });
     },
-    [canSubmit, repoBranch, message, modelId, onSessionCreated],
+    [canSubmit, repoBranch, message, modelId, projectId, onSessionCreated],
   );
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -70,7 +77,7 @@ export function NewSessionInput({ defaultModelId, onSessionCreated }: NewSession
   return (
     <form onSubmit={handleSubmit}>
       <div className="border border-stroke-default bg-surface-1 transition-colors duration-(--of-duration-instant) focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/25">
-        <div className="flex items-center gap-2 border-b border-stroke-subtle px-(--of-space-md) py-(--of-space-sm)">
+        <div className="flex flex-col gap-2 border-b border-stroke-subtle px-(--of-space-md) py-(--of-space-sm) sm:flex-row sm:items-center">
           <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />
           <ModelSelector value={modelId} onChange={setModelId} compact />
         </div>

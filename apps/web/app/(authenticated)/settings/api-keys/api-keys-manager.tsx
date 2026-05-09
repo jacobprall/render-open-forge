@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useTransition } from "react";
 import useSWR from "swr";
 
 interface ApiKeyRow {
@@ -30,30 +30,25 @@ async function fetcher(url: string): Promise<ApiKeysPayload> {
 export function ApiKeysManager() {
   const { data, error, isLoading, mutate } = useSWR("/api/settings/api-keys", fetcher);
   const [formError, setFormError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [saving, startSaving] = useTransition();
 
   const [provider, setProvider] = useState<"anthropic" | "openai">("anthropic");
   const [scope, setScope] = useState<"platform" | "user">("user");
   const [label, setLabel] = useState("");
   const [apiKey, setApiKey] = useState("");
 
-  useEffect(() => {
-    if (data && !data.isAdmin && scope === "platform") {
-      setScope("user");
-    }
-  }, [data, scope]);
+  const effectiveScope = data && !data.isAdmin ? "user" : scope;
 
-  async function handleSave(e: React.FormEvent) {
+  function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
-    setSaving(true);
-    try {
+    startSaving(async () => {
       const r = await fetch("/api/settings/api-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider,
-          scope,
+          scope: effectiveScope,
           label: label.trim() || undefined,
           apiKey,
         }),
@@ -66,9 +61,7 @@ export function ApiKeysManager() {
       setApiKey("");
       setLabel("");
       await mutate();
-    } finally {
-      setSaving(false);
-    }
+    });
   }
 
   async function handleDelete(id: string) {
@@ -188,7 +181,7 @@ export function ApiKeysManager() {
             <div>
               <label className="mb-1 block text-xs font-medium text-text-tertiary">Scope</label>
               <select
-                value={scope}
+                value={effectiveScope}
                 onChange={(e) => setScope(e.target.value as "platform" | "user")}
                 disabled={!data.isAdmin}
                 className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50"

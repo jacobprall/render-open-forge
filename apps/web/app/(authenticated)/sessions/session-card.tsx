@@ -40,7 +40,7 @@ export function SessionCard({ session }: { session: SessionCardSession }) {
   return (
     <Link
       href={`/sessions/${session.id}`}
-      className="flex items-center gap-3 px-(--of-space-md) py-(--of-space-sm) transition-colors duration-(--of-duration-instant) hover:bg-surface-1"
+      className="content-auto flex items-center gap-3 px-(--of-space-md) py-(--of-space-sm) transition-colors duration-(--of-duration-instant) hover:bg-surface-1"
     >
       <span
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot[session.status] ?? "bg-text-tertiary"}`}

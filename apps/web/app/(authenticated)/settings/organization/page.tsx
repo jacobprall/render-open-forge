@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useTransition } from "react";
 import useSWR from "swr";
 import { Building2, Save, Users } from "lucide-react";
 
@@ -29,18 +29,13 @@ export default function OrganizationPage() {
   const { data: org, mutate: mutateOrg, isLoading: orgLoading } = useSWR<Org>("/api/org", fetcher);
   const { data: members, isLoading: membersLoading } = useSWR<OrgMember[]>("/api/org/members", fetcher);
 
-  const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState(org?.name ?? "");
+  const [saving, startSaving] = useTransition();
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    if (org) setName(org.name);
-  }, [org]);
-
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(() => {
     if (!name.trim()) return;
-    setSaving(true);
-    try {
+    startSaving(async () => {
       await fetch("/api/org", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -49,9 +44,7 @@ export default function OrganizationPage() {
       setSaved(true);
       mutateOrg();
       setTimeout(() => setSaved(false), 2000);
-    } finally {
-      setSaving(false);
-    }
+    });
   }, [name, mutateOrg]);
 
   if (orgLoading || !org) {

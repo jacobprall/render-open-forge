@@ -45,7 +45,7 @@ export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) 
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center gap-2 border border-stroke-default bg-surface-1 px-3 py-1.5 text-sm text-text-secondary transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle"
+        className="flex min-h-10 items-center gap-2 border border-stroke-default bg-surface-1 px-3 py-2 text-sm text-text-secondary transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle"
       >
         <span className="truncate">{selected?.label ?? value}</span>
         <svg className="h-3.5 w-3.5 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -54,7 +54,7 @@ export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) 
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 bottom-full z-50 mb-1 max-h-72 w-72 overflow-y-auto border border-stroke-default bg-surface-1 shadow-xl">
+        <div className="absolute right-0 bottom-full z-50 mb-1 max-h-72 w-72 max-w-[calc(100vw-2rem)] overflow-y-auto border border-stroke-default bg-surface-1 shadow-xl">
           {models.map((model) => (
             <button
               key={model.id}

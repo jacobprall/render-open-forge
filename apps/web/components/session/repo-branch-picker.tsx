@@ -104,7 +104,7 @@ export function RepoBranchPicker({ value, onChange }: RepoBranchPickerProps) {
       <button
         type="button"
         onClick={handleOpen}
-        className="inline-flex items-center gap-1.5 border border-stroke-subtle bg-surface-1 px-2.5 py-1 text-[13px] font-mono text-text-secondary transition-colors duration-(--of-duration-instant) hover:bg-surface-2 hover:text-text-primary"
+        className="inline-flex min-h-10 items-center gap-1.5 border border-stroke-subtle bg-surface-1 px-3 py-2 text-[13px] font-mono text-text-secondary transition-colors duration-(--of-duration-instant) hover:bg-surface-2 hover:text-text-primary"
       >
         <GitBranch className="h-3 w-3 shrink-0 text-text-tertiary" />
         {value ? (
@@ -118,7 +118,7 @@ export function RepoBranchPicker({ value, onChange }: RepoBranchPickerProps) {
       </button>
 
       {open && (
-        <div className="absolute left-0 bottom-full z-50 mb-1 w-80 border border-stroke-subtle bg-surface-1 shadow-lg">
+        <div className="absolute left-0 bottom-full z-50 mb-1 w-80 max-w-[calc(100vw-2rem)] border border-stroke-subtle bg-surface-1 shadow-lg">
           <div className="flex items-center gap-2 border-b border-stroke-subtle px-(--of-space-sm) py-(--of-space-xs)">
             <Search className="h-3 w-3 text-text-tertiary shrink-0" />
             <input

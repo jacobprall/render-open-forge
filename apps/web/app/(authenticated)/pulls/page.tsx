@@ -113,7 +113,7 @@ export default async function PullRequestsGlobalPage({
       className="mx-auto max-w-5xl"
     >
       {/* View tabs */}
-      <div className="mb-4 flex gap-1 rounded-lg bg-surface-1 p-1">
+      <div className="mb-4 flex gap-1 overflow-x-auto rounded-lg bg-surface-1 p-1">
         <FilterTab href="/pulls?view=inbox" active={view === "inbox"} count={inboxCount?.count} highlight>
           Needs Attention
         </FilterTab>
@@ -240,7 +240,7 @@ function FilterTab({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition ${
+      className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition ${
         active
           ? "bg-surface-2 text-text-primary"
           : "text-text-secondary hover:text-text-primary"

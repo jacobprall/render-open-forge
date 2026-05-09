@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useTransition } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { Layers, Plus, FolderOpen, MessageCircle, Clock } from "lucide-react";
@@ -33,26 +33,21 @@ export default function ProjectsPage() {
   const { data: projects, isLoading, error, mutate } = useSWR<Project[]>("/api/projects", fetcher);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
-  const [creating, setCreating] = useState(false);
+  const [creating, startCreating] = useTransition();
 
-  const handleCreate = useCallback(async () => {
+  const handleCreate = useCallback(() => {
     if (!newName.trim()) return;
-    setCreating(true);
-    try {
+    startCreating(async () => {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName.trim() }),
       });
-      if (!res.ok) throw new Error("Failed to create project");
+      if (!res.ok) return;
       setNewName("");
       setShowCreate(false);
       mutate();
-    } catch {
-      // Error is transient; creation form stays open for retry
-    } finally {
-      setCreating(false);
-    }
+    });
   }, [newName, mutate]);
 
   const realProjects = projects?.filter((p) => !p.isScratch) ?? [];
@@ -79,28 +74,30 @@ export default function ProjectsPage() {
 
         {showCreate && (
           <div className="mb-6 border border-stroke-subtle bg-surface-1 p-4">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <input
                 autoFocus
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                 placeholder="Project name..."
-                className="flex-1 border border-stroke-subtle bg-surface-0 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none"
+                className="w-full border border-stroke-subtle bg-surface-0 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none sm:flex-1"
               />
-              <button
-                onClick={handleCreate}
-                disabled={creating || !newName.trim()}
-                className="bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:opacity-50"
-              >
-                Create
-              </button>
-              <button
-                onClick={() => { setShowCreate(false); setNewName(""); }}
-                className="px-3 py-2 text-sm text-text-secondary hover:text-text-primary"
-              >
-                Cancel
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCreate}
+                  disabled={creating || !newName.trim()}
+                  className="min-h-10 flex-1 bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:opacity-50 sm:flex-none"
+                >
+                  Create
+                </button>
+                <button
+                  onClick={() => { setShowCreate(false); setNewName(""); }}
+                  className="min-h-10 px-3 py-2 text-sm text-text-secondary hover:text-text-primary"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -143,7 +140,7 @@ function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       href={`/projects/${project.id}`}
-      className="group border border-stroke-subtle bg-surface-1 p-5 transition-colors hover:border-accent/40 hover:bg-surface-2"
+      className="content-auto group border border-stroke-subtle bg-surface-1 p-5 transition-colors hover:border-accent/40 hover:bg-surface-2"
     >
       <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center gap-2">

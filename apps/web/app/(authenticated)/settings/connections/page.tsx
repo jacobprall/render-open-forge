@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
@@ -155,7 +156,7 @@ export default async function ConnectionsPage() {
 
       <p className="mt-6 text-xs text-text-tertiary">
         Forge tokens are stored securely in the database. Manage your active mirrors in{" "}
-        <a href="/settings/mirrors" className="text-accent-text hover:underline">Mirror Settings</a>.
+        <Link href="/settings/mirrors" className="text-accent-text hover:underline">Mirror Settings</Link>.
       </p>
     </div>
   );

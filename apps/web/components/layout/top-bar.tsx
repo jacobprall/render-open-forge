@@ -13,7 +13,7 @@ export function TopBar({ breadcrumbs, children, onMenuClick }: TopBarProps) {
         {onMenuClick && (
           <button
             onClick={onMenuClick}
-            className="p-1.5 text-text-secondary hover:bg-surface-2 hover:text-text-primary md:hidden transition-colors duration-(--of-duration-instant)"
+            className="flex min-h-11 min-w-11 items-center justify-center text-text-secondary hover:bg-surface-2 hover:text-text-primary md:hidden transition-colors duration-(--of-duration-instant)"
             aria-label="Open menu"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

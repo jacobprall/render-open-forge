@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, use } from "react";
+import { useState, useCallback, useTransition, use, startTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
@@ -85,7 +85,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
         <div className="mb-6 flex gap-1 border-b border-stroke-subtle">
           <button
-            onClick={() => setTab("overview")}
+            onClick={() => startTransition(() => setTab("overview"))}
             className={`px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === "overview"
                 ? "border-b-2 border-accent text-accent-text"
@@ -95,7 +95,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             Overview
           </button>
           <button
-            onClick={() => setTab("settings")}
+            onClick={() => startTransition(() => setTab("settings"))}
             className={`px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === "settings"
                 ? "border-b-2 border-accent text-accent-text"
@@ -166,24 +166,26 @@ function OverviewTab({
         </div>
 
         {addingRepo && (
-          <div className="mb-3 flex items-center gap-2">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
             <input
               autoFocus
               value={newRepoPath}
               onChange={(e) => setNewRepoPath(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddRepo()}
               placeholder="owner/repo"
-              className="flex-1 border border-stroke-subtle bg-surface-0 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none"
+              className="w-full border border-stroke-subtle bg-surface-0 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none sm:flex-1"
             />
-            <button onClick={handleAddRepo} className="bg-accent px-3 py-1.5 text-xs text-white">
-              Add
-            </button>
-            <button
-              onClick={() => { setAddingRepo(false); setNewRepoPath(""); }}
-              className="p-1.5 text-text-tertiary hover:text-text-primary"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+            <div className="flex gap-2">
+              <button onClick={handleAddRepo} className="min-h-10 bg-accent px-4 py-2 text-sm text-white">
+                Add
+              </button>
+              <button
+                onClick={() => { setAddingRepo(false); setNewRepoPath(""); }}
+                className="flex min-h-10 min-w-10 items-center justify-center text-text-tertiary hover:text-text-primary"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
 
@@ -205,10 +207,10 @@ function OverviewTab({
                 </div>
                 <button
                   onClick={() => handleRemoveRepo(repo.repoPath)}
-                  className="p-1 text-text-tertiary hover:text-red-500"
+                  className="flex min-h-10 min-w-10 items-center justify-center text-text-tertiary hover:text-red-500"
                   title="Remove repo"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             ))}
@@ -226,7 +228,15 @@ function OverviewTab({
           {project.sessionCount} total {project.sessionCount === 1 ? "session" : "sessions"}
         </div>
         <Link
-          href={`/sessions?project=${project.id}`}
+          href={(() => {
+            const params = new URLSearchParams({ project: project.id });
+            const primary = project.repos.find((r) => r.isPrimary) ?? project.repos[0];
+            if (primary) {
+              params.set("repo", primary.repoPath);
+              if (primary.defaultBranch) params.set("branch", primary.defaultBranch);
+            }
+            return `/sessions?${params.toString()}`;
+          })()}
           className="mt-2 inline-block text-sm text-accent hover:text-accent-text"
         >
           View sessions
@@ -259,12 +269,11 @@ function SettingsTab({
 }) {
   const [name, setName] = useState(project.name);
   const [instructions, setInstructions] = useState(project.instructions ?? "");
-  const [saving, setSaving] = useState(false);
+  const [saving, startSaving] = useTransition();
   const [saved, setSaved] = useState(false);
 
-  const handleSave = useCallback(async () => {
-    setSaving(true);
-    try {
+  const handleSave = useCallback(() => {
+    startSaving(async () => {
       await fetch(`/api/projects/${project.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -273,9 +282,7 @@ function SettingsTab({
       setSaved(true);
       mutate();
       setTimeout(() => setSaved(false), 2000);
-    } finally {
-      setSaving(false);
-    }
+    });
   }, [name, instructions, project.id, mutate]);
 
   const handleDelete = useCallback(async () => {

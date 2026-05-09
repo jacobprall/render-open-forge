@@ -136,7 +136,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
                   key={item.href}
                   href={item.href}
                   title={collapsed ? item.label : undefined}
-                  className={`relative flex items-center gap-3 px-(--of-space-md) py-3 text-[14px] font-medium transition-colors duration-(--of-duration-instant) border-l-[3px] ${
+                  className={`relative flex min-h-11 items-center gap-3 px-(--of-space-md) py-3 text-[14px] font-medium transition-colors duration-(--of-duration-instant) border-l-[3px] ${
                     isActive
                       ? "bg-surface-2 text-accent-text border-l-accent"
                       : "text-text-secondary hover:bg-surface-2 hover:text-text-primary border-l-transparent"
@@ -187,7 +187,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
                 <button
                   onClick={handleSignOut}
                   title="Sign out"
-                  className="p-1 text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-2 hover:text-text-secondary"
+                  className="flex min-h-10 min-w-10 items-center justify-center text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-2 hover:text-text-secondary"
                 >
                   <LogOut className="h-4 w-4" />
                 </button>
@@ -198,7 +198,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
               <button
                 onClick={handleSignOut}
                 title="Sign out"
-                className="mt-1 flex w-full items-center justify-center p-2 text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-2 hover:text-text-secondary"
+                className="mt-1 flex min-h-11 w-full items-center justify-center text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-2 hover:text-text-secondary"
               >
                 <LogOut className="h-4 w-4" />
               </button>

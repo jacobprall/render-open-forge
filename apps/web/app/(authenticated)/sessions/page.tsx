@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
-import { sessions, projects } from "@openforge/db";
+import { sessions, projects, projectRepos } from "@openforge/db";
 import { eq, desc, inArray } from "drizzle-orm";
 import { getUserPreferences } from "@/lib/db/loaders";
 import { SessionsView } from "./sessions-view";
@@ -12,15 +12,31 @@ export const metadata: Metadata = { title: "Chat" };
 export default async function SessionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ project?: string }>;
+  searchParams: Promise<{ project?: string; repo?: string; branch?: string }>;
 }) {
-  const session = await getSession();
+  const [session, params] = await Promise.all([getSession(), searchParams]);
   if (!session) redirect("/");
 
   const db = getDb();
-  const { project: projectFilter } = await searchParams;
+  const { project: projectFilter, repo: repoParam, branch: branchParam } = params;
+  const userId = String(session.userId);
 
-  const [userSessions, prefsRow] = await Promise.all([
+  const repoQuery =
+    !repoParam && projectFilter
+      ? db
+          .select({
+            repoPath: projectRepos.repoPath,
+            defaultBranch: projectRepos.defaultBranch,
+            isPrimary: projectRepos.isPrimary,
+          })
+          .from(projectRepos)
+          .where(eq(projectRepos.projectId, projectFilter))
+          .orderBy(desc(projectRepos.isPrimary))
+          .limit(1)
+          .then((rows) => rows[0] ?? null)
+      : Promise.resolve(null);
+
+  const [userSessions, prefsRow, resolvedRepo] = await Promise.all([
     db
       .select({
         id: sessions.id,
@@ -33,9 +49,10 @@ export default async function SessionsPage({
         createdAt: sessions.createdAt,
       })
       .from(sessions)
-      .where(eq(sessions.userId, String(session.userId)))
+      .where(eq(sessions.userId, userId))
       .orderBy(desc(sessions.createdAt)),
-    getUserPreferences(String(session.userId)),
+    getUserPreferences(userId),
+    repoQuery,
   ]);
 
   const projectIds = [...new Set(userSessions.map((s) => s.projectId).filter(Boolean))] as string[];
@@ -50,6 +67,9 @@ export default async function SessionsPage({
     projectNames[p.id] = p.name;
   }
 
+  const defaultRepo = repoParam ?? resolvedRepo?.repoPath;
+  const defaultBranch = branchParam ?? resolvedRepo?.defaultBranch ?? (defaultRepo ? "main" : undefined);
+
   const defaultModelId = prefsRow?.data?.defaultModelId ?? undefined;
 
   return (
@@ -58,6 +78,9 @@ export default async function SessionsPage({
       sessions={userSessions}
       projectNames={projectNames}
       projectFilter={projectFilter}
+      defaultRepo={defaultRepo}
+      defaultBranch={defaultBranch}
+      projectId={projectFilter}
     />
   );
 }

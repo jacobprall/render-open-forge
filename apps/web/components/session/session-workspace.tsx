@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, startTransition } from "react";
 import dynamic from "next/dynamic";
 import type { AssistantPart } from "@openforge/ui";
 import { ModelSelector } from "@/components/model-selector";
@@ -85,8 +85,8 @@ export function SessionWorkspace({
   return (
     <div className="absolute inset-0 flex flex-col">
       <header className="shrink-0 border-b border-stroke-subtle">
-        <div className="flex items-center justify-between px-4 pt-2 pb-1">
-          <div className="flex items-center gap-2 min-w-0 text-[11px]">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-2 pb-1">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
             {session.repoPath ? (
               <span className="font-mono text-text-tertiary truncate">
                 {session.repoPath}
@@ -123,13 +123,13 @@ export function SessionWorkspace({
         <div className="flex items-center gap-0.5 px-4 -mb-px">
           <TabButton
             active={activeView === "chat"}
-            onClick={() => setActiveView("chat")}
+            onClick={() => startTransition(() => setActiveView("chat"))}
           >
             Chat
           </TabButton>
           <TabButton
             active={activeView === "files"}
-            onClick={() => setActiveView("files")}
+            onClick={() => startTransition(() => setActiveView("files"))}
             badge={fileCount > 0 ? fileCount : undefined}
           >
             Files

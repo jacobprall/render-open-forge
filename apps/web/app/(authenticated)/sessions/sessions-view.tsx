@@ -29,9 +29,12 @@ interface SessionsViewProps {
   sessions: SessionCardSession[];
   projectNames?: Record<string, string>;
   projectFilter?: string;
+  defaultRepo?: string;
+  defaultBranch?: string;
+  projectId?: string;
 }
 
-export function SessionsView({ defaultModelId, sessions, projectNames, projectFilter }: SessionsViewProps) {
+export function SessionsView({ defaultModelId, sessions, projectNames, projectFilter, defaultRepo, defaultBranch, projectId }: SessionsViewProps) {
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const router = useRouter();
 
@@ -84,6 +87,9 @@ export function SessionsView({ defaultModelId, sessions, projectNames, projectFi
           <div className="mx-auto max-w-2xl">
             <NewSessionInput
               defaultModelId={defaultModelId}
+              defaultRepo={defaultRepo}
+              defaultBranch={defaultBranch}
+              projectId={projectId}
               onSessionCreated={handleSessionCreated}
             />
           </div>

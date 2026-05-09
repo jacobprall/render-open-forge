@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition, useMemo } from "react";
 import useSWR from "swr";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ActiveSkillRef } from "@openforge/skills";
 
@@ -343,9 +344,9 @@ export function NewSessionForm() {
           <label className="mb-2 block text-sm font-medium text-text-secondary">Skills for this session</label>
           <p className="mb-3 text-xs text-text-tertiary">
             Toggle instructions merged into the agent system prompt. Manage personal skills in{" "}
-            <a href="/settings/skills" className="text-accent-text hover:text-accent">
+            <Link href="/settings/skills" className="text-accent-text hover:text-accent">
               Settings → Skills
-            </a>
+            </Link>
             .
           </p>
           {!selectedRepo ? (

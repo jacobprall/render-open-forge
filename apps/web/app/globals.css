@@ -235,3 +235,8 @@ h1, h2, h3, h4, h5, h6 {
 @utility animate-route-complete {
   animation: route-complete 300ms ease-in forwards;
 }
+
+@utility content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 3rem;
+}
