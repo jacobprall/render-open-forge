@@ -52,7 +52,7 @@ export default async function ConnectionsPage() {
     // DB might not be ready
   }
 
-  const connectionMap = new Map(
+  const connectionMap = new Map<string, typeof syncConnections.$inferSelect>(
     connections.map((c) => [c.provider, c]),
   );
 
