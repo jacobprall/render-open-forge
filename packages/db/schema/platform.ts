@@ -63,7 +63,7 @@ export interface UserPreferencesData {
   accentColor?: string | null;
   secondaryColor?: string | null;
   tertiaryColor?: string | null;
-  theme?: "default" | "terminal" | "typewriter" | "blueprint" | "warm-analog" | null;
+  theme?: "default" | "terminal" | "warm-analog" | null;
 }
 
 export const userPreferences = pgTable("user_preferences", {

@@ -14,7 +14,7 @@ import {
 } from "@/components/primitives";
 import { FolderOpen, GitBranch, Plus, Search } from "lucide-react";
 
-export const metadata: Metadata = { title: "Repositories" };
+export const metadata: Metadata = { title: "Repos" };
 
 function RepoCard({ repo }: { repo: ForgeRepo }) {
   return (
@@ -75,7 +75,7 @@ export default async function ReposPage({
 
   return (
     <PageShell
-      title="Repositories"
+      title="Repos"
       description={description}
       className="mx-auto max-w-5xl"
       actions={

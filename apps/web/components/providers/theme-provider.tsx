@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-export type ThemePreset = "default" | "terminal" | "typewriter" | "blueprint" | "warm-analog";
+export type ThemePreset = "default" | "terminal" | "warm-analog";
 
 export const THEME_PRESETS: {
   id: ThemePreset;
@@ -21,18 +21,6 @@ export const THEME_PRESETS: {
     label: "Terminal",
     description: "Black, monospaced, cyber green",
     swatch: { bg: "#060606", fg: "#e0e0e0", accent: "#00ff41" },
-  },
-  {
-    id: "typewriter",
-    label: "Typewriter",
-    description: "Warm paper, monospaced, gold ink",
-    swatch: { bg: "#faf8f4", fg: "#1c1810", accent: "#a07020" },
-  },
-  {
-    id: "blueprint",
-    label: "Blueprint",
-    description: "Blueprint paper, white lines, cyan",
-    swatch: { bg: "#1a3050", fg: "#e8f0ff", accent: "#40d0ff" },
   },
   {
     id: "warm-analog",

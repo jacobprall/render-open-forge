@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Lora, IBM_Plex_Mono } from "next/font/google";
 import { RouteProgress } from "@/components/layout/route-progress";
 import { AuthSessionProvider } from "@/components/providers/auth-session-provider";
 import "./globals.css";
@@ -16,10 +16,10 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-const instrumentSerif = Instrument_Serif({
+const lora = Lora({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-instrument-serif",
+  weight: ["400", "500", "600"],
+  variable: "--font-lora",
   display: "swap",
 });
 
@@ -46,7 +46,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${inter.variable} ${jetbrainsMono.variable} ${instrumentSerif.variable} ${ibmPlexMono.variable}`}
+      className={`dark ${inter.variable} ${jetbrainsMono.variable} ${lora.variable} ${ibmPlexMono.variable}`}
     >
       <body className="min-h-screen bg-surface-0 font-sans text-text-primary antialiased">
         <RouteProgress />

@@ -30,8 +30,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Sessions", href: "/sessions", icon: MessageCircle },
-  { label: "Repositories", href: "/repos", icon: FolderOpen },
+  { label: "Chat", href: "/sessions", icon: MessageCircle },
+  { label: "Repos", href: "/repos", icon: FolderOpen },
   { label: "Pull Requests", href: "/pulls", icon: GitPullRequest, badgeKey: "inbox" },
   {
     label: "Settings",

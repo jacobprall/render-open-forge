@@ -39,7 +39,7 @@ export default async function RepoLayout({
   const basePath = `/${owner}/${repo}`;
   const tabs = [
     { id: "code" as const, label: "Code", href: basePath },
-    { id: "sessions" as const, label: "Sessions", href: `${basePath}/sessions` },
+    { id: "sessions" as const, label: "Chat", href: `${basePath}/sessions` },
     {
       id: "commits" as const,
       label: "Commits",

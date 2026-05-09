@@ -13,7 +13,7 @@ export async function savePreferencesAction(formData: FormData): Promise<{ error
   if (!session) redirect("/");
 
   const rawTheme = (formData.get("theme") as string) || null;
-  const validThemes = new Set(["default", "terminal", "typewriter", "blueprint", "warm-analog"]);
+  const validThemes = new Set(["default", "terminal", "warm-analog"]);
   const theme = rawTheme && validThemes.has(rawTheme) ? rawTheme as UserPreferencesData["theme"] : null;
 
   const data: UserPreferencesData = {

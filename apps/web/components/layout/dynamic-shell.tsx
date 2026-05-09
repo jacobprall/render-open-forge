@@ -5,8 +5,8 @@ import { AppShell } from "./app-shell";
 import type { BreadcrumbItem } from "./breadcrumbs";
 
 const labelOverrides: Record<string, string> = {
-  repos: "Repositories",
-  sessions: "Sessions",
+  repos: "Repos",
+  sessions: "Chat",
   settings: "Settings",
   connections: "Connections",
   models: "Models",

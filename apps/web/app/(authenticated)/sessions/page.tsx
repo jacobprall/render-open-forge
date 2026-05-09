@@ -7,7 +7,7 @@ import { eq, desc } from "drizzle-orm";
 import { getUserPreferences } from "@/lib/db/loaders";
 import { SessionsView } from "./sessions-view";
 
-export const metadata: Metadata = { title: "Sessions" };
+export const metadata: Metadata = { title: "Chat" };
 
 export default async function SessionsPage() {
   const session = await getSession();

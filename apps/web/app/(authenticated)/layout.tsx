@@ -5,7 +5,7 @@ import { DynamicShell } from "@/components/layout/dynamic-shell";
 import { ThemeProvider, type ThemePreset } from "@/components/providers/theme-provider";
 import { getUserPreferences } from "@/lib/db/loaders";
 
-const VALID_THEMES = new Set<ThemePreset>(["default", "terminal", "typewriter", "blueprint", "warm-analog"]);
+const VALID_THEMES = new Set<ThemePreset>(["default", "terminal", "warm-analog"]);
 
 function AuthenticatedAppSkeleton() {
   return (
