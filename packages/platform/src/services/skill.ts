@@ -9,7 +9,7 @@ import {
 import type { SkillSummary } from "@openforge/skills";
 import { ValidationError } from "@openforge/shared";
 import type { AuthContext } from "../interfaces/auth";
-import { getDefaultForgeProvider } from "../forge/factory";
+import { getForgeProviderForAuth } from "../forge/factory";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -57,7 +57,7 @@ export class SkillService {
     auth: AuthContext,
     repoPath?: string,
   ): Promise<ListSkillsResult> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
 
     await ensureUserSkillsRepo(forge, auth.username);
 
@@ -102,7 +102,7 @@ export class SkillService {
       parsed.name?.toLowerCase().replace(/\s+/g, "-") ||
       slugFromUrl(url);
 
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     await ensureUserSkillsRepo(forge, auth.username);
 
     const filePath = `${USER_SKILLS_DIR}/${slug}.md`;
@@ -139,7 +139,7 @@ export class SkillService {
   // -------------------------------------------------------------------------
 
   async syncSkills(auth: AuthContext): Promise<void> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     await ensureUserSkillsRepo(forge, auth.username);
   }
 
@@ -153,7 +153,7 @@ export class SkillService {
     repo: string,
   ): Promise<ListRepoSkillsResult> {
     const repoPath = `${owner}/${repo}`;
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     const skills = await listRepoSkillSummaries(forge, repoPath);
     return { repo: repoPath, skills };
   }

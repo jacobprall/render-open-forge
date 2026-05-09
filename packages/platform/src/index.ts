@@ -8,7 +8,7 @@ export type { EventBus } from "./interfaces/events";
 export { RedisEventBus } from "./interfaces/events";
 
 // Forge provider abstraction
-export { ForgejoProvider, createForgeProvider, getDefaultForgeProvider } from "./forge";
+export { ForgejoProvider, createForgeProvider, getDefaultForgeProvider, getForgeProviderForAuth } from "./forge";
 export type {
   ForgeProvider,
   ForgeProviderType,

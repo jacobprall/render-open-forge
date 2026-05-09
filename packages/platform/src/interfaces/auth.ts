@@ -1,3 +1,5 @@
+import type { ForgeProviderType } from "../forge/provider";
+
 /**
  * Auth context passed to service methods.
  * Framework-agnostic — the HTTP layer (Hono/Next) resolves the
@@ -7,5 +9,6 @@ export interface AuthContext {
   userId: string;
   username: string;
   forgeToken: string;
+  forgeType?: ForgeProviderType;
   isAdmin: boolean;
 }

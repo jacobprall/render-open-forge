@@ -1,264 +1,343 @@
-# v1 & v2: Implementation Plans
+# v1 & v2 Implementation Plans
 
-> v1: The agent can provision infrastructure. v2: The agent declares desired state and a reconciler converges.
+> v1: Agent can create infrastructure + sees live state. v2: Persistent state tracking with Spec, Resource, Action, and Observation tables.
 
 *Previous: [v0 Implementation](./v0-implementation.md)*
 
 ---
 
-## v1: The Agent Can Provision Infrastructure
+## v0 (complete)
 
-v0 proved the deploy loop works against existing services. v1 is the leap to **greenfield**: the agent can create services and databases from scratch, wire them together, and deploy.
+7 Render tools that operate on **existing** services:
 
-### What v1 Adds
+`render_list_services`, `render_deploy`, `render_get_deploy_status`, `render_get_logs`, `render_list_env_vars`, `render_set_env_vars`
 
-**6 new tools (11 total):**
-
-| Tool | Render API | Purpose |
-|---|---|---|
-| `render_create_service` | `POST /services` | Provision a new web service, worker, or cron job |
-| `render_create_postgres` | `POST /postgres` | Provision a new Postgres instance |
-| `render_create_redis` | `POST /redis` | Provision a new Redis instance |
-| `render_get_postgres_connection` | `GET /postgres/{id}/connection-info` | Get the connection string |
-| `render_list_postgres` | `GET /postgres` | List existing Postgres instances |
-| `render_get_service` | `GET /services/{id}` | Get detailed info for a specific service |
-
-### Cost Confirmation
-
-No CostLedger abstraction — just a static price map and the existing `ask_user_question` tool:
-
-```typescript
-const RENDER_MONTHLY_COST_CENTS: Record<string, Record<string, number>> = {
-  web_service: { free: 0, starter: 700, standard: 2500, pro: 8500 },
-  background_worker: { free: 0, starter: 700, standard: 2500, pro: 8500 },
-  postgres: { free: 0, starter: 700, basic_256mb: 700, basic_1gb: 2000, pro_4gb: 9700 },
-  redis: { starter: 700, standard: 2500, pro: 8500 },
-};
-```
-
-The system prompt instructs: "Before creating any Render resources, always estimate monthly cost and confirm with the user." Prompt-level guardrail, not code-level.
-
-### Codebase Changes
-
-**Extend `packages/render-client/`:**
-- `client.ts` — add createService, createPostgres, createRedis, getPostgresConnectionInfo, listPostgres, getService
-- `types.ts` — add CreateServiceParams, CreatePostgresParams, CreateRedisParams, ConnectionInfo, etc.
-- `cost.ts` — NEW: static price map + estimateMonthlyCost() helper
-
-**Extend `apps/agent/src/tools/render.ts`:**
-- 6 new tool definitions
-- `render_create_service` needs `ownerId` (from `RENDER_OWNER_ID` env var or `render_list_services`)
-
-**New env var: `RENDER_OWNER_ID`** — workspace ID for resource creation
-
-### The v1 Demo
-
-```
-User: "Build me a todo API with a Postgres database and deploy it"
-
-Agent:
-1. Estimates: Web Starter ($7/mo) + Postgres Basic-256MB ($7/mo) = $14/mo
-2. Asks: "This will cost ~$14/month. Proceed?"
-3. User confirms
-4. Creates Postgres → gets connection string
-5. Creates web service with DATABASE_URL set
-6. Writes code, pushes, deploys
-7. Returns: "Live at https://todo-api-xyz.onrender.com ($14/mo)"
-```
-
-### What v1 Does NOT Build
-
-- No Spec/Resource abstraction (agent manages imperatively)
-- No Connection model (agent wires DATABASE_URL manually)
-- No reconciler, event store, environments, checkpoints
+All defined in `apps/agent/src/tools/render.ts`. The Render API client lives in `packages/render-client/`.
 
 ---
 
-## v2: Declarative Infrastructure (Spec + Reconciler)
+## v1: Provision Infrastructure + Live State (complete)
 
-The shift from "do this now" to "this is what I need."
+v1 added the ability to **create** services and databases, plus ambient awareness of system health.
 
-### The Core Shift
+### What was built
 
-```mermaid
-flowchart TB
-    subgraph v1_flow [v1: Imperative]
-        agent1["Agent"] -->|"POST /postgres"| render1["Render API"]
-        agent1 -->|"POST /services"| render1
-        agent1 -->|"PUT /env-vars"| render1
-    end
+**`packages/render-client/`:**
+- `src/types.ts` — added `CreateServiceParams`, `CreatePostgresParams`, `CreateRedisParams`, `RenderPostgres`, `PostgresConnectionInfo`
+- `src/client.ts` — added `getService`, `createService`, `listPostgres`, `createPostgres`, `createRedis`, `getPostgresConnectionInfo`
+- `src/cost.ts` — NEW: static price map + `estimateMonthlyCostCents()` + `formatCost()` helper
+- `src/index.ts` — re-exports new types and cost helpers
 
-    subgraph v2_flow [v2: Declarative]
-        agent2["Agent"] -->|"spec.apply"| specStore["Spec Store"]
-        specStore --> reconciler["Reconciler"]
-        reconciler -->|"diff desired vs actual"| render2["Render API"]
-        reconciler -->|"log actions"| actionLog["Action Log"]
-    end
+**`apps/agent/src/tools/render.ts`:**
+- 6 new tools: `render_get_service`, `render_create_service`, `render_list_postgres`, `render_create_postgres`, `render_create_redis`, `render_get_postgres_connection`
+- Each create tool reads `RENDER_OWNER_ID` from env, includes cost estimate in response
+- `renderDeployTool` enriched with previous deploy info
+- `renderListServicesTool` enriched with plan + type per service
+
+**`apps/agent/src/agent.ts`:**
+- `buildLiveStateBlock(redis)` — cached 2-3 line system state summary injected into system prompt every turn
+- All 6 new tools wired into `buildSubagentToolSet` under the `RENDER_API_KEY` guard
+
+**`apps/agent/src/system-prompt.ts`:**
+- New tool descriptions added
+- Cost confirmation guidance added to `# Guidance` section
+
+**Config:**
+- `render.yaml` — `RENDER_OWNER_ID` (sync: false) added to openforge-agent
+- `.env` — `RENDER_OWNER_ID=` placeholder added
+
+### v1 Total: 13 Render tools
+
+| Tool | Purpose |
+|------|---------|
+| `render_list_services` | List all services with status, plan, type |
+| `render_get_service` | Get details for one service |
+| `render_deploy` | Trigger deploy (includes previous deploy info) |
+| `render_get_deploy_status` | Poll deploy status |
+| `render_get_logs` | Read service logs |
+| `render_list_env_vars` | List env vars on a service |
+| `render_set_env_vars` | Set env vars (replaces all) |
+| `render_create_service` | Create web service / worker / cron |
+| `render_list_postgres` | List Postgres databases |
+| `render_create_postgres` | Create Postgres database |
+| `render_create_redis` | Create Redis instance |
+| `render_get_postgres_connection` | Get Postgres connection string |
+
+### Deploy checklist
+
+- [ ] Commit and push v1 changes to GitHub
+- [ ] Set `RENDER_API_KEY` on openforge-agent in Render dashboard
+- [ ] Set `RENDER_OWNER_ID` on openforge-agent in Render dashboard
+- [ ] Redeploy openforge-agent
+
+---
+
+## v2: Persistent State Tracking (complete)
+
+v2 adds **persistence** so the agent (and the platform) can track what infrastructure exists, what the agent intended, and what happened. No reconciler — the agent still calls tools directly, but every action is logged and every resource is tracked.
+
+### What was built
+
+**`packages/db/schema.ts`:**
+- 4 new tables: `infra_specs`, `infra_resources`, `infra_actions`, `infra_observations`
+- Named with `infra_` prefix to avoid collision with existing `specs` table (code change specs)
+- Full type exports: `InfraSpec`, `InfraResource`, `InfraAction`, `InfraObservation` + `New*` variants
+
+**`apps/web/drizzle.config.ts`:**
+- Added 4 new tables to `tablesFilter`
+
+**`apps/web/lib/db/migrations/0002_tired_miek.sql`:**
+- Migration file generated by drizzle-kit
+
+**`apps/agent/src/tools/render.ts`:**
+- 5 tools now accept optional `db` parameter: `renderDeployTool`, `renderSetEnvVarsTool`, `renderCreateServiceTool`, `renderCreatePostgresTool`, `renderCreateRedisTool`
+- Create tools log to `infra_actions` and insert into `infra_resources` on success
+- Deploy and env-var tools log to `infra_actions`
+- New tool: `renderProjectStatusTool(db)` — queries specs, resources, and recent actions
+
+**`apps/agent/src/agent.ts`:**
+- `buildSubagentToolSet(db?)` — now accepts optional db, passes it to render tools
+- `buildToolSet` — passes `db` via closure to `buildSubagentToolSet` and `taskTool`
+- `fetchPendingObservations(db, projectId)` — queries unacknowledged observations
+- `formatObservationsBlock()` — formats observations as `# Recent Observations` block
+- `acknowledgeObservations(db, ids)` — marks observations as acknowledged after agent turn
+- Observation injection wired into `runTurn`: query before `generateText`, acknowledge after
+
+**`apps/agent/src/system-prompt.ts`:**
+- Added `render_project_status` tool description
+
+### v2 Total: 14 Render tools
+
+| Tool | Purpose |
+|------|---------|
+| `render_list_services` | List all services with status, plan, type |
+| `render_get_service` | Get details for one service |
+| `render_deploy` | Trigger deploy (+ action logging) |
+| `render_get_deploy_status` | Poll deploy status |
+| `render_get_logs` | Read service logs |
+| `render_list_env_vars` | List env vars on a service |
+| `render_set_env_vars` | Set env vars (+ action logging) |
+| `render_create_service` | Create web service / worker / cron (+ resource tracking + action logging) |
+| `render_list_postgres` | List Postgres databases |
+| `render_create_postgres` | Create Postgres database (+ resource tracking + action logging) |
+| `render_create_redis` | Create Redis instance (+ resource tracking + action logging) |
+| `render_get_postgres_connection` | Get Postgres connection string |
+| `render_project_status` | Full project infrastructure overview from DB |
+
+### What v2 adds over v1
+
+| v1 | v2 |
+|----|-----|
+| Agent creates resources imperatively | Agent still creates imperatively, but each action is logged |
+| No record of what was created | `resources` table tracks every Render resource the agent created |
+| No record of intent | `specs` table records what the agent intended to create |
+| Agent forgets between sessions | Platform can show "this project has 3 services and 1 database" |
+| No event awareness | `observations` table captures deploy events, health changes |
+
+### Task 1: Add Drizzle schema tables
+
+**File:** `packages/db/schema.ts`
+
+Add 4 new tables at the bottom of the file, following existing patterns (use `pgTable`, `text`, `jsonb`, `timestamp` from drizzle-orm):
+
+**`specs` table** — what the agent intended to create:
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | text, PK | `crypto.randomUUID()` |
+| `project_id` | text, not null | Links to a session or project |
+| `kind` | text, not null | `web_service`, `worker`, `postgres`, `redis` |
+| `name` | text, not null | Human-readable name |
+| `desired` | jsonb, not null | Full desired config (plan, region, env vars, etc.) |
+| `version` | integer, default 1 | Incremented on update |
+| `created_by` | text | User or agent ID |
+| `created_at` | timestamp, default now | |
+| `updated_at` | timestamp, default now | |
+
+Add unique index on `(project_id, kind, name)`.
+
+**`resources` table** — what actually exists on Render:
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | text, PK | `crypto.randomUUID()` |
+| `project_id` | text, not null | |
+| `spec_id` | text, nullable | FK to specs.id |
+| `kind` | text, not null | Same values as specs.kind |
+| `name` | text, not null | |
+| `external_id` | text, not null | Render service/database ID |
+| `external_url` | text, nullable | Public URL |
+| `status` | text, not null | `active`, `suspended`, `deleted` |
+| `actual` | jsonb, not null | Snapshot of Render API response |
+| `health_status` | text, default `unknown` | `healthy`, `unhealthy`, `unknown` |
+| `last_synced_at` | timestamp, default now | |
+| `created_at` | timestamp, default now | |
+
+**`actions` table** — append-only log of what happened:
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | text, PK | `crypto.randomUUID()` |
+| `project_id` | text, not null | |
+| `session_id` | text, nullable | Which agent session caused this |
+| `kind` | text, not null | `resource.created`, `resource.updated`, `deploy.triggered`, etc. |
+| `spec_id` | text, nullable | |
+| `resource_id` | text, nullable | |
+| `input` | jsonb, nullable | What was requested |
+| `output` | jsonb, nullable | What happened |
+| `status` | text, not null | `success`, `failed` |
+| `error` | text, nullable | Error message if failed |
+| `created_at` | timestamp, default now | |
+
+**`observations` table** — external events:
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | text, PK | `crypto.randomUUID()` |
+| `project_id` | text, not null | |
+| `session_id` | text, nullable | |
+| `kind` | text, not null | `deploy.completed`, `deploy.failed`, `health.degraded`, etc. |
+| `severity` | text, default `info` | `info`, `warning`, `critical` |
+| `summary` | text, not null | One-line human-readable description |
+| `detail` | jsonb, nullable | Structured payload |
+| `source` | text, not null | `render_webhook`, `health_poller`, `ci_runner` |
+| `acknowledged` | boolean, default false | Set true after agent processes it |
+| `created_at` | timestamp, default now | |
+
+Export all 4 tables from `packages/db/index.ts`.
+
+### Task 2: Run Drizzle migration
+
+After adding the schema, generate and run the migration:
+
+```bash
+cd packages/db && npx drizzle-kit generate
+cd packages/db && npx drizzle-kit migrate
 ```
 
-### New Abstractions
+### Task 3: Log actions from existing tools
 
-1. **Spec** — desired state for a resource (stored in Postgres)
-2. **Resource** — actual state mirror of what's on Render (stored in Postgres)
-3. **Action** — append-only log of everything the reconciler does
+**File:** `apps/agent/src/tools/render.ts`
 
-### Data Model
+Modify the `execute` function of each create/deploy/env-var tool to insert a row into the `actions` table after a successful API call. Use `getDb()` from `@openforge/db`.
 
-```sql
--- What SHOULD exist (desired state)
-CREATE TABLE specs (
-  id          TEXT PRIMARY KEY,
-  project_id  TEXT NOT NULL,
-  kind        TEXT NOT NULL,  -- 'web_service' | 'worker' | 'postgres' | 'redis'
-  name        TEXT NOT NULL,
-  desired     JSONB NOT NULL,
-  version     INTEGER NOT NULL DEFAULT 1,
-  created_by  TEXT,
-  created_at  TIMESTAMPTZ DEFAULT now(),
-  updated_at  TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(project_id, kind, name)
-);
-
--- What DOES exist (actual state, synced from Render)
-CREATE TABLE resources (
-  id              TEXT PRIMARY KEY,
-  project_id      TEXT NOT NULL,
-  spec_id         TEXT REFERENCES specs(id),
-  kind            TEXT NOT NULL,
-  name            TEXT NOT NULL,
-  external_id     TEXT NOT NULL,
-  external_url    TEXT,
-  internal_url    TEXT,
-  status          TEXT NOT NULL,
-  actual          JSONB NOT NULL,
-  health_status   TEXT DEFAULT 'unknown',
-  last_synced_at  TIMESTAMPTZ DEFAULT now(),
-  created_at      TIMESTAMPTZ DEFAULT now()
-);
-
--- What HAPPENED (append-only event log)
-CREATE TABLE actions (
-  id              TEXT PRIMARY KEY,
-  project_id      TEXT NOT NULL,
-  session_id      TEXT,
-  sequence_num    BIGSERIAL,
-  kind            TEXT NOT NULL,
-  spec_id         TEXT,
-  resource_id     TEXT,
-  input           JSONB,
-  output          JSONB,
-  status          TEXT NOT NULL,
-  error           TEXT,
-  caused_by       TEXT,
-  created_at      TIMESTAMPTZ DEFAULT now()
-);
+Example for `render_create_service`:
+```typescript
+await db.insert(actions).values({
+  id: crypto.randomUUID(),
+  projectId: projectId,
+  sessionId: sessionId,
+  kind: "resource.created",
+  input: { name, type, plan },
+  output: { serviceId: result.id, url: result.serviceDetails.url },
+  status: "success",
+});
 ```
 
-### The Reconciler
+The `projectId` and `sessionId` should come from `experimental_context` (the `ForgeAgentContext`). If not available, use `"unknown"`.
 
-Called explicitly when the agent applies specs (not a background loop — that's v4).
+### Task 4: Track resources from create tools
 
-```mermaid
-sequenceDiagram
-    participant Agent
-    participant SpecStore as Spec Store
-    participant Reconciler
-    participant RenderAPI as Render API
-    participant ResourceStore as Resource Store
-    participant ActionLog as Action Log
+When `render_create_service`, `render_create_postgres`, or `render_create_redis` succeeds, also insert a row into the `resources` table with the Render API response stored in `actual`.
 
-    Agent->>SpecStore: spec.apply(project, specs)
-    SpecStore-->>Reconciler: Desired specs
-    Reconciler->>ResourceStore: Load existing resources
-    Reconciler->>RenderAPI: GET /services, GET /postgres
-    Reconciler->>Reconciler: Diff desired vs actual
+### Task 5: Observation injection
 
-    alt New spec, no resource
-        Reconciler->>RenderAPI: POST /services or POST /postgres
-        Reconciler->>ResourceStore: Insert resource
-        Reconciler->>ActionLog: resource.created
-    end
+**File:** `apps/agent/src/agent.ts`
 
-    alt Spec changed
-        Reconciler->>RenderAPI: PATCH /services/{id}
-        Reconciler->>ResourceStore: Update resource
-        Reconciler->>ActionLog: resource.updated
-    end
+Before calling `generateText` in `runTurn`, query unacknowledged observations for the project:
 
-    alt Resource exists, no matching spec
-        Reconciler->>ActionLog: resource.orphaned (alert, don't delete)
-    end
-
-    Reconciler->>Agent: Reconciliation result
+```typescript
+const pendingObs = await db
+  .select()
+  .from(observations)
+  .where(
+    and(
+      eq(observations.projectId, projectId),
+      eq(observations.acknowledged, false),
+    )
+  )
+  .orderBy(observations.createdAt)
+  .limit(10);
 ```
 
-### New Tools
-
-| Tool | Replaces | What It Does |
-|---|---|---|
-| `render_apply_specs` | create_service, create_postgres, create_redis | Declare desired state, reconciler handles the rest |
-| `render_project_status` | list_services + manual inspection | Full view: specs, resources, health, drift |
-| `render_list_actions` | (new) | Query the action log |
-
-v1 imperative tools remain as escape hatches.
-
-### Codebase Structure
-
-**New package: `packages/forge-core/`**
+If any exist, append a `# Recent Observations` block to the system prompt:
 
 ```
-packages/forge-core/src/
-  models/
-    spec.ts            — Spec type + Zod schema
-    resource.ts        — Resource type
-    action.ts          — Action type
-    connection.ts      — Connection template type
-  reconciler/
-    index.ts           — reconcile(specs, resources) -> actions
-    diff.ts            — diffSpecs(desired, actual) -> changes
-    apply.ts           — applyChange(change, renderClient) -> result
-  cost/
-    estimate.ts        — estimateCost(specs) -> CostEstimate
-    pricing.ts         — static Render pricing data
+# Recent Observations
+- [critical] Deploy failed for openforge-agent: OOM killed (2min ago)
+- [info] Deploy succeeded for openforge-web (15min ago)
 ```
 
-### The v2 Demo
+After `generateText` returns, mark them acknowledged:
 
-```
-User: "Set up my app with a web service, Postgres, and Redis"
-
-Agent:
-1. Calls render_apply_specs with 3 specs + 2 connections
-2. Reconciler: nothing exists -> creates all three
-3. Wires DATABASE_URL and REDIS_URL automatically
-4. Logs 5 actions
-5. Reports: "Infrastructure created. Total: $21/mo"
-6. Deploys -> live
-
-User: (later) "Upgrade the database to pro"
-
-Agent:
-1. Calls render_apply_specs with updated postgres spec
-2. Reconciler: only postgres changed -> patches it
-3. Logs 1 action
-4. Reports: "Database upgraded. New total: $111/mo (+$90/mo)"
+```typescript
+await db
+  .update(observations)
+  .set({ acknowledged: true })
+  .where(inArray(observations.id, pendingObs.map(o => o.id)));
 ```
 
-### v1 vs v2 Comparison
+### Task 6: Add render_project_status tool
+
+**File:** `apps/agent/src/tools/render.ts`
+
+New tool that queries `specs`, `resources`, and `actions` tables and returns a structured overview:
+
+```typescript
+export function renderProjectStatusTool() {
+  return tool({
+    description: "Get a full overview of the project's infrastructure: specs, resources, health, and recent actions.",
+    inputSchema: z.object({
+      projectId: z.string().describe("The project ID"),
+    }),
+    execute: async ({ projectId }) => {
+      const db = getDb();
+      const specRows = await db.select().from(specs).where(eq(specs.projectId, projectId));
+      const resourceRows = await db.select().from(resources).where(eq(resources.projectId, projectId));
+      const recentActions = await db.select().from(actions)
+        .where(eq(actions.projectId, projectId))
+        .orderBy(desc(actions.createdAt))
+        .limit(10);
+      return { specs: specRows, resources: resourceRows, recentActions };
+    },
+  });
+}
+```
+
+### v2 Deliverable
+
+After v2:
+- Every resource the agent creates is tracked in the `resources` table
+- Every action is logged in the `actions` table with structured input/output
+- The platform can show a project status page: "3 services, 1 database, 12 actions"
+- External events (deploy failures, health changes) flow into `observations` and are automatically surfaced to the agent
+- The agent always knows what it (or previous sessions) have created
+
+---
+
+## v1 vs v2 Comparison
 
 | Dimension | v1 | v2 |
-|---|---|---|
-| **Mental model** | "Do this now" (imperative) | "This is what I need" (declarative) |
-| **State tracking** | Agent remembers in context | Spec + Resource tables in Postgres |
-| **Drift detection** | None | Reconciler compares spec vs actual |
-| **Wiring** | Agent manually sets env vars | Connections auto-resolve |
-| **History** | Session chat log | Structured action log |
-| **Idempotency** | Agent must check before creating | Reconciler handles it |
-| **New abstractions** | 0 (just more tools) | 3 (Spec, Resource, Action) |
-| **Effort** | ~200 lines (6 tools + cost map) | ~800 lines (models, reconciler, migration, tools) |
+|-----------|-----|-----|
+| **Create resources** | Yes (imperative tools) | Yes (same tools, now with logging) |
+| **State tracking** | None — agent relies on context window | Persistent in Postgres |
+| **History** | Chat log only | Structured action log |
+| **Cross-session memory** | None | Resources + specs persist |
+| **Live state** | Cached summary in system prompt | Summary + observation stream |
+| **New tables** | 0 | 4 (specs, resources, actions, observations) |
+| **New tools** | 6 | 1 (render_project_status) |
+| **Effort** | ~300 lines | ~500 lines + migration |
+
+---
+
+## What v2 Does NOT Build
+
+- **No reconciler** — the agent calls create/update tools directly. A reconciler that diffs specs vs resources and auto-converges is v3+.
+- **No auto-wiring** — the agent manually sets `DATABASE_URL` via `render_set_env_vars`. Connection templates are v3+.
+- **No background loops** — observations are written by webhooks/pollers but consumed only when the agent runs. Autonomous sessions triggered by observations are v3+.
 
 ---
 
 *Document created: May 8, 2026*
 *Previous: [v0 Implementation](./v0-implementation.md)*
-*Next: v3-v5 plans*
+*Next: [v3+ Live System State Patterns](./v3-live-system-state.md)*

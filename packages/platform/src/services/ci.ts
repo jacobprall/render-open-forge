@@ -1,8 +1,8 @@
 import { timingSafeEqual } from "crypto";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import YAML from "yaml";
-import { agentRuns, chatMessages, chats, ciEvents, sessions } from "@openforge/db";
+import { agentRuns, chatMessages, chats, ciEvents, sessions, syncConnections } from "@openforge/db";
 import { logger, ValidationError } from "@openforge/shared";
 import {
   ensureUserSkillsRepo,
@@ -18,8 +18,8 @@ import type { PlatformDb } from "../interfaces/database";
 import type { QueueAdapter } from "../interfaces/queue";
 import type { EventBus } from "../interfaces/events";
 import type { CIDispatcher, CIJobInput } from "../interfaces/ci-dispatcher";
-import { getDefaultForgeProvider } from "../forge/factory";
-import type { ForgeProvider } from "../forge/provider";
+import { getDefaultForgeProvider, getForgeProviderForAuth } from "../forge/factory";
+import type { ForgeProvider, ForgeProviderType } from "../forge/provider";
 
 // ---------------------------------------------------------------------------
 // CI Result Payload schema (Zod)
@@ -112,6 +112,23 @@ export class CIService {
     private ciDispatcher?: CIDispatcher,
   ) {}
 
+  /** Resolve a ForgeProvider for a session, respecting its forgeType. */
+  private async getForgeForSession(session: { forgeType: string | null; userId: string }): Promise<ForgeProvider> {
+    const forgeType = (session.forgeType ?? "forgejo") as ForgeProviderType;
+    if (forgeType === "forgejo") {
+      return getDefaultForgeProvider(process.env.FORGEJO_AGENT_TOKEN ?? "");
+    }
+    const [conn] = await this.db
+      .select({ accessToken: syncConnections.accessToken })
+      .from(syncConnections)
+      .where(and(eq(syncConnections.userId, session.userId), eq(syncConnections.provider, forgeType)))
+      .limit(1);
+    if (conn?.accessToken) {
+      return getForgeProviderForAuth({ forgeToken: conn.accessToken, forgeType });
+    }
+    return getDefaultForgeProvider(process.env.FORGEJO_AGENT_TOKEN ?? "");
+  }
+
   // -------------------------------------------------------------------------
   // handleResult — POST /api/ci/results
   // -------------------------------------------------------------------------
@@ -176,14 +193,14 @@ export class CIService {
 
     if (!session) return;
 
-    const [repoOwner, repoName] = session.forgejoRepoPath.split("/");
+    const [repoOwner, repoName] = session.repoPath.split("/");
     if (!repoOwner || !repoName) return;
 
     const commitSha =
       typeof existingPayload.commitSha === "string" ? existingPayload.commitSha : undefined;
 
     try {
-      const forge = getDefaultForgeProvider(process.env.FORGEJO_AGENT_TOKEN ?? "");
+      const forge = await this.getForgeForSession(session);
 
       let sha = commitSha;
       if (!sha) {
@@ -193,7 +210,7 @@ export class CIService {
       }
 
       if (sha) {
-        const logsUrl = buildLogsUrl(session.forgejoRepoPath, payload.ciEventId);
+        const logsUrl = buildLogsUrl(session.repoPath, payload.ciEventId);
         const state: "pending" | "success" | "failure" | "error" =
           payload.status === "success"
             ? "success"
@@ -431,7 +448,7 @@ export class CIService {
     const runId = crypto.randomUUID();
     const effectiveModelId = modelId ?? DEFAULT_MODEL_ID;
 
-    const forge = getDefaultForgeProvider(process.env.FORGEJO_AGENT_TOKEN ?? "");
+    const forge = await this.getForgeForSession(sessionRow);
     const resolvedSkills = await this.resolveSkillsForSession(
       sessionRow,
       forge,
@@ -493,7 +510,7 @@ export class CIService {
 
   private async resolveSkillsForSession(
     sessionRow: {
-      forgejoRepoPath: string;
+      repoPath: string;
       branch: string;
       activeSkills: Array<{ source: "builtin" | "user" | "repo"; slug: string }> | null | undefined;
     },
@@ -504,7 +521,7 @@ export class CIService {
       await ensureUserSkillsRepo(forge, forgeUsername);
     }
 
-    const [owner, repo] = sessionRow.forgejoRepoPath.split("/");
+    const [owner, repo] = sessionRow.repoPath.split("/");
     const repoSlugs =
       owner && repo
         ? await listMdSlugsInRepoPath(forge, owner, repo, REPO_SKILLS_PATH, sessionRow.branch)
@@ -514,7 +531,7 @@ export class CIService {
     const resolved = await resolveActiveSkills(forge, {
       activeSkills: active,
       forgeUsername,
-      projectRepoPath: sessionRow.forgejoRepoPath,
+      projectRepoPath: sessionRow.repoPath,
       ref: sessionRow.branch,
     });
 

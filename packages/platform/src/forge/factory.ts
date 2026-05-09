@@ -28,7 +28,7 @@ export function createForgeProvider(config: ForgeProviderConfig): ForgeProvider 
       return new ForgejoProvider(config.baseUrl, config.token, config.webhookSecret);
 
     case "github":
-      return new GitHubProvider(config.baseUrl, config.token);
+      return new GitHubProvider(config.baseUrl, config.token, config.webhookSecret);
 
     case "gitlab":
       return new GitLabProvider(config.baseUrl, config.token);
@@ -46,4 +46,29 @@ export function getDefaultForgeProvider(token: string): ForgeProvider {
   const baseUrl = process.env.FORGEJO_INTERNAL_URL ?? process.env.FORGEJO_URL ?? "http://localhost:3000";
   const webhookSecret = process.env.FORGEJO_WEBHOOK_SECRET;
   return createForgeProvider({ type: "forgejo", baseUrl, token, webhookSecret });
+}
+
+/**
+ * Build a ForgeProvider matching the user's auth context.
+ * Falls back to the internal Forgejo instance when forgeType is unset.
+ */
+export function getForgeProviderForAuth(auth: { forgeToken: string; forgeType?: ForgeProviderType }): ForgeProvider {
+  const forgeType = auth.forgeType ?? "forgejo";
+
+  if (forgeType === "github") {
+    return createForgeProvider({
+      type: "github",
+      baseUrl: "https://api.github.com",
+      token: auth.forgeToken,
+    });
+  }
+  if (forgeType === "gitlab") {
+    return createForgeProvider({
+      type: "gitlab",
+      baseUrl: "https://gitlab.com",
+      token: auth.forgeToken,
+    });
+  }
+
+  return getDefaultForgeProvider(auth.forgeToken);
 }

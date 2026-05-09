@@ -266,11 +266,18 @@ export class GitLabProvider implements ForgeProvider {
   }
 
   private buildWebhookOps(): WebhookOperations {
+    const secret = this.token;
     return {
-      verifySignature: () => false,
-      parseEvent: () => notImplemented("webhooks.parseEvent"),
       eventTypeHeader: "X-Gitlab-Event",
       signatureHeader: "X-Gitlab-Token",
+
+      verifySignature(_payload: string | Buffer, signature: string | null): boolean {
+        if (!secret) return true;
+        if (!signature) return false;
+        return signature === secret;
+      },
+
+      parseEvent: () => notImplemented("webhooks.parseEvent"),
     };
   }
 }

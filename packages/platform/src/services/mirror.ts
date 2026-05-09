@@ -11,7 +11,7 @@ import { getDefaultForgeProvider } from "../forge/factory";
 
 export interface CreateMirrorParams {
   syncConnectionId: string;
-  forgejoRepoPath: string;
+  localRepoPath: string;
   remoteRepoUrl: string;
   direction: "pull" | "push" | "bidirectional";
   /** If omitted, auto-resolved from the sync connection's access token. */
@@ -71,8 +71,8 @@ export class MirrorService {
     auth: AuthContext,
     params: CreateMirrorParams,
   ): Promise<typeof mirrors.$inferSelect> {
-    if (!params.syncConnectionId || !params.forgejoRepoPath || !params.remoteRepoUrl || !params.direction) {
-      throw new ValidationError("Missing required fields: syncConnectionId, forgejoRepoPath, remoteRepoUrl, direction");
+    if (!params.syncConnectionId || !params.localRepoPath || !params.remoteRepoUrl || !params.direction) {
+      throw new ValidationError("Missing required fields: syncConnectionId, localRepoPath, remoteRepoUrl, direction");
     }
 
     const validDirections = ["pull", "push", "bidirectional"] as const;
@@ -96,7 +96,7 @@ export class MirrorService {
       throw new ValidationError("Sync connection not found or not owned by user");
     }
 
-    const [owner, repo] = this.splitRepoPath(params.forgejoRepoPath);
+    const [owner, repo] = this.splitRepoPath(params.localRepoPath);
 
     const token = params.remoteToken ?? (conn.accessToken ?? null);
     if (!token) {
@@ -105,13 +105,13 @@ export class MirrorService {
 
     if (params.direction === "push" || params.direction === "bidirectional") {
       await this.configurePushMirror(owner, repo, params.remoteRepoUrl, token).catch((err) => {
-        logger.errorWithCause(err, "push mirror setup failed", { repo: params.forgejoRepoPath });
+        logger.errorWithCause(err, "push mirror setup failed", { repo: params.localRepoPath });
       });
     }
 
     if (params.direction === "pull" || params.direction === "bidirectional") {
       await this.configurePullMirror(owner, repo, params.remoteRepoUrl, token).catch((err) => {
-        logger.errorWithCause(err, "pull mirror setup failed", { repo: params.forgejoRepoPath });
+        logger.errorWithCause(err, "pull mirror setup failed", { repo: params.localRepoPath });
       });
     }
 
@@ -121,7 +121,7 @@ export class MirrorService {
         id: crypto.randomUUID(),
         sessionId: params.sessionId ?? null,
         syncConnectionId: params.syncConnectionId,
-        forgejoRepoPath: params.forgejoRepoPath,
+        localRepoPath: params.localRepoPath,
         remoteRepoUrl: params.remoteRepoUrl,
         direction: params.direction,
         status: "active",
@@ -139,7 +139,7 @@ export class MirrorService {
     const mirror = await this.getMirrorIfOwned(mirrorId, auth.userId);
     if (!mirror) throw new ValidationError("Mirror not found");
 
-    const [owner, repo] = this.splitRepoPath(mirror.forgejoRepoPath);
+    const [owner, repo] = this.splitRepoPath(mirror.localRepoPath);
     await this.forgejoApi(`/repos/${owner}/${repo}/mirror-sync`, { method: "POST" });
 
     await this.db
@@ -156,7 +156,7 @@ export class MirrorService {
     const mirror = await this.getMirrorIfOwned(mirrorId, auth.userId);
     if (!mirror) throw new ValidationError("Mirror not found");
 
-    const [owner, repo] = this.splitRepoPath(mirror.forgejoRepoPath);
+    const [owner, repo] = this.splitRepoPath(mirror.localRepoPath);
 
     if (mirror.direction === "push" || mirror.direction === "bidirectional") {
       await this.removePushMirrorsForUrl(owner, repo, mirror.remoteRepoUrl);
@@ -177,7 +177,7 @@ export class MirrorService {
     const mirror = await this.getMirrorIfOwned(mirrorId, auth.userId);
     if (!mirror) return { resolved: false, strategy, error: "Mirror not found" };
 
-    const [owner, repo] = this.splitRepoPath(mirror.forgejoRepoPath);
+    const [owner, repo] = this.splitRepoPath(mirror.localRepoPath);
 
     if (strategy === "manual") {
       await this.db
@@ -252,7 +252,7 @@ export class MirrorService {
 
   private splitRepoPath(repoPath: string): [string, string] {
     const [owner, repo] = repoPath.split("/");
-    if (!owner || !repo) throw new ValidationError(`Invalid forgejoRepoPath: ${repoPath}`);
+    if (!owner || !repo) throw new ValidationError(`Invalid repo path: ${repoPath}`);
     return [owner, repo];
   }
 

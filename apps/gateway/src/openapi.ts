@@ -1290,10 +1290,10 @@ const spec = {
             "application/json": {
               schema: {
                 type: "object" as const,
-                required: ["syncConnectionId", "forgejoRepoPath", "remoteRepoUrl", "direction"],
+                required: ["syncConnectionId", "localRepoPath", "remoteRepoUrl", "direction"],
                 properties: {
                   syncConnectionId: { type: "string" as const },
-                  forgejoRepoPath: { type: "string" as const },
+                  localRepoPath: { type: "string" as const },
                   remoteRepoUrl: { type: "string" as const },
                   direction: { type: "string" as const, enum: ["pull", "push", "bidirectional"] },
                   remoteToken: { type: "string" as const },

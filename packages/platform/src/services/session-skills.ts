@@ -16,7 +16,7 @@ import type { ForgeProvider } from "../forge/provider";
  */
 export async function resolveSkillsForSession(
   sessionRow: {
-    forgejoRepoPath: string;
+    repoPath: string;
     branch: string;
     activeSkills: Array<{ source: "builtin" | "user" | "repo"; slug: string }> | null | undefined;
   },
@@ -27,7 +27,7 @@ export async function resolveSkillsForSession(
     await ensureUserSkillsRepo(forge, forgeUsername);
   }
 
-  const [owner, repo] = sessionRow.forgejoRepoPath.split("/");
+  const [owner, repo] = sessionRow.repoPath.split("/");
   const repoSlugs =
     owner && repo
       ? await listMdSlugsInRepoPath(forge, owner, repo, REPO_SKILLS_PATH, sessionRow.branch)
@@ -37,7 +37,7 @@ export async function resolveSkillsForSession(
   const resolved = await resolveActiveSkills(forge, {
     activeSkills: active,
     forgeUsername,
-    projectRepoPath: sessionRow.forgejoRepoPath,
+    projectRepoPath: sessionRow.repoPath,
     ref: sessionRow.branch,
   });
 

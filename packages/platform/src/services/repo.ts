@@ -9,7 +9,7 @@ import {
 } from "@openforge/shared";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
-import { getDefaultForgeProvider } from "../forge/factory";
+import { getForgeProviderForAuth } from "../forge/factory";
 import type {
   ForgeRepo,
   ForgeFileContent,
@@ -78,7 +78,7 @@ export class RepoService {
     auth: AuthContext,
     params: ImportRepoParams,
   ): Promise<ImportRepoResult> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     const repoOwner = params.repoOwner ?? auth.username;
 
     // Resolve auth token: use explicit value or look up from sync connection
@@ -161,7 +161,7 @@ export class RepoService {
       }
 
       if (connectionId) {
-        const forgejoRepoPath = repo.fullName;
+        const localRepoPath = repo.fullName;
         const remoteRepoUrl = params.cloneAddr;
         const db = this.db;
         const effectiveConnectionId = connectionId;
@@ -171,14 +171,14 @@ export class RepoService {
             await db.insert(mirrors).values({
               id: crypto.randomUUID(),
               syncConnectionId: effectiveConnectionId,
-              forgejoRepoPath,
+              localRepoPath,
               remoteRepoUrl,
               direction: "pull",
               status: "active",
             });
           } catch (err) {
             logger.errorWithCause(err, "createMirror record failed after import", {
-              repo: forgejoRepoPath,
+              repo: localRepoPath,
             });
           }
         });
@@ -199,7 +199,7 @@ export class RepoService {
     path: string,
     ref?: string,
   ): Promise<ForgeFileContent | ForgeFileContent[]> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.files.getContents(owner, repo, path, ref);
   }
 
@@ -220,7 +220,7 @@ export class RepoService {
     if (!params.message) {
       throw new ValidationError("message is required");
     }
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.files.putFile(owner, repo, path, params);
   }
 
@@ -233,7 +233,7 @@ export class RepoService {
     owner: string,
     repo: string,
   ): Promise<AgentConfigResult> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     for (const configPath of AGENT_CONFIG_PATHS) {
       try {
         const file = await forge.files.getContents(owner, repo, configPath);
@@ -264,7 +264,7 @@ export class RepoService {
 
     const filePath = params.path ?? ".forge/agents.json";
     const commitMessage = params.message ?? "Update agent configuration";
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
 
     let sha = params.sha;
     if (!sha) {
@@ -303,7 +303,7 @@ export class RepoService {
     owner: string,
     repo: string,
   ): Promise<BranchProtectionRule[]> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.branches.listProtectionRules(owner, repo);
   }
 
@@ -317,7 +317,7 @@ export class RepoService {
     repo: string,
     rule: Partial<BranchProtectionRule> & { pattern: string },
   ): Promise<BranchProtectionRule> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.branches.setProtectionRule(owner, repo, rule);
   }
 
@@ -331,7 +331,7 @@ export class RepoService {
     repo: string,
     branch: string,
   ): Promise<BranchProtectionRule> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     const protection = await forge.branches.getProtectionRule(owner, repo, branch);
     if (!protection) {
       throw new ValidationError(`Branch protection rule not found: ${branch}`);
@@ -349,7 +349,7 @@ export class RepoService {
     repo: string,
     branch: string,
   ): Promise<void> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     await forge.branches.deleteProtectionRule(owner, repo, branch);
   }
 
@@ -362,7 +362,7 @@ export class RepoService {
     owner: string,
     repo: string,
   ): Promise<Array<{ name: string }>> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     const names = await forge.secrets.list(owner, repo);
     return names.map((name) => ({ name }));
   }
@@ -381,7 +381,7 @@ export class RepoService {
     if (!value || value.length === 0) {
       throw new ValidationError("Secret value is required");
     }
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     await forge.secrets.set(owner, repo, name, value);
   }
 
@@ -395,7 +395,7 @@ export class RepoService {
     repo: string,
     name: string,
   ): Promise<void> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     await forge.secrets.delete(owner, repo, name);
   }
 
@@ -451,7 +451,7 @@ export class RepoService {
     repo: string,
     runId: string,
   ): Promise<ForgeArtifact[]> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.ci.listArtifacts(owner, repo, runId);
   }
 
@@ -465,7 +465,7 @@ export class RepoService {
     repo: string,
     artifactId: string,
   ): Promise<ArrayBuffer> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.ci.downloadArtifact(owner, repo, artifactId);
   }
 
@@ -479,7 +479,7 @@ export class RepoService {
     repo: string,
     jobId: string,
   ): Promise<string> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.ci.getJobLogs(owner, repo, jobId);
   }
 

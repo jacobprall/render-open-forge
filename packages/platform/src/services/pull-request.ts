@@ -1,6 +1,6 @@
 import { ValidationError } from "@openforge/shared";
 import type { AuthContext } from "../interfaces/auth";
-import { getDefaultForgeProvider } from "../forge/factory";
+import { getForgeProviderForAuth } from "../forge/factory";
 import type {
   ForgePullRequest,
   ForgeComment,
@@ -66,7 +66,7 @@ export class PullRequestService {
     if (Object.keys(patch).length === 0) {
       throw new ValidationError("No valid patch fields (state | title)");
     }
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.pulls.update(owner, repo, number, patch);
   }
 
@@ -82,7 +82,7 @@ export class PullRequestService {
     number: number,
     method?: MergeMethod,
   ): Promise<void> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     await forge.pulls.merge(owner, repo, number, method ?? "merge");
   }
 
@@ -96,7 +96,7 @@ export class PullRequestService {
     repo: string,
     number: number,
   ): Promise<ForgeComment[]> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.reviews.listComments(owner, repo, number);
   }
 
@@ -115,7 +115,7 @@ export class PullRequestService {
     if (!text) {
       throw new ValidationError("Comment body is required");
     }
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     if (params.path) {
       return forge.reviews.createInlineComment(owner, repo, number, {
         body: text,
@@ -137,7 +137,7 @@ export class PullRequestService {
     repo: string,
     number: number,
   ): Promise<ForgeReview[]> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.reviews.listReviews(owner, repo, number);
   }
 
@@ -152,7 +152,7 @@ export class PullRequestService {
     number: number,
     params: SubmitReviewParams,
   ): Promise<ForgeReview> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.reviews.submitReview(
       owner,
       repo,
@@ -174,7 +174,7 @@ export class PullRequestService {
     commentId: number,
     unresolve?: boolean,
   ): Promise<{ resolved: boolean }> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     if (unresolve) {
       await forge.reviews.unresolveComment(owner, repo, commentId);
     } else {
@@ -199,7 +199,7 @@ export class PullRequestService {
     if (!params.head?.trim() || !params.base?.trim()) {
       throw new ValidationError("head and base branches are required");
     }
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     const pr = await forge.pulls.create({
       owner,
       repo,

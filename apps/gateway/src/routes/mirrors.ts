@@ -23,7 +23,7 @@ mirrorRoutes.get("/", async (c) => {
 
 const CreateMirrorSchema = z.object({
   syncConnectionId: z.string(),
-  forgejoRepoPath: z.string(),
+  localRepoPath: z.string(),
   remoteRepoUrl: z.string(),
   direction: z.enum(["pull", "push", "bidirectional"]),
   remoteToken: z.string().optional(),

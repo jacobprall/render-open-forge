@@ -57,14 +57,15 @@ Agent: writes Express app, pushes, deploys, polls, returns live URL
 
 ## Progression
 
-- v0: 5 tools, deploy to existing service
-- v1: + create_service, create_database (needs cost confirmation)
-- v2: + Spec + Reconciler (declarative infra)
-- v3: + Environment forking + Checkpoints
-- v4: + Observations + autonomous sessions
-- v5: + CostLedger + full Policy engine
+- **v0:** 7 Render tools, deploy/monitor existing services *(current)*
+- **v1:** + 6 provisioning tools (create service/postgres/redis), cost estimation, live state summary in system prompt, tool result enrichment
+- **v2:** + 4 Postgres tables (specs, resources, actions, observations), action logging, resource tracking, observation injection into agent context
+- **v3:** + Reconciler (diff specs vs resources, auto-converge), connection auto-wiring, state diffing between turns
+- **v4:** + Autonomous sessions triggered by observations, background reconciliation loop, template variables
+- **v5:** + CostLedger, full Policy engine, environment forking, checkpoints
 
 ---
 
 *Document created: May 8, 2026*
 *Previous: [Extended Data Models](./extended-data-models.md)*
+*Next: [v1 & v2 Plans](./v1-v2-plans.md) | [v3+ Live System State](./v3-live-system-state.md)*

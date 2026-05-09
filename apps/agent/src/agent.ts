@@ -13,7 +13,7 @@ import {
 } from "@openforge/sandbox";
 import type { ForgeAgentContext, UpstreamMirrorInfo } from "./context/agent-context";
 import { jobMessagesToModelMessages, sanitizeMessages } from "./messages";
-import { buildAgentSystemPrompt } from "./system-prompt";
+import { buildAgentSystemPrompt, FORGE_LABELS } from "./system-prompt";
 import {
   bashTool,
   readFileTool,
@@ -45,10 +45,18 @@ import {
   renderGetLogsTool,
   renderListEnvVarsTool,
   renderSetEnvVarsTool,
+  renderGetServiceTool,
+  renderCreateServiceTool,
+  renderListPostgresTool,
+  renderCreatePostgresTool,
+  renderCreateRedisTool,
+  renderGetPostgresConnectionTool,
+  renderProjectStatusTool,
 } from "./tools";
 import { getModel, getModelDef } from "./models";
 import type { AgentJob, StreamEvent } from "./types";
 import { isDeliverComplete, transitionToComplete } from "./lib/deliver";
+import { RenderClient } from "@openforge/render-client";
 import { rewriteForSandbox } from "./sandbox-url";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -89,6 +97,42 @@ function getForgeProvider(): ForgeProvider {
   return getDefaultForgeProvider(token);
 }
 
+/**
+ * Build a ForgeProvider appropriate for the session's forge type.
+ * For Forgejo sessions, uses the internal agent token.
+ * For GitHub/GitLab sessions, resolves the token from sync connections.
+ */
+async function getForgeProviderForSession(
+  db: PlatformDb,
+  session: { forgeType: string | null; userId: string },
+): Promise<ForgeProvider> {
+  const forgeType = (session.forgeType ?? "forgejo") as ForgeProviderType;
+
+  if (forgeType === "forgejo") {
+    return getForgeProvider();
+  }
+
+  const [conn] = await db
+    .select({ accessToken: syncConnections.accessToken })
+    .from(syncConnections)
+    .where(and(eq(syncConnections.userId, session.userId), eq(syncConnections.provider, forgeType)))
+    .limit(1);
+
+  const envFallback = forgeType === "github"
+    ? process.env.GITHUB_TOKEN
+    : process.env.GITLAB_TOKEN;
+  const token = conn?.accessToken ?? envFallback;
+  if (!token) {
+    throw new Error(`No ${forgeType} token found for user ${session.userId} — check sync connections or env`);
+  }
+
+  const baseUrl = forgeType === "github"
+    ? "https://api.github.com"
+    : "https://gitlab.com";
+
+  return createForgeProvider({ type: forgeType, baseUrl, token });
+}
+
 /** Fire-and-forget: tell Forgejo to pull from upstream so the mirror reflects new branches. */
 function triggerMirrorSync(forge: ForgeProvider, owner: string, repo: string): void {
   forge.mirrors.sync(owner, repo).catch((err) => {
@@ -118,15 +162,16 @@ function providerBaseUrl(provider: string): string {
   switch (provider) {
     case "github": return "https://api.github.com";
     case "gitlab": return "https://gitlab.com";
-    default: return "https://api.github.com";
+    default:
+      throw new Error(`Unknown upstream provider: ${provider}`);
   }
 }
 
 async function resolveUpstreamMirror(
   db: PlatformDb,
-  forgejoRepoPath: string,
+  repoPath: string,
 ): Promise<UpstreamMirrorInfo | undefined> {
-  if (!forgejoRepoPath) return undefined;
+  if (!repoPath) return undefined;
 
   const [mirrorRow] = await db
     .select({
@@ -135,7 +180,7 @@ async function resolveUpstreamMirror(
       syncConnectionId: mirrors.syncConnectionId,
     })
     .from(mirrors)
-    .where(eq(mirrors.forgejoRepoPath, forgejoRepoPath))
+    .where(eq(mirrors.localRepoPath, repoPath))
     .limit(1);
 
   if (!mirrorRow) return undefined;
@@ -242,7 +287,7 @@ function mergeToolResults(parts: AssistantPart[]): AssistantPart[] {
 
 // ─── Tool registry ───────────────────────────────────────────────────────────
 
-function buildSubagentToolSet(): ToolSet {
+function buildSubagentToolSet(db?: PlatformDb): ToolSet {
   return {
     bash: bashTool(),
     read_file: readFileTool(),
@@ -256,11 +301,18 @@ function buildSubagentToolSet(): ToolSet {
     ...(process.env.RENDER_API_KEY
       ? {
           render_list_services: renderListServicesTool(),
-          render_deploy: renderDeployTool(),
+          render_deploy: renderDeployTool(db),
           render_get_deploy_status: renderGetDeployStatusTool(),
           render_get_logs: renderGetLogsTool(),
           render_list_env_vars: renderListEnvVarsTool(),
-          render_set_env_vars: renderSetEnvVarsTool(),
+          render_set_env_vars: renderSetEnvVarsTool(db),
+          render_get_service: renderGetServiceTool(),
+          render_create_service: renderCreateServiceTool(db),
+          render_list_postgres: renderListPostgresTool(),
+          render_create_postgres: renderCreatePostgresTool(db),
+          render_create_redis: renderCreateRedisTool(db),
+          render_get_postgres_connection: renderGetPostgresConnectionTool(),
+          render_project_status: renderProjectStatusTool(db),
         }
       : {}),
   };
@@ -275,13 +327,14 @@ function buildToolSet(
   skillsPromptSuffix: string,
 ): ToolSet {
   const reqId = job.requestId;
+  const makeSubTools = () => buildSubagentToolSet(db);
   return {
-    ...buildSubagentToolSet(),
+    ...makeSubTools(),
     task: taskTool(
       async (event) => {
         await publishEvent(events, job.runId, event as unknown as StreamEvent, reqId);
       },
-      buildSubagentToolSet,
+      makeSubTools,
       model,
       skillsPromptSuffix,
     ),
@@ -357,28 +410,29 @@ function buildProviderOptions(job: AgentJob, llmKeys: ResolvedLlmKeys) {
       };
 }
 
-function buildSystemPromptForJob(job: AgentJob): string {
+function buildSystemPromptForJob(job: AgentJob, forgeType?: string): string {
   const appended = [job.fixContext].filter(Boolean).join("\n\n");
   const base = buildAgentSystemPrompt({
     skills: job.resolvedSkills,
     projectContext: job.projectContext,
     projectConfig: job.projectConfig,
+    forgeLabel: FORGE_LABELS[forgeType ?? "forgejo"],
   });
   return appended ? `${base}\n\n${appended}` : base;
 }
 
 function buildWorkspaceContext(
-  sessionRow: { forgejoRepoPath: string; branch: string; baseBranch: string } | undefined,
+  sessionRow: { repoPath: string; branch: string; baseBranch: string } | undefined,
   ctx: ForgeAgentContext,
 ): string | null {
-  if (!sessionRow?.forgejoRepoPath) return null;
+  if (!sessionRow?.repoPath) return null;
 
   const workdir = `/workspace/${ctx.sessionId}`;
 
   const lines = [
     "# Workspace",
     "",
-    `- **Repository:** ${sessionRow.forgejoRepoPath}`,
+    `- **Repository:** ${sessionRow.repoPath}`,
     `- **Branch:** ${sessionRow.branch || "main"}`,
     `- **Base branch:** ${sessionRow.baseBranch || "main"}`,
     `- **Working directory:** \`${workdir}\` — the repo is cloned here. All bash and git commands execute in this directory automatically. Do NOT \`cd\` elsewhere; \`cd\` does not persist between commands.`,
@@ -397,27 +451,68 @@ function buildWorkspaceContext(
   return lines.join("\n");
 }
 
+async function buildLiveStateBlock(redis: Redis): Promise<string | null> {
+  const apiKey = process.env.RENDER_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const cached = await redis.get("state:summary:global");
+    if (cached) return cached;
+
+    const client = new RenderClient({ apiKey });
+    const services = await client.listServices();
+    const suspended = services.filter((s) => s.suspended === "suspended");
+
+    const lines = ["# System State"];
+    if (suspended.length === 0) {
+      lines.push(`All ${services.length} services healthy.`);
+    } else {
+      lines.push(`WARNING: ${suspended.map((s) => s.name).join(", ")} suspended.`);
+    }
+    lines.push(`Use render_* tools for details.`);
+
+    const summary = lines.join("\n");
+    await redis.setex("state:summary:global", 300, summary);
+    return summary;
+  } catch {
+    return null;
+  }
+}
+
 async function buildForgeContext(params: {
   job: AgentJob;
   db: PlatformDb;
   events: EventBus;
   adapter: SandboxAdapter;
   assistantParts: AssistantPart[];
-}): Promise<{ forgeContext: ForgeAgentContext; sessionRow: { forgejoRepoPath: string; branch: string; baseBranch: string; title: string } | undefined }> {
+}): Promise<{ forgeContext: ForgeAgentContext; sessionRow: { repoPath: string; branch: string; baseBranch: string; title: string; forgeType: string | null } | undefined }> {
   const { job, db, events, adapter, assistantParts } = params;
   const reqId = job.requestId;
 
   const [sessionRow] = await db
-    .select({ forgejoRepoPath: sessions.forgejoRepoPath, branch: sessions.branch, baseBranch: sessions.baseBranch, title: sessions.title })
+    .select({
+      repoPath: sessions.repoPath,
+      branch: sessions.branch,
+      baseBranch: sessions.baseBranch,
+      title: sessions.title,
+      forgeType: sessions.forgeType,
+      userId: sessions.userId,
+    })
     .from(sessions)
     .where(eq(sessions.id, job.sessionId))
     .limit(1);
 
-  const forge = getForgeProvider();
-  const repoPath = sessionRow?.forgejoRepoPath ?? "";
+  const forgeType = sessionRow?.forgeType ?? "forgejo";
+  const forge = forgeType === "forgejo"
+    ? getForgeProvider()
+    : await getForgeProviderForSession(db, { forgeType, userId: sessionRow?.userId ?? job.userId });
+  const repoPath = sessionRow?.repoPath ?? "";
   const [repoOwner, repoName] = repoPath.split("/");
 
-  const upstream = await resolveUpstreamMirror(db, repoPath);
+  // For non-Forgejo sessions, the session's forge IS the upstream -- no mirror needed
+  const upstream = forgeType === "forgejo"
+    ? await resolveUpstreamMirror(db, repoPath)
+    : undefined;
   if (upstream) {
     console.log(`[agent] upstream mirror detected: ${upstream.provider} ${upstream.remoteOwner}/${upstream.remoteRepo}`);
   }
@@ -447,7 +542,7 @@ async function buildForgeContext(params: {
         id: crypto.randomUUID(),
         userId: job.userId,
         sessionId: job.sessionId,
-        repoPath: sessionRow?.forgejoRepoPath ?? "",
+        repoPath: sessionRow?.repoPath ?? "",
         prNumber,
         action: "opened",
         title: sessionRow?.title ?? "PR",
@@ -491,12 +586,18 @@ async function runTurn(params: {
 
   const { forgeContext, sessionRow } = await buildForgeContext({ job, db, events, adapter, assistantParts });
 
-  const basePrompt = buildSystemPromptForJob(job);
+  const sessionForgeType = sessionRow?.forgeType ?? "forgejo";
+  const basePrompt = buildSystemPromptForJob(job, sessionForgeType);
   const workspaceBlock = buildWorkspaceContext(sessionRow, forgeContext);
-  const systemPrompt = workspaceBlock ? `${basePrompt}\n\n${workspaceBlock}` : basePrompt;
+  let systemPrompt = workspaceBlock ? `${basePrompt}\n\n${workspaceBlock}` : basePrompt;
+
+  const liveState = await buildLiveStateBlock(redis);
+  if (liveState) {
+    systemPrompt = `${systemPrompt}\n\n${liveState}`;
+  }
 
   const skillsSuffix = job.resolvedSkills.length > 0
-    ? `## Important notes\n- All git operations target the internal Forgejo instance. Authentication is automatic.\n- When creating a PR, push your branch first with the git tool, then use create_pull_request.\n- The repository is already cloned in your workspace. Use glob/grep to explore it.`
+    ? `## Important notes\n- All git operations target the forge. Authentication is automatic.\n- When creating a PR, push your branch first with the git tool, then use create_pull_request.\n- The repository is already cloned in your workspace. Use glob/grep to explore it.`
     : "";
 
   const tools = buildToolSet(events, redis, db, job, model, skillsSuffix);
@@ -565,23 +666,29 @@ async function runTurn(params: {
 
 async function ensureRepoCloned(db: PlatformDb, job: AgentJob, adapter: SandboxAdapter): Promise<void> {
   const [session] = await db.select().from(sessions).where(eq(sessions.id, job.sessionId)).limit(1);
-  if (!session?.forgejoRepoPath) return;
+  if (!session?.repoPath) return;
 
   const globResult = await adapter.glob(job.sessionId, "*").catch(() => ({ files: [] as string[] }));
   if (globResult.files.length > 0) return;
 
-  const forge = getForgeProvider();
-  const [owner, repo] = session.forgejoRepoPath.split("/");
+  const forge = await getForgeProviderForSession(db, session);
+  const [owner, repo] = session.repoPath.split("/");
   if (!owner || !repo) return;
 
-  const authenticatedUrl = rewriteForSandbox(forge.git.authenticatedCloneUrl(owner, repo));
-  const plainUrl = rewriteForSandbox(forge.git.plainCloneUrl(owner, repo));
+  const forgeType = session.forgeType ?? "forgejo";
+  const isForgejo = forgeType === "forgejo";
+
+  // Only rewrite URLs for Forgejo (internal network); GitHub/GitLab are public
+  const rawAuthUrl = forge.git.authenticatedCloneUrl(owner, repo);
+  const rawPlainUrl = forge.git.plainCloneUrl(owner, repo);
+  const authenticatedUrl = isForgejo ? rewriteForSandbox(rawAuthUrl) : rawAuthUrl;
+  const plainUrl = isForgejo ? rewriteForSandbox(rawPlainUrl) : rawPlainUrl;
 
   const cloneArgs = ["clone", "--depth", "50"];
   if (session.branch) cloneArgs.push("--branch", session.branch);
   cloneArgs.push(authenticatedUrl, ".");
 
-  console.log(`[clone] cloning ${session.forgejoRepoPath} for session ${job.sessionId}`);
+  console.log(`[clone] cloning ${session.repoPath} for session ${job.sessionId}`);
   const result = await adapter.git(job.sessionId, cloneArgs);
   if (result.exitCode !== 0) {
     const branchNotFound = result.stderr?.includes("not found in upstream") ||

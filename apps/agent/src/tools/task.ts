@@ -42,6 +42,7 @@ export function taskTool(
           repoName: parentCtx.repoName,
           branch: parentCtx.branch,
           baseBranch: parentCtx.baseBranch,
+          ...(parentCtx.upstream ? { upstream: parentCtx.upstream } : {}),
           ...(parentCtx.onFileChanged ? { onFileChanged: parentCtx.onFileChanged } : {}),
           ...(parentCtx.onPrCreated ? { onPrCreated: parentCtx.onPrCreated } : {}),
         };

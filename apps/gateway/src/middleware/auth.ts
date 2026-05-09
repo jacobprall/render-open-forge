@@ -84,20 +84,14 @@ async function resolveAdminAuth(): Promise<AuthContext | null> {
 
   if (!admin) return null;
 
-  const [account] = await db
-    .select({ accessToken: accounts.access_token })
-    .from(accounts)
-    .where(
-      and(eq(accounts.userId, admin.id), eq(accounts.provider, "forgejo")),
-    )
-    .limit(1);
-
-  if (!account?.accessToken) return null;
+  const forgeInfo = await resolveForgeTokenInfo(db, admin.id);
+  if (!forgeInfo) return null;
 
   return {
     userId: admin.id,
     username: admin.forgejoUsername ?? "admin",
-    forgeToken: account.accessToken,
+    forgeToken: forgeInfo.token,
+    forgeType: forgeInfo.forgeType,
     isAdmin: true,
   };
 }
@@ -132,15 +126,8 @@ async function resolveApiKeyAuth(
 
   if (!user) return null;
 
-  const [account] = await db
-    .select({ accessToken: accounts.access_token })
-    .from(accounts)
-    .where(
-      and(eq(accounts.userId, user.id), eq(accounts.provider, "forgejo")),
-    )
-    .limit(1);
-
-  if (!account?.accessToken) return null;
+  const forgeInfo = await resolveForgeTokenInfo(db, user.id);
+  if (!forgeInfo) return null;
 
   // Update last_used_at in background
   db.update(apiKeys)
@@ -151,7 +138,33 @@ async function resolveApiKeyAuth(
   return {
     userId: user.id,
     username: user.forgejoUsername ?? "unknown",
-    forgeToken: account.accessToken,
+    forgeToken: forgeInfo.token,
+    forgeType: forgeInfo.forgeType,
     isAdmin: user.isAdmin ?? false,
   };
+}
+
+type ForgeTokenInfo = {
+  token: string;
+  forgeType: "forgejo" | "github" | "gitlab";
+};
+
+/**
+ * Look up a forge access token for a user, trying forgejo first, then github/gitlab.
+ * Returns both the token and which provider it came from.
+ */
+async function resolveForgeTokenInfo(
+  db: ReturnType<typeof getPlatform>["db"],
+  userId: string,
+): Promise<ForgeTokenInfo | null> {
+  const providerOrder = ["forgejo", "github", "gitlab"] as const;
+  for (const provider of providerOrder) {
+    const [row] = await db
+      .select({ accessToken: accounts.access_token })
+      .from(accounts)
+      .where(and(eq(accounts.userId, userId), eq(accounts.provider, provider)))
+      .limit(1);
+    if (row?.accessToken) return { token: row.accessToken, forgeType: provider };
+  }
+  return null;
 }

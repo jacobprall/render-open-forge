@@ -259,7 +259,7 @@ export class WebhookService {
         sessionWantsAutoMerge(s.projectConfig) &&
         process.env.FORGEJO_AGENT_TOKEN
       ) {
-        const parts = parseForgejoRepoPath(s.forgejoRepoPath);
+        const parts = parseRepoPath(s.repoPath);
         if (parts) {
           try {
             await forge.pulls.merge(parts.owner, parts.repo, s.prNumber, "merge");
@@ -358,13 +358,13 @@ export class WebhookService {
         const headSha =
           headRef && typeof headRef.sha === "string" ? headRef.sha : "";
         if (headSha) {
-          const parts = parseForgejoRepoPath(repo);
-          if (parts) {
+          const prParts = parseRepoPath(repo);
+          if (prParts) {
             this.ciService
               .dispatchForEvent({
                 forge,
-                repoOwner: parts.owner,
-                repoName: parts.repo,
+                repoOwner: prParts.owner,
+                repoName: prParts.repo,
                 branch,
                 commitSha: headSha,
                 event: "pull_request",
@@ -463,15 +463,15 @@ export class WebhookService {
       })
       .where(eq(sessions.id, s.id));
 
-    const parts = parseForgejoRepoPath(repo);
-    if (parts) {
+    const pushParts = parseRepoPath(repo);
+    if (pushParts) {
       const after = typeof p.after === "string" ? p.after : "";
       if (after && after !== "0000000000000000000000000000000000000000") {
         this.ciService
           .dispatchForEvent({
             forge,
-            repoOwner: parts.owner,
-            repoName: parts.repo,
+            repoOwner: pushParts.owner,
+            repoName: pushParts.repo,
             branch,
             commitSha: after,
             event: "push",
@@ -557,7 +557,7 @@ export class WebhookService {
     const rows = await this.db
       .select()
       .from(sessions)
-      .where(eq(sessions.forgejoRepoPath, repo))
+      .where(eq(sessions.repoPath, repo))
       .orderBy(desc(sessions.updatedAt))
       .limit(10);
 
@@ -813,7 +813,7 @@ export class WebhookService {
     return this.db
       .select()
       .from(sessions)
-      .where(and(eq(sessions.forgejoRepoPath, repoPath), eq(sessions.branch, branch)))
+      .where(and(eq(sessions.repoPath, repoPath), eq(sessions.branch, branch)))
       .orderBy(desc(sessions.updatedAt));
   }
 
@@ -821,7 +821,7 @@ export class WebhookService {
     return this.db
       .select()
       .from(sessions)
-      .where(and(eq(sessions.forgejoRepoPath, repoPath), eq(sessions.prNumber, prNumber)))
+      .where(and(eq(sessions.repoPath, repoPath), eq(sessions.prNumber, prNumber)))
       .orderBy(desc(sessions.updatedAt));
   }
 }
@@ -847,7 +847,7 @@ function branchFromPushRef(ref: unknown): string | undefined {
   return ref.replace(/^refs\/heads\//, "");
 }
 
-function parseForgejoRepoPath(fullPath: string): { owner: string; repo: string } | null {
+function parseRepoPath(fullPath: string): { owner: string; repo: string } | null {
   const parts = fullPath.trim().split("/").filter(Boolean);
   if (parts.length !== 2) return null;
   const [owner, repo] = parts;

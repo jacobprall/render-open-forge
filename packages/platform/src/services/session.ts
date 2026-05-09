@@ -20,7 +20,7 @@ import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
 import type { QueueAdapter } from "../interfaces/queue";
 import type { EventBus } from "../interfaces/events";
-import { getDefaultForgeProvider } from "../forge/factory";
+import { getForgeProviderForAuth } from "../forge/factory";
 import { resolveLlmApiKeys } from "../auth/api-key-resolver";
 import { askUserReplyQueueKey } from "../events/run-stream";
 import { resolveSkillsForSession } from "./session-skills";
@@ -48,6 +48,7 @@ export interface CreateSessionParams {
   repoPath: string;
   branch: string;
   title?: string;
+  forgeType?: "forgejo" | "github" | "gitlab";
   activeSkills?: Array<{ source: "builtin" | "user" | "repo"; slug: string }>;
 }
 
@@ -106,7 +107,7 @@ export class SessionService {
   // -------------------------------------------------------------------------
 
   async create(auth: AuthContext, params: CreateSessionParams): Promise<{ sessionId: string }> {
-    const { repoPath, branch, activeSkills } = params;
+    const { repoPath, branch, activeSkills, forgeType } = params;
     const title = (params.title && String(params.title).trim()) || "New session";
 
     const sessionId = crypto.randomUUID();
@@ -125,7 +126,8 @@ export class SessionService {
       forgeUsername: auth.username,
       title,
       status: "running",
-      forgejoRepoPath: repoPath,
+      repoPath,
+      forgeType: forgeType ?? auth.forgeType ?? "forgejo",
       branch,
       baseBranch: "main",
       phase: "execute",
@@ -184,7 +186,7 @@ export class SessionService {
       .select({
         id: sessions.id,
         title: sessions.title,
-        forgejoRepoPath: sessions.forgejoRepoPath,
+        repoPath: sessions.repoPath,
         branch: sessions.branch,
         activeSkills: sessions.activeSkills,
         forgeUsername: sessions.forgeUsername,
@@ -303,7 +305,7 @@ export class SessionService {
       content: m.parts,
     }));
 
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     const resolvedSkills = await resolveSkillsForSession(
       sessionRow,
       forge,
@@ -702,7 +704,7 @@ export class SessionService {
     }
 
     const reviewContext = [
-      `Please review pull request #${sessionRow.prNumber} on ${sessionRow.forgejoRepoPath}.`,
+      `Please review pull request #${sessionRow.prNumber} on ${sessionRow.repoPath}.`,
       `Read the full diff using pull_request_diff, then submit a thorough code review using review_pr.`,
       `Focus on: correctness, potential bugs, performance issues, security concerns, and code style.`,
       `If everything looks good, approve the PR. Otherwise, leave constructive inline comments.`,
@@ -721,7 +723,7 @@ export class SessionService {
       id: crypto.randomUUID(),
       userId: auth.userId,
       sessionId,
-      repoPath: sessionRow.forgejoRepoPath,
+      repoPath: sessionRow.repoPath,
       prNumber: sessionRow.prNumber,
       action: "review_requested",
       title: sessionRow.title,

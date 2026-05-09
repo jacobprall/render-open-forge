@@ -72,5 +72,5 @@ export { GitHubProvider } from "./github-adapter";
 export { GitLabProvider } from "./gitlab-adapter";
 
 // Factory
-export { createForgeProvider, getDefaultForgeProvider } from "./factory";
+export { createForgeProvider, getDefaultForgeProvider, getForgeProviderForAuth } from "./factory";
 export type { ForgeProviderConfig } from "./factory";

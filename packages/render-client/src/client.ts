@@ -1,8 +1,13 @@
 import type {
-  RenderService,
+  CreatePostgresParams,
+  CreateRedisParams,
+  CreateServiceParams,
+  PostgresConnectionInfo,
   RenderDeploy,
   RenderEnvVar,
   RenderLogEntry,
+  RenderPostgres,
+  RenderService,
 } from "./types";
 
 const BASE_URL = "https://api.render.com/v1";
@@ -33,7 +38,51 @@ export class RenderClient {
   }
 
   async getService(serviceId: string): Promise<RenderService> {
-    return this.get<RenderService>(`/services/${serviceId}`);
+    const data = await this.get<{ service: RenderService }>(
+      `/services/${serviceId}`,
+    );
+    return data.service;
+  }
+
+  async createService(params: CreateServiceParams): Promise<RenderService> {
+    const data = await this.post<{ service: RenderService }>(
+      "/services",
+      params,
+    );
+    return data.service;
+  }
+
+  // -------------------------------------------------------------------------
+  // Postgres & Redis
+  // -------------------------------------------------------------------------
+
+  async listPostgres(limit = 20): Promise<RenderPostgres[]> {
+    const data = await this.get<Array<{ postgres: RenderPostgres }>>(
+      `/postgres?limit=${limit}`,
+    );
+    return data.map((item) => item.postgres);
+  }
+
+  async createPostgres(
+    params: CreatePostgresParams,
+  ): Promise<RenderPostgres> {
+    const data = await this.post<{ postgres: RenderPostgres }>(
+      "/postgres",
+      params,
+    );
+    return data.postgres;
+  }
+
+  async createRedis(params: CreateRedisParams): Promise<any> {
+    return this.post("/redis", params);
+  }
+
+  async getPostgresConnectionInfo(
+    postgresId: string,
+  ): Promise<PostgresConnectionInfo> {
+    return this.get<PostgresConnectionInfo>(
+      `/postgres/${postgresId}/connection-info`,
+    );
   }
 
   // -------------------------------------------------------------------------

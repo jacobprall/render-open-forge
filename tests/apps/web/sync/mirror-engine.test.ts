@@ -62,7 +62,7 @@ interface MockMirror {
   id: string;
   sessionId: string | null;
   syncConnectionId: string;
-  forgejoRepoPath: string;
+  localRepoPath: string;
   remoteRepoUrl: string;
   direction: "pull" | "push" | "bidirectional";
   lastSyncAt: Date | null;
@@ -314,7 +314,7 @@ describe("mirror-engine helpers", () => {
         id: "mirror-1",
         sessionId: null,
         syncConnectionId: "conn-1",
-        forgejoRepoPath: "alice/repo",
+        localRepoPath: "alice/repo",
         remoteRepoUrl: "https://github.com/alice/repo.git",
         direction: "push",
         lastSyncAt: null,
@@ -343,7 +343,7 @@ describe("mirror-engine helpers", () => {
         id: "mirror-2",
         sessionId: null,
         syncConnectionId: "conn-2",
-        forgejoRepoPath: "bob/repo",
+        localRepoPath: "bob/repo",
         remoteRepoUrl: "https://github.com/bob/repo.git",
         direction: "push",
         lastSyncAt: null,

@@ -18,8 +18,18 @@ services:
           name: openforge-redis
           type: keyvalue
           property: connectionString
+      # GitHub OAuth (primary forge provider)
+      - key: GITHUB_OAUTH_CLIENT_ID
+        sync: false
+      - key: GITHUB_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      # Forgejo (optional — only needed if using self-hosted git)
       - key: FORGEJO_INTERNAL_URL
-        value: http://openforge-forgejo:3000
+        sync: false
       - key: FORGEJO_EXTERNAL_URL
         sync: false
       - key: FORGEJO_OAUTH_CLIENT_ID
@@ -80,15 +90,21 @@ services:
           name: openforge-redis
           type: keyvalue
           property: connectionString
+      # GitHub
+      - key: GITHUB_TOKEN
+        sync: false
+      # Forgejo (optional — only needed if using self-hosted git)
       - key: FORGEJO_INTERNAL_URL
-        value: http://openforge-forgejo:3000
+        sync: false
       - key: FORGEJO_SANDBOX_URL
-        value: http://openforge-forgejo:3000
+        sync: false
       - key: FORGEJO_AGENT_TOKEN
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: RENDER_API_KEY
+        sync: false
+      - key: RENDER_OWNER_ID
         sync: false
       - key: ENCRYPTION_KEY
         fromService:
@@ -131,91 +147,6 @@ services:
       - key: SANDBOX_SESSION_SECRET
         generateValue: true
 
-  # MinIO (S3-compatible object storage)
-  - type: web
-    name: openforge-minio
-    runtime: docker
-    plan: starter
-    autoDeploy: false
-    dockerfilePath: infrastructure/minio/Dockerfile
-    dockerContext: infrastructure/minio
-    healthCheckPath: /minio/health/live
-    disk:
-      name: minio-data
-      mountPath: /data
-      sizeGB: 20
-    envVars:
-      - key: MINIO_ROOT_USER
-        generateValue: true
-      - key: MINIO_ROOT_PASSWORD
-        generateValue: true
-      - key: MINIO_DEFAULT_BUCKET
-        value: forgejo
-
-  # Forgejo (Internal Forge)
-  - type: web
-    name: openforge-forgejo
-    runtime: docker
-    plan: standard
-    autoDeploy: false
-    dockerfilePath: infrastructure/forgejo/Dockerfile
-    dockerContext: infrastructure/forgejo
-    healthCheckPath: /api/v1/version
-    disk:
-      name: forgejo-data
-      mountPath: /data
-      sizeGB: 10
-    envVars:
-      - key: FORGEJO__database__DB_TYPE
-        value: postgres
-      - key: FORGEJO__database__HOST
-        fromDatabase:
-          name: openforge-db
-          property: host
-      - key: FORGEJO__database__NAME
-        fromDatabase:
-          name: openforge-db
-          property: database
-      - key: FORGEJO__database__USER
-        fromDatabase:
-          name: openforge-db
-          property: user
-      - key: FORGEJO__database__PASSWD
-        fromDatabase:
-          name: openforge-db
-          property: password
-      - key: FORGEJO__server__ROOT_URL
-        sync: false
-      - key: FORGEJO__oauth2__JWT_SECRET
-        generateValue: true
-      - key: GOOGLE_OAUTH_CLIENT_ID
-        sync: false
-      - key: GOOGLE_OAUTH_CLIENT_SECRET
-        sync: false
-      # Object storage — route LFS, attachments, avatars, packages to MinIO
-      - key: FORGEJO__storage__STORAGE_TYPE
-        value: minio
-      - key: FORGEJO__storage__MINIO_ENDPOINT
-        value: openforge-minio:9000
-      - key: FORGEJO__storage__MINIO_ACCESS_KEY_ID
-        fromService:
-          name: openforge-minio
-          type: web
-          envVarKey: MINIO_ROOT_USER
-      - key: FORGEJO__storage__MINIO_SECRET_ACCESS_KEY
-        fromService:
-          name: openforge-minio
-          type: web
-          envVarKey: MINIO_ROOT_PASSWORD
-      - key: FORGEJO__storage__MINIO_BUCKET
-        value: forgejo
-      - key: FORGEJO__storage__MINIO_LOCATION
-        value: us-east-1
-      - key: FORGEJO__storage__MINIO_USE_SSL
-        value: "false"
-      - key: PORT
-        value: "3000"
-
   # Gateway (headless REST + MCP API)
   - type: web
     name: openforge-gateway
@@ -237,8 +168,14 @@ services:
           property: connectionString
       - key: GATEWAY_API_SECRET
         generateValue: true
+      # GitHub
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      # Forgejo (optional — only needed if using self-hosted git)
       - key: FORGEJO_INTERNAL_URL
-        value: http://openforge-forgejo:3000
+        sync: false
       - key: FORGEJO_AGENT_TOKEN
         sync: false
       - key: FORGEJO_WEBHOOK_SECRET

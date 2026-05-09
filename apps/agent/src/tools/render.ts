@@ -1,17 +1,93 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { desc, eq } from "drizzle-orm";
 import {
   RenderClient,
   TERMINAL_DEPLOY_STATUSES,
+  estimateMonthlyCostCents,
+  formatCost,
   type RenderService,
   type RenderLogEntry,
   type RenderEnvVar,
+  type CreateServiceParams,
+  type CreatePostgresParams,
+  type CreateRedisParams,
 } from "@openforge/render-client";
+import { infraActions, infraResources, infraSpecs } from "@openforge/db";
+import type { PlatformDb } from "@openforge/platform";
+import { isForgeAgentContext } from "../context/agent-context";
 
 function getRenderClient(): RenderClient {
   const apiKey = process.env.RENDER_API_KEY;
   if (!apiKey) throw new Error("RENDER_API_KEY not configured");
   return new RenderClient({ apiKey });
+}
+
+function getSessionId(experimentalContext: unknown): string {
+  if (isForgeAgentContext(experimentalContext)) return experimentalContext.sessionId;
+  return "unknown";
+}
+
+async function logAction(
+  db: PlatformDb | undefined,
+  params: {
+    projectId: string;
+    sessionId: string;
+    kind: string;
+    input?: unknown;
+    output?: unknown;
+    status: "success" | "failed";
+    error?: string;
+    resourceId?: string;
+  },
+): Promise<void> {
+  if (!db) return;
+  try {
+    await db.insert(infraActions).values({
+      id: crypto.randomUUID(),
+      projectId: params.projectId,
+      sessionId: params.sessionId,
+      kind: params.kind,
+      input: params.input as Record<string, unknown>,
+      output: params.output as Record<string, unknown>,
+      status: params.status,
+      error: params.error,
+      resourceId: params.resourceId,
+    });
+  } catch (err) {
+    console.warn("[render] failed to log action:", err);
+  }
+}
+
+async function trackResource(
+  db: PlatformDb | undefined,
+  params: {
+    projectId: string;
+    kind: "web_service" | "worker" | "postgres" | "redis";
+    name: string;
+    externalId: string;
+    externalUrl?: string;
+    actual: unknown;
+  },
+): Promise<string | undefined> {
+  if (!db) return undefined;
+  try {
+    const id = crypto.randomUUID();
+    await db.insert(infraResources).values({
+      id,
+      projectId: params.projectId,
+      kind: params.kind,
+      name: params.name,
+      externalId: params.externalId,
+      externalUrl: params.externalUrl,
+      status: "active",
+      actual: params.actual as Record<string, unknown>,
+    });
+    return id;
+  } catch (err) {
+    console.warn("[render] failed to track resource:", err);
+    return undefined;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -36,11 +112,9 @@ export function renderListServicesTool() {
           id: s.id,
           name: s.name,
           type: s.type,
-          url: s.serviceDetails.url,
-          suspended: s.suspended,
-          region: s.serviceDetails.region,
-          plan: s.serviceDetails.plan,
-          branch: s.branch,
+          status: s.suspended,
+          url: s.serviceDetails?.url ?? null,
+          plan: s.serviceDetails?.plan ?? "unknown",
         })),
       };
     },
@@ -51,7 +125,7 @@ export function renderListServicesTool() {
 // render_deploy
 // ---------------------------------------------------------------------------
 
-export function renderDeployTool() {
+export function renderDeployTool(db?: PlatformDb) {
   return tool({
     description:
       "Trigger a deploy for a Render service. Returns the deploy ID which you can poll with render_get_deploy_status. Optionally specify a commit SHA or clear the build cache.",
@@ -66,15 +140,31 @@ export function renderDeployTool() {
         .optional()
         .describe("Clear build cache before deploying (default false)"),
     }),
-    execute: async ({ serviceId, commitId, clearCache }) => {
+    execute: async ({ serviceId, commitId, clearCache }, { experimental_context }) => {
+      const sessionId = getSessionId(experimental_context);
       const client = getRenderClient();
       const deploy = await client.createDeploy(serviceId, {
         commitId,
         clearCache,
       });
+      const deploys = await client.listDeploys(serviceId);
+      const previous = deploys.find((d) => d.id !== deploy.id);
+
+      await logAction(db, {
+        projectId: sessionId,
+        sessionId,
+        kind: "deploy.triggered",
+        input: { serviceId, commitId, clearCache },
+        output: { deployId: deploy.id, status: deploy.status },
+        status: "success",
+      });
+
       return {
         deployId: deploy.id,
         status: deploy.status,
+        previousDeploy: previous
+          ? { status: previous.status, commitId: previous.commit?.id }
+          : null,
         message: `Deploy triggered. Use render_get_deploy_status with serviceId="${serviceId}" and deployId="${deploy.id}" to poll until complete.`,
       };
     },
@@ -186,7 +276,7 @@ export function renderListEnvVarsTool() {
 // render_set_env_vars
 // ---------------------------------------------------------------------------
 
-export function renderSetEnvVarsTool() {
+export function renderSetEnvVarsTool(db?: PlatformDb) {
   return tool({
     description:
       "Set environment variables on a Render service. WARNING: This replaces ALL env vars on the service. Always call render_list_env_vars first, merge your changes with existing vars, and pass the full set. After setting env vars, trigger a redeploy with render_deploy for changes to take effect.",
@@ -201,13 +291,316 @@ export function renderSetEnvVarsTool() {
         )
         .describe("Full set of { key, value } pairs — includes existing vars you want to keep"),
     }),
-    execute: async ({ serviceId, envVars }) => {
+    execute: async ({ serviceId, envVars }, { experimental_context }) => {
+      const sessionId = getSessionId(experimental_context);
       const client = getRenderClient();
       const updated = await client.updateEnvVars(serviceId, envVars);
+
+      await logAction(db, {
+        projectId: sessionId,
+        sessionId,
+        kind: "env_vars.updated",
+        input: { serviceId, keys: envVars.map((ev) => ev.key) },
+        output: { count: updated.length },
+        status: "success",
+      });
+
       return {
         updated: updated.map((ev: RenderEnvVar) => ev.key),
         count: updated.length,
         hint: "Env vars updated. Trigger a redeploy with render_deploy for changes to take effect.",
+      };
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// render_get_service
+// ---------------------------------------------------------------------------
+
+export function renderGetServiceTool() {
+  return tool({
+    description:
+      "Get full details for a single Render service by ID. Use render_list_services to discover IDs.",
+    inputSchema: z.object({
+      serviceId: z.string().describe("The Render service ID (e.g. srv-abc123)"),
+    }),
+    execute: async ({ serviceId }) => {
+      const client = getRenderClient();
+      return client.getService(serviceId);
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// render_create_service
+// ---------------------------------------------------------------------------
+
+export function renderCreateServiceTool(db?: PlatformDb) {
+  return tool({
+    description:
+      "Create a new Render service (web, worker, private, or cron). Requires RENDER_OWNER_ID. Returns the created service and an estimated monthly cost.",
+    inputSchema: z.object({
+      name: z.string().describe("Service name"),
+      type: z
+        .enum(["web_service", "background_worker", "private_service", "cron_job"])
+        .describe("Render service type"),
+      runtime: z
+        .enum(["node", "python", "docker", "go", "rust", "ruby", "elixir"])
+        .describe("Runtime / environment"),
+      plan: z.string().optional().default("starter").describe("Instance plan (default starter)"),
+      region: z.string().optional().describe("Deploy region slug"),
+      buildCommand: z.string().optional(),
+      startCommand: z.string().optional(),
+      repo: z.string().optional().describe("Repository URL if connecting a repo"),
+      branch: z.string().optional(),
+      envVars: z
+        .array(z.object({ key: z.string(), value: z.string() }))
+        .optional()
+        .describe("Initial environment variables"),
+      autoDeploy: z.enum(["yes", "no"]).optional().describe("Auto-deploy on git push"),
+    }),
+    execute: async (
+      { name, type, runtime, plan, region, buildCommand, startCommand, repo, branch, envVars, autoDeploy },
+      { experimental_context },
+    ) => {
+      const sessionId = getSessionId(experimental_context);
+      const ownerId = process.env.RENDER_OWNER_ID;
+      if (!ownerId) throw new Error("RENDER_OWNER_ID not configured");
+
+      const client = getRenderClient();
+      const params: CreateServiceParams = {
+        name,
+        ownerId,
+        type,
+        runtime,
+        plan,
+        ...(region !== undefined ? { region } : {}),
+        ...(buildCommand !== undefined ? { buildCommand } : {}),
+        ...(startCommand !== undefined ? { startCommand } : {}),
+        ...(repo !== undefined ? { repo } : {}),
+        ...(branch !== undefined ? { branch } : {}),
+        ...(envVars !== undefined ? { envVars } : {}),
+        ...(autoDeploy !== undefined ? { autoDeploy } : {}),
+      };
+      const service = await client.createService(params);
+      const costCents = estimateMonthlyCostCents(type, plan);
+
+      const resourceKind = type === "background_worker" ? "worker" : "web_service" as const;
+      const resourceId = await trackResource(db, {
+        projectId: sessionId,
+        kind: resourceKind,
+        name,
+        externalId: service.id,
+        externalUrl: service.serviceDetails?.url,
+        actual: service,
+      });
+
+      await logAction(db, {
+        projectId: sessionId,
+        sessionId,
+        kind: "resource.created",
+        input: { name, type, plan, runtime },
+        output: { serviceId: service.id, url: service.serviceDetails?.url },
+        status: "success",
+        resourceId,
+      });
+
+      return {
+        service,
+        estimatedMonthlyCostCents: costCents,
+        estimatedMonthlyCost: formatCost(costCents),
+      };
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// render_list_postgres
+// ---------------------------------------------------------------------------
+
+export function renderListPostgresTool() {
+  return tool({
+    description:
+      "List PostgreSQL databases in the Render account. Returns id, name, plan, status, and version.",
+    inputSchema: z.object({
+      limit: z.number().optional().describe("Max databases to return (default 20)"),
+    }),
+    execute: async ({ limit }) => {
+      const client = getRenderClient();
+      return { postgres: await client.listPostgres(limit) };
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// render_create_postgres
+// ---------------------------------------------------------------------------
+
+export function renderCreatePostgresTool(db?: PlatformDb) {
+  return tool({
+    description:
+      "Create a new Render PostgreSQL database. Requires RENDER_OWNER_ID. Returns the database record and estimated monthly cost.",
+    inputSchema: z.object({
+      name: z.string(),
+      plan: z.string().optional().default("starter"),
+      region: z.string().optional(),
+      version: z.string().optional().default("16"),
+    }),
+    execute: async ({ name, plan, region, version }, { experimental_context }) => {
+      const sessionId = getSessionId(experimental_context);
+      const ownerId = process.env.RENDER_OWNER_ID;
+      if (!ownerId) throw new Error("RENDER_OWNER_ID not configured");
+
+      const client = getRenderClient();
+      const params: CreatePostgresParams = {
+        name,
+        ownerId,
+        plan,
+        version,
+        ...(region !== undefined ? { region } : {}),
+      };
+      const pg = await client.createPostgres(params);
+      const costCents = estimateMonthlyCostCents("postgres", plan);
+
+      const resourceId = await trackResource(db, {
+        projectId: sessionId,
+        kind: "postgres",
+        name,
+        externalId: pg.id,
+        actual: pg,
+      });
+
+      await logAction(db, {
+        projectId: sessionId,
+        sessionId,
+        kind: "resource.created",
+        input: { name, plan, version },
+        output: { postgresId: pg.id },
+        status: "success",
+        resourceId,
+      });
+
+      return {
+        postgres: pg,
+        estimatedMonthlyCostCents: costCents,
+        estimatedMonthlyCost: formatCost(costCents),
+      };
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// render_create_redis
+// ---------------------------------------------------------------------------
+
+export function renderCreateRedisTool(db?: PlatformDb) {
+  return tool({
+    description:
+      "Create a new Render Redis instance. Requires RENDER_OWNER_ID. Returns the API response and estimated monthly cost.",
+    inputSchema: z.object({
+      name: z.string(),
+      plan: z.string().optional().default("starter"),
+      region: z.string().optional(),
+      maxmemoryPolicy: z.string().optional(),
+    }),
+    execute: async ({ name, plan, region, maxmemoryPolicy }, { experimental_context }) => {
+      const sessionId = getSessionId(experimental_context);
+      const ownerId = process.env.RENDER_OWNER_ID;
+      if (!ownerId) throw new Error("RENDER_OWNER_ID not configured");
+
+      const client = getRenderClient();
+      const params: CreateRedisParams = {
+        name,
+        ownerId,
+        plan,
+        ...(region !== undefined ? { region } : {}),
+        ...(maxmemoryPolicy !== undefined ? { maxmemoryPolicy } : {}),
+      };
+      const redisInst = await client.createRedis(params);
+      const costCents = estimateMonthlyCostCents("redis", plan);
+
+      const resourceId = await trackResource(db, {
+        projectId: sessionId,
+        kind: "redis",
+        name,
+        externalId: redisInst.id,
+        actual: redisInst,
+      });
+
+      await logAction(db, {
+        projectId: sessionId,
+        sessionId,
+        kind: "resource.created",
+        input: { name, plan },
+        output: { redisId: redisInst.id },
+        status: "success",
+        resourceId,
+      });
+
+      return {
+        redis: redisInst,
+        estimatedMonthlyCostCents: costCents,
+        estimatedMonthlyCost: formatCost(costCents),
+      };
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// render_get_postgres_connection
+// ---------------------------------------------------------------------------
+
+export function renderGetPostgresConnectionTool() {
+  return tool({
+    description:
+      "Get connection strings and credentials for a Render PostgreSQL database. Use after render_list_postgres or render_create_postgres.",
+    inputSchema: z.object({
+      postgresId: z.string().describe("The Render PostgreSQL instance ID"),
+    }),
+    execute: async ({ postgresId }) => {
+      const client = getRenderClient();
+      return client.getPostgresConnectionInfo(postgresId);
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// render_project_status
+// ---------------------------------------------------------------------------
+
+export function renderProjectStatusTool(db?: PlatformDb) {
+  return tool({
+    description:
+      "Get a full overview of the project's tracked infrastructure: specs, resources, health, and recent actions. Uses the session as the project scope.",
+    inputSchema: z.object({
+      projectId: z
+        .string()
+        .describe("The project ID (usually the session ID). Pass your current session ID."),
+    }),
+    execute: async ({ projectId }) => {
+      if (!db) {
+        return { error: "Database not available for project status queries" };
+      }
+      const specRows = await db
+        .select()
+        .from(infraSpecs)
+        .where(eq(infraSpecs.projectId, projectId));
+      const resourceRows = await db
+        .select()
+        .from(infraResources)
+        .where(eq(infraResources.projectId, projectId));
+      const recentActions = await db
+        .select()
+        .from(infraActions)
+        .where(eq(infraActions.projectId, projectId))
+        .orderBy(desc(infraActions.createdAt))
+        .limit(10);
+      return {
+        specs: specRows,
+        resources: resourceRows,
+        recentActions,
+        summary: `${specRows.length} specs, ${resourceRows.length} resources, ${recentActions.length} recent actions`,
       };
     },
   });

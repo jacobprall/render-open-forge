@@ -2,7 +2,8 @@ import { asc, desc, eq } from "drizzle-orm";
 import { agentRuns, chatMessages, chats, sessions } from "@openforge/db";
 import type { PlatformDb } from "../interfaces/database";
 import type { QueueAdapter } from "../interfaces/queue";
-import { getDefaultForgeProvider } from "../forge/factory";
+import { getDefaultForgeProvider, getForgeProviderForAuth } from "../forge/factory";
+import type { ForgeProviderType } from "../forge/provider";
 import { resolveSkillsForSession } from "./session-skills";
 
 // ---------------------------------------------------------------------------
@@ -119,7 +120,10 @@ export async function startAgentJob(
     ...sessionRow,
     projectConfig: Object.keys(baseConfig).length ? baseConfig : sessionRow.projectConfig,
   };
-  const forge = getDefaultForgeProvider(forgeToken);
+  const forge = getForgeProviderForAuth({
+    forgeToken,
+    forgeType: (sessionRow.forgeType ?? "forgejo") as ForgeProviderType,
+  });
   const resolvedSkills = await resolveSkillsForSession(
     sessionForResolve,
     forge,

@@ -3,7 +3,7 @@ import { sessions, usageEvents } from "@openforge/db";
 import type { ForgeOrg, ForgeOrgMember } from "../forge/types";
 import type { PlatformDb } from "../interfaces/database";
 import type { AuthContext } from "../interfaces/auth";
-import { getDefaultForgeProvider } from "../forge/factory";
+import { getForgeProviderForAuth } from "../forge/factory";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -49,7 +49,7 @@ export class OrgService {
   // -------------------------------------------------------------------------
 
   async listOrgs(auth: AuthContext): Promise<ForgeOrg[]> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.orgs.list();
   }
 
@@ -58,7 +58,7 @@ export class OrgService {
   // -------------------------------------------------------------------------
 
   async createOrg(auth: AuthContext, params: CreateOrgParams): Promise<ForgeOrg> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.orgs.create(params.login, {
       fullName: params.fullName,
       description: params.description,
@@ -70,7 +70,7 @@ export class OrgService {
   // -------------------------------------------------------------------------
 
   async deleteOrg(auth: AuthContext, org: string): Promise<void> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     await forge.orgs.delete(org);
   }
 
@@ -79,7 +79,7 @@ export class OrgService {
   // -------------------------------------------------------------------------
 
   async listMembers(auth: AuthContext, org: string): Promise<ForgeOrgMember[]> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.orgs.listMembers(org);
   }
 
@@ -88,7 +88,7 @@ export class OrgService {
   // -------------------------------------------------------------------------
 
   async addMember(auth: AuthContext, org: string, username: string): Promise<void> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     await forge.orgs.addMember(org, username);
   }
 
@@ -97,7 +97,7 @@ export class OrgService {
   // -------------------------------------------------------------------------
 
   async removeMember(auth: AuthContext, org: string, username: string): Promise<void> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     await forge.orgs.removeMember(org, username);
   }
 
@@ -106,7 +106,7 @@ export class OrgService {
   // -------------------------------------------------------------------------
 
   async listSecrets(auth: AuthContext, org: string): Promise<string[]> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     return forge.orgs.secrets.list(org);
   }
 
@@ -115,7 +115,7 @@ export class OrgService {
   // -------------------------------------------------------------------------
 
   async setSecret(auth: AuthContext, org: string, name: string, value: string): Promise<void> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     await forge.orgs.secrets.set(org, name, value);
   }
 
@@ -124,7 +124,7 @@ export class OrgService {
   // -------------------------------------------------------------------------
 
   async deleteSecret(auth: AuthContext, org: string, name: string): Promise<void> {
-    const forge = getDefaultForgeProvider(auth.forgeToken);
+    const forge = getForgeProviderForAuth(auth);
     await forge.orgs.secrets.delete(org, name);
   }
 

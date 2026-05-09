@@ -6,11 +6,20 @@ interface SystemPromptOpts {
   skills: ResolvedSkill[];
   projectContext?: string | null;
   projectConfig?: unknown;
+  forgeLabel?: string;
 }
 
 // ─── Base Prompt Sections ────────────────────────────────────────────────────
 
-const IDENTITY = `You are an AI software engineer working in a session-based forge environment. You have a dedicated workspace with the repository already cloned into your current working directory. All tools operate in this directory automatically. The forge is Forgejo-based (a self-hosted Git service).`;
+function identityBlock(forgeLabel: string): string {
+  return `You are an AI software engineer working in a session-based forge environment. You have a dedicated workspace with the repository already cloned into your current working directory. All tools operate in this directory automatically. The forge is ${forgeLabel}.`;
+}
+
+export const FORGE_LABELS: Record<string, string> = {
+  forgejo: "Forgejo-based (a self-hosted Git service)",
+  github: "GitHub",
+  gitlab: "GitLab",
+};
 
 const INTERACTION_STYLE = `# Interaction style
 
@@ -74,7 +83,7 @@ Available:
 - read_file / write_file / edit: File operations
 - glob / grep: Search and find files by pattern or content
 - git: Git operations (authentication is automatic for the forge)
-- create_pull_request: Open a PR on the internal forge
+- create_pull_request: Open a PR on the forge
 - web_fetch: HTTP requests to external URLs
 - task: Delegate subtasks to a focused subagent
 - todo_write: Track work with a structured task list
@@ -86,6 +95,13 @@ Available:
 - render_get_logs: Read service logs to diagnose failures or verify behavior
 - render_list_env_vars: List current env vars on a service (always read before writing)
 - render_set_env_vars: Set environment variables on a Render service (replaces all — merge with existing)
+- render_get_service: Get detailed info about a specific Render service by ID
+- render_create_service: Create a new web service, worker, or cron job on Render (requires cost confirmation)
+- render_list_postgres: List all Postgres databases in the Render account
+- render_create_postgres: Create a new Postgres database on Render (requires cost confirmation)
+- render_create_redis: Create a new Redis instance on Render (requires cost confirmation)
+- render_get_postgres_connection: Get the connection string for a Postgres database
+- render_project_status: Get a full overview of the project's tracked infrastructure (specs, resources, health, recent actions)
 
 Guidance:
 - Use glob/grep to explore before making assumptions about code structure.
@@ -94,7 +110,10 @@ Guidance:
 - Use task for independent subtasks that don't need to pollute the main context.
 - Use ask_user_question only when genuinely stuck after investigation, not as a first response to friction.
 - If an approach fails, diagnose why before switching tactics. Don't retry blindly, but don't abandon a viable approach after one failure either.
-- When deploying to Render: use render_deploy to trigger, poll render_get_deploy_status until terminal, and if the deploy fails use render_get_logs to diagnose. Fix the issue (code, env vars, or config) and redeploy. This deploy-verify-fix loop is your core workflow for shipping.`;
+- When deploying to Render: use render_deploy to trigger, poll render_get_deploy_status until terminal, and if the deploy fails use render_get_logs to diagnose. Fix the issue (code, env vars, or config) and redeploy. This deploy-verify-fix loop is your core workflow for shipping.
+
+## Cost Confirmation
+Before creating any Render resource (service, database, or Redis), estimate the monthly cost using the cost data included in the tool response. Confirm with the user via ask_user_question before proceeding. Always include the total monthly cost in your confirmation message. Example: "This will cost ~$14/month (Web Starter $7 + Postgres Basic $7). Proceed?"`;
 
 const OPERATIONAL_NOTES = `# Operational notes
 
@@ -111,8 +130,10 @@ const OPERATIONAL_NOTES = `# Operational notes
 export function buildAgentSystemPrompt(opts: SystemPromptOpts): string {
   const parts: string[] = [];
 
+  const forgeLabel = opts.forgeLabel ?? FORGE_LABELS.forgejo;
+
   // Static base (cacheable across calls within a session)
-  parts.push(IDENTITY);
+  parts.push(identityBlock(forgeLabel));
   parts.push(INTERACTION_STYLE);
   parts.push(SESSION_LIFECYCLE);
   parts.push(CODE_QUALITY);

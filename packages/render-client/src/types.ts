@@ -68,3 +68,54 @@ export const TERMINAL_DEPLOY_STATUSES: Set<DeployStatus> = new Set([
   "canceled",
   "pre_deploy_failed",
 ]);
+
+export interface CreateServiceParams {
+  name: string;
+  ownerId: string;
+  type: "web_service" | "background_worker" | "private_service" | "cron_job";
+  runtime: "node" | "python" | "docker" | "go" | "rust" | "ruby" | "elixir";
+  plan?: string;
+  region?: string;
+  buildCommand?: string;
+  startCommand?: string;
+  branch?: string;
+  envVars?: Array<{ key: string; value: string }>;
+  repo?: string;
+  autoDeploy?: "yes" | "no";
+}
+
+export interface CreatePostgresParams {
+  name: string;
+  ownerId: string;
+  plan?: string;
+  region?: string;
+  version?: string;
+}
+
+export interface CreateRedisParams {
+  name: string;
+  ownerId: string;
+  plan?: string;
+  region?: string;
+  maxmemoryPolicy?: string;
+}
+
+export interface RenderPostgres {
+  id: string;
+  name: string;
+  plan: string;
+  status: string;
+  version: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PostgresConnectionInfo {
+  internalConnectionString: string;
+  externalConnectionString: string;
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+}
