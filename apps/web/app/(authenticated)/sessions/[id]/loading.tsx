@@ -1,6 +1,6 @@
 export default function SessionLoading() {
   return (
-    <div className="flex h-[calc(100vh-3rem)] flex-col">
+    <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b border-stroke-subtle px-4 py-3">
         <div className="h-5 w-48 animate-pulse rounded bg-surface-2" />
         <div className="h-5 w-20 animate-pulse rounded-full bg-surface-2" />

@@ -41,7 +41,7 @@ export default async function SessionsPage() {
   const defaultModelId = prefsRow?.data?.defaultModelId ?? undefined;
 
   return (
-    <div className="relative flex h-[calc(100vh-3.5rem)]">
+    <div className="relative flex h-full">
       {/* Chat window -- fills available space */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Message area -- empty on new session, scrollable */}
