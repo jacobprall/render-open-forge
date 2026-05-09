@@ -27,24 +27,24 @@ export default function AuthenticatedError({
         </svg>
       </div>
       <h2 className="text-lg font-semibold">Something went wrong</h2>
-      <p className="mt-2 text-sm text-zinc-400">
+      <p className="mt-2 text-sm text-text-tertiary">
         {error.message || "An unexpected error occurred."}
       </p>
       {error.digest && (
-        <p className="mt-1 font-mono text-xs text-zinc-600">
+        <p className="mt-1 font-mono text-xs text-text-tertiary">
           Error ID: {error.digest}
         </p>
       )}
       <div className="mt-6 flex items-center justify-center gap-3">
         <button
           onClick={reset}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
+          className="bg-accent px-4 py-2 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover"
         >
           Try again
         </button>
         <Link
           href="/repos"
-          className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-zinc-800"
+          className="border border-stroke-default px-4 py-2 text-sm font-medium text-text-secondary transition-colors duration-(--of-duration-instant) hover:bg-surface-2"
         >
           Go to repos
         </Link>

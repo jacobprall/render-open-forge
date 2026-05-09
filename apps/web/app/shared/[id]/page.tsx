@@ -24,10 +24,10 @@ export default async function SharedSessionPage({
 
   if (!session) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-100">
+      <main className="flex min-h-screen items-center justify-center bg-surface-0 text-text-primary">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Session not found</h1>
-          <p className="mt-2 text-zinc-400">
+          <p className="mt-2 text-text-tertiary">
             This session may not exist or is not shared.
           </p>
           <Link
@@ -59,22 +59,22 @@ export default async function SharedSessionPage({
     running: "bg-accent-bg text-accent-text border-accent/20",
     completed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     failed: "bg-danger/10 text-danger border-danger/20",
-    archived: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+    archived: "bg-surface-2 text-text-tertiary border-stroke-subtle",
   };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100">
-      <header className="border-b border-zinc-800 px-6 py-4">
+    <main className="min-h-screen bg-surface-0 text-text-primary">
+      <header className="border-b border-stroke-subtle px-6 py-4">
         <div className="mx-auto max-w-4xl">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="text-sm text-zinc-400 hover:text-zinc-200"
+              className="text-sm text-text-tertiary hover:text-text-primary"
             >
               OpenForge
             </Link>
-            <span className="text-zinc-600">/</span>
-            <span className="text-sm text-zinc-400">shared session</span>
+            <span className="text-text-tertiary">/</span>
+            <span className="text-sm text-text-tertiary">shared session</span>
           </div>
           <div className="mt-3 flex items-center gap-3">
             <h1 className="text-xl font-bold">{session.title}</h1>
@@ -84,11 +84,11 @@ export default async function SharedSessionPage({
               {session.status}
             </span>
           </div>
-          <div className="mt-1 flex items-center gap-4 text-sm text-zinc-400">
+          <div className="mt-1 flex items-center gap-4 text-sm text-text-tertiary">
             <span>{session.repoPath}</span>
-            <span className="text-zinc-600">·</span>
+            <span className="text-text-tertiary">·</span>
             <span>{session.branch}</span>
-            <span className="text-zinc-600">·</span>
+            <span className="text-text-tertiary">·</span>
             <span>
               Skills:{" "}
               {(session.activeSkills?.length
@@ -101,8 +101,8 @@ export default async function SharedSessionPage({
 
       <div className="mx-auto max-w-4xl px-6 py-6">
         {messages.length === 0 ? (
-          <div className="rounded-lg border border-zinc-800 p-12 text-center">
-            <p className="text-zinc-400">No messages in this session yet.</p>
+          <div className="border border-stroke-subtle p-12 text-center">
+            <p className="text-text-tertiary">No messages in this session yet.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -111,10 +111,10 @@ export default async function SharedSessionPage({
               return (
                 <div
                   key={msg.id}
-                  className={`rounded-lg border p-4 ${
+                  className={`border p-4 ${
                     msg.role === "user"
-                      ? "border-zinc-700 bg-zinc-900"
-                      : "border-zinc-800 bg-zinc-950"
+                      ? "border-stroke-default bg-surface-1"
+                      : "border-stroke-subtle bg-surface-0"
                   }`}
                 >
                   <div className="mb-2 flex items-center gap-2">
@@ -127,7 +127,7 @@ export default async function SharedSessionPage({
                     >
                       {msg.role}
                     </span>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-text-tertiary">
                       {new Date(msg.createdAt).toLocaleString()}
                     </span>
                   </div>
@@ -135,7 +135,7 @@ export default async function SharedSessionPage({
                     {parts.map((part, i) => {
                       if (part.type === "text") {
                         return (
-                          <div key={i} className="whitespace-pre-wrap text-sm text-zinc-200">
+                          <div key={i} className="whitespace-pre-wrap text-sm text-text-primary">
                             {part.text}
                           </div>
                         );
@@ -144,12 +144,12 @@ export default async function SharedSessionPage({
                         return (
                           <div
                             key={i}
-                            className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs"
+                            className="border border-stroke-default bg-surface-1 px-3 py-2 text-xs"
                           >
-                            <span className="font-medium text-amber-400">
+                            <span className="font-medium text-warning">
                               {part.toolName}
                             </span>
-                            <pre className="mt-1 overflow-x-auto text-zinc-400">
+                            <pre className="mt-1 overflow-x-auto text-text-tertiary">
                               {JSON.stringify(part.args, null, 2)}
                             </pre>
                           </div>
@@ -159,12 +159,12 @@ export default async function SharedSessionPage({
                         return (
                           <div
                             key={i}
-                            className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs"
+                            className="border border-stroke-default bg-surface-1 px-3 py-2 text-xs"
                           >
                             <span className="font-medium text-accent-text">
                               Result: {part.toolName}
                             </span>
-                            <pre className="mt-1 max-h-40 overflow-auto text-zinc-400">
+                            <pre className="mt-1 max-h-40 overflow-auto text-text-tertiary">
                               {typeof part.result === "string"
                                 ? part.result
                                 : JSON.stringify(part.result, null, 2)}
@@ -182,7 +182,7 @@ export default async function SharedSessionPage({
         )}
 
         <div className="mt-8 text-center">
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-text-tertiary">
             This is a read-only view of a shared agent session.
           </p>
           <Link

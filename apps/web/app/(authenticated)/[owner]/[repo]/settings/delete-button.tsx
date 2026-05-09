@@ -36,7 +36,7 @@ export function DeleteRepoButton({
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="shrink-0 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/20"
+        className="shrink-0 border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-danger transition-colors duration-(--of-duration-instant) hover:bg-red-500/20"
       >
         Delete repository
       </button>
@@ -46,25 +46,25 @@ export function DeleteRepoButton({
   return (
     <div className="shrink-0 space-y-3">
       {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+        <div className="border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-danger">
           {error}
         </div>
       )}
-      <p className="text-xs text-zinc-400">
-        Type <span className="font-mono font-semibold text-zinc-200">{expectedText}</span> to confirm:
+      <p className="text-xs text-text-tertiary">
+        Type <span className="font-mono font-semibold text-text-primary">{expectedText}</span> to confirm:
       </p>
       <input
         type="text"
         value={confirmText}
         onChange={(e) => setConfirmText(e.target.value)}
         placeholder={expectedText}
-        className="w-full rounded-lg border border-red-500/30 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 transition focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+        className="w-full border border-red-500/30 bg-surface-2 px-3 py-2 text-sm text-text-primary placeholder-text-tertiary transition-colors duration-(--of-duration-instant) focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
       />
       <div className="flex gap-2">
         <button
           onClick={handleDelete}
           disabled={isPending || confirmText !== expectedText}
-          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
+          className="bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-red-500 disabled:opacity-50"
         >
           {isPending ? "Deleting…" : "I understand, delete"}
         </button>
@@ -74,7 +74,7 @@ export function DeleteRepoButton({
             setConfirmText("");
             setError(null);
           }}
-          className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-zinc-200"
+          className="border border-stroke-default px-4 py-2 text-sm font-medium text-text-tertiary transition-colors duration-(--of-duration-instant) hover:text-text-primary"
         >
           Cancel
         </button>

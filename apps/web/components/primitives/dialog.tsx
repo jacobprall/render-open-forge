@@ -48,7 +48,7 @@ export function Dialog({ open, onClose, children, className }: DialogProps) {
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-lg border border-zinc-800 bg-zinc-900 p-6 shadow-xl",
+          "relative z-10 w-full max-w-lg border border-stroke-subtle bg-surface-1 p-6 shadow-xl",
           className
         )}
         role="dialog"
@@ -56,7 +56,7 @@ export function Dialog({ open, onClose, children, className }: DialogProps) {
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-md p-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
+          className="absolute right-4 top-4 p-1 text-text-tertiary hover:text-text-primary hover:bg-surface-2 transition-colors duration-(--of-duration-instant) cursor-pointer"
           aria-label="Close"
         >
           <svg
@@ -89,7 +89,7 @@ export interface DialogHeaderProps {
 export function DialogHeader({ children, className }: DialogHeaderProps) {
   return (
     <div className={cn("mb-4", className)}>
-      <h2 className="text-lg font-semibold text-zinc-100">{children}</h2>
+      <h2 className="text-lg font-semibold text-text-primary">{children}</h2>
     </div>
   );
 }
@@ -100,7 +100,7 @@ export interface DialogBodyProps {
 }
 
 export function DialogBody({ children, className }: DialogBodyProps) {
-  return <div className={cn("text-sm text-zinc-300", className)}>{children}</div>;
+  return <div className={cn("text-sm text-text-secondary", className)}>{children}</div>;
 }
 
 export interface DialogFooterProps {

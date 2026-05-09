@@ -89,14 +89,14 @@ export default async function Home() {
   const session = await getSession();
 
   if (session) {
-    redirect("/repos");
+    redirect("/sessions");
   }
 
   return (
     <main className="flex min-h-screen flex-col">
-      <nav className="flex items-center justify-between border-b border-zinc-800/50 px-6 py-4">
+      <nav className="flex items-center justify-between border-b border-stroke-subtle px-6 py-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-bg">
+          <div className="flex h-8 w-8 items-center justify-center bg-accent-bg">
             <svg
               className="h-5 w-5 text-accent-text"
               fill="none"
@@ -122,7 +122,7 @@ export default async function Home() {
           href="https://github.com/render-oss/render-open-forge"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-zinc-400 transition hover:text-zinc-200"
+          className="text-sm text-text-tertiary transition-colors duration-(--of-duration-instant) hover:text-text-primary"
         >
           GitHub
         </a>
@@ -130,7 +130,7 @@ export default async function Home() {
 
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-24">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent-bg px-4 py-1.5 text-sm text-accent-text">
+          <div className="mb-6 inline-flex items-center gap-2 border border-accent/20 bg-accent-bg px-4 py-1.5 text-sm text-accent-text">
             <svg
               className="h-4 w-4"
               fill="none"
@@ -151,7 +151,7 @@ export default async function Home() {
             <br />
             <span className="text-accent-text">that ships to production</span>
           </h1>
-          <p className="mt-6 text-lg leading-relaxed text-zinc-400">
+          <p className="mt-6 text-lg leading-relaxed text-text-secondary">
             Connect your GitHub repos, describe what you want built, and let the
             agent write code, run tests, and open pull requests. Deploy the
             result to Render with one click.
@@ -165,13 +165,13 @@ export default async function Home() {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 transition hover:border-zinc-700"
+              className="border border-stroke-subtle bg-surface-1 p-(--of-space-lg) transition-colors duration-(--of-duration-instant) hover:border-stroke-default"
             >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-accent-bg text-accent-text">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center bg-accent-bg text-accent-text">
                 {feature.icon}
               </div>
               <h3 className="text-lg font-semibold">{feature.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+              <p className="mt-2 text-sm leading-relaxed text-text-secondary">
                 {feature.description}
               </p>
             </div>
@@ -179,7 +179,7 @@ export default async function Home() {
         </div>
       </div>
 
-      <footer className="border-t border-zinc-800/50 px-6 py-6 text-center text-sm text-zinc-500">
+      <footer className="border-t border-stroke-subtle px-6 py-6 text-center text-sm text-text-tertiary">
         OpenForge &mdash; Open-source AI coding agent, powered by Render
       </footer>
     </main>

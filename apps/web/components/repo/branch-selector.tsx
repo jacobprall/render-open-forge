@@ -73,10 +73,10 @@ export function BranchSelector({
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-600 hover:bg-zinc-800"
+        className="flex items-center gap-2 border border-stroke-default bg-surface-1 px-3 py-1.5 text-sm font-medium text-text-primary transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle hover:bg-surface-2"
       >
         <svg
-          className="h-4 w-4 text-zinc-400"
+          className="h-4 w-4 text-text-tertiary"
           fill="none"
           viewBox="0 0 24 24"
           strokeWidth={1.5}
@@ -90,7 +90,7 @@ export function BranchSelector({
         </svg>
         <span>{currentBranch}</span>
         <svg
-          className="h-3.5 w-3.5 text-zinc-500"
+          className="h-3.5 w-3.5 text-text-tertiary"
           fill="none"
           viewBox="0 0 24 24"
           strokeWidth={2}
@@ -105,20 +105,20 @@ export function BranchSelector({
       </button>
 
       {open && (
-        <div className="absolute left-0 z-50 mt-1 w-72 rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl">
-          <div className="border-b border-zinc-800 p-2">
+        <div className="absolute left-0 z-50 mt-1 w-72 border border-stroke-default bg-surface-1 shadow-xl">
+          <div className="border-b border-stroke-subtle p-2">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Find a branch…"
               autoFocus
-              className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200 placeholder-zinc-500 outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+              className="w-full border border-stroke-default bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder-text-tertiary outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
           </div>
           <div className="max-h-64 overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-zinc-500">
+              <div className="px-3 py-2 text-sm text-text-tertiary">
                 No branches found
               </div>
             ) : (
@@ -126,10 +126,10 @@ export function BranchSelector({
                 <button
                   key={branch.name}
                   onClick={() => handleSelect(branch.name)}
-                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition hover:bg-zinc-800 ${
+                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors duration-(--of-duration-instant) hover:bg-surface-2 ${
                     branch.name === currentBranch
                       ? "text-accent-text"
-                      : "text-zinc-300"
+                      : "text-text-secondary"
                   }`}
                 >
                   {branch.name === currentBranch && (

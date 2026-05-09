@@ -33,29 +33,29 @@ export default async function CommitsPage({
             owner={owner}
             repo={repo}
           />
-          <h2 className="text-lg font-semibold text-zinc-200">Commits</h2>
+          <h2 className="text-lg font-semibold text-text-primary">Commits</h2>
         </div>
-        <span className="text-sm text-zinc-500">
+        <span className="text-sm text-text-tertiary">
           {commits.length} commit{commits.length !== 1 && "s"}
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-zinc-800">
-        <div className="divide-y divide-zinc-800/50">
+      <div className="overflow-hidden border border-stroke-subtle">
+        <div className="divide-y divide-stroke-subtle">
           {commits.map((commit) => (
             <div
               key={commit.sha}
-              className="flex items-start gap-4 px-4 py-3 transition hover:bg-zinc-900/50"
+              className="flex items-start gap-4 px-4 py-3 transition-colors duration-(--of-duration-instant) hover:bg-surface-1"
             >
               <div className="min-w-0 flex-1">
                 <Link
                   href={`/${owner}/${repo}/commit/${commit.sha}`}
-                  className="text-sm font-medium text-zinc-200 hover:text-accent-text hover:underline"
+                  className="text-sm font-medium text-text-primary hover:text-accent-text hover:underline"
                 >
                   {commit.message.split("\n")[0]}
                 </Link>
-                <div className="mt-1 flex items-center gap-2 text-xs text-zinc-500">
-                  <span className="font-medium text-zinc-400">
+                <div className="mt-1 flex items-center gap-2 text-xs text-text-tertiary">
+                  <span className="font-medium text-text-tertiary">
                     {commit.authorName}
                   </span>
                   <span>committed</span>
@@ -65,7 +65,7 @@ export default async function CommitsPage({
               <div className="flex shrink-0 items-center gap-2">
                 <Link
                   href={`/${owner}/${repo}/commit/${commit.sha}`}
-                  className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 font-mono text-xs text-accent-text transition hover:border-zinc-700 hover:bg-zinc-800"
+                  className="border border-stroke-subtle bg-surface-1 px-2 py-1 font-mono text-xs text-accent-text transition-colors duration-(--of-duration-instant) hover:border-stroke-default hover:bg-surface-2"
                 >
                   {commit.sha.slice(0, 7)}
                 </Link>
@@ -74,11 +74,11 @@ export default async function CommitsPage({
           ))}
           {commits.length === 0 && (
             <div className="px-4 py-12 text-center">
-              <svg className="mx-auto mb-3 h-8 w-8 text-zinc-700" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <svg className="mx-auto mb-3 h-8 w-8 text-text-tertiary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
-              <p className="text-sm text-zinc-500">No commits found on this branch</p>
-              <p className="mt-1 text-xs text-zinc-600">Push commits to this branch or try switching to a different branch above.</p>
+              <p className="text-sm text-text-tertiary">No commits found on this branch</p>
+              <p className="mt-1 text-xs text-text-tertiary">Push commits to this branch or try switching to a different branch above.</p>
             </div>
           )}
         </div>

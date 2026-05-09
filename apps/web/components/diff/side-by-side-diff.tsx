@@ -109,14 +109,14 @@ export function SideBySideDiff({ diffText }: SideBySideDiffProps) {
 
   if (!diffText.trim()) {
     return (
-      <div className="rounded-md border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-400">
+      <div className="border border-stroke-subtle bg-surface-0 p-4 text-sm text-text-tertiary">
         No changes
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-md border border-zinc-800 bg-zinc-950">
+    <div className="overflow-x-auto border border-stroke-subtle bg-surface-0">
       <table className="w-full table-fixed border-collapse font-mono text-xs">
         <colgroup>
           <col className="w-10" />
@@ -128,10 +128,10 @@ export function SideBySideDiff({ diffText }: SideBySideDiffProps) {
           {lines.map((line, idx) => {
             if (line.type === "header") {
               return (
-                <tr key={idx} className="bg-zinc-900">
+                <tr key={idx} className="bg-surface-1">
                   <td
                     colSpan={4}
-                    className="px-2 py-1 text-xs text-zinc-500"
+                    className="px-2 py-1 text-xs text-text-tertiary"
                   >
                     {line.leftContent}
                   </td>
@@ -153,20 +153,20 @@ export function SideBySideDiff({ diffText }: SideBySideDiffProps) {
                   : "";
 
             return (
-              <tr key={idx} className="border-t border-zinc-900">
-                <td className="select-none px-2 py-0.5 text-right text-zinc-600">
+              <tr key={idx} className="border-t border-surface-1">
+                <td className="select-none px-2 py-0.5 text-right text-text-tertiary">
                   {line.leftNum || ""}
                 </td>
                 <td
-                  className={`whitespace-pre-wrap break-all px-2 py-0.5 text-zinc-300 ${leftBg}`}
+                  className={`whitespace-pre-wrap break-all px-2 py-0.5 text-text-secondary ${leftBg}`}
                 >
                   {renderContent(line.leftContent, lang)}
                 </td>
-                <td className="select-none border-l border-zinc-800 px-2 py-0.5 text-right text-zinc-600">
+                <td className="select-none border-l border-stroke-subtle px-2 py-0.5 text-right text-text-tertiary">
                   {line.rightNum || ""}
                 </td>
                 <td
-                  className={`whitespace-pre-wrap break-all px-2 py-0.5 text-zinc-300 ${rightBg}`}
+                  className={`whitespace-pre-wrap break-all px-2 py-0.5 text-text-secondary ${rightBg}`}
                 >
                   {renderContent(line.rightContent, lang)}
                 </td>

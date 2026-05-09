@@ -25,14 +25,14 @@ export function CiEventsPanel({ events }: Props) {
   const variant = statusVariant[latest.status as string] ?? "neutral";
 
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50">
+    <div className="overflow-hidden border border-stroke-subtle bg-surface-1/50">
       <button
         type="button"
-        className="flex w-full items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-800/50"
+        className="flex w-full items-center gap-3 px-4 py-3 transition-colors duration-(--of-duration-instant) hover:bg-surface-2/50"
         onClick={() => setOpen(!open)}
       >
         <svg
-          className={`h-4 w-4 shrink-0 text-zinc-400 transition-transform ${open ? "rotate-90" : ""}`}
+          className={`h-4 w-4 shrink-0 text-text-tertiary transition-transform ${open ? "rotate-90" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -43,13 +43,13 @@ export function CiEventsPanel({ events }: Props) {
         <Badge variant={variant} dot>
           {latest.status}
         </Badge>
-        <span className="text-sm font-medium text-zinc-100">
+        <span className="text-sm font-medium text-text-primary">
           Actions — {events.length} run{events.length !== 1 ? "s" : ""}
         </span>
       </button>
 
       {open && (
-        <div className="divide-y divide-zinc-800 border-t border-zinc-800">
+        <div className="divide-y divide-stroke-subtle border-t border-stroke-subtle">
           {events.map((ev) => {
             const evVariant = statusVariant[ev.status as string] ?? "neutral";
             return (
@@ -58,11 +58,11 @@ export function CiEventsPanel({ events }: Props) {
                   <Badge variant={evVariant} dot>
                     {ev.status}
                   </Badge>
-                  <span className="text-sm font-medium text-zinc-200">
+                  <span className="text-sm font-medium text-text-primary">
                     {ev.workflowName ?? "CI Action"}
                   </span>
                   {ev.runId && (
-                    <span className="ml-auto font-mono text-xs text-zinc-500">
+                    <span className="ml-auto font-mono text-xs text-text-tertiary">
                       #{ev.runId}
                     </span>
                   )}
@@ -72,7 +72,7 @@ export function CiEventsPanel({ events }: Props) {
                     href={ev.logsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ml-6 inline-block text-xs text-accent-text underline underline-offset-2 transition hover:text-accent"
+                    className="ml-6 inline-block text-xs text-accent-text underline underline-offset-2 transition-colors duration-(--of-duration-instant) hover:text-accent"
                   >
                     View logs
                   </a>

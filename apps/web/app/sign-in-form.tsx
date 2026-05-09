@@ -26,7 +26,7 @@ export function SignInForm() {
       const result = await signIn("credentials", {
         email: email.trim().toLowerCase(),
         password,
-        callbackUrl: "/repos",
+        callbackUrl: "/sessions",
         redirect: false,
       });
 
@@ -35,7 +35,7 @@ export function SignInForm() {
         return;
       }
 
-      window.location.href = result?.url ?? "/repos";
+      window.location.href = result?.url ?? "/sessions";
     } catch {
       setError("Something went wrong.");
     } finally {
@@ -45,11 +45,11 @@ export function SignInForm() {
 
   function handleGitHub() {
     setGhLoading(true);
-    signIn("github", { callbackUrl: "/repos" });
+    signIn("github", { callbackUrl: "/sessions" });
   }
 
   const inputClass =
-    "w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:border-accent focus:outline-none";
+    "w-full border border-stroke-default bg-surface-2 px-4 py-2.5 text-sm text-text-primary placeholder-text-tertiary focus:border-accent focus:outline-none";
 
   return (
     <div className="w-full max-w-xs space-y-4">
@@ -57,16 +57,16 @@ export function SignInForm() {
         type="button"
         onClick={handleGitHub}
         disabled={ghLoading}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/80 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-zinc-600 hover:bg-zinc-700/80 disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 border border-stroke-default bg-surface-2 px-4 py-2.5 text-sm font-medium text-text-primary transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle hover:bg-surface-3 disabled:opacity-50"
       >
         <GitHubIcon className="h-5 w-5" />
         {ghLoading ? "Redirecting…" : "Sign in with GitHub"}
       </button>
 
       <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-zinc-800" />
-        <span className="text-xs text-zinc-500">or</span>
-        <div className="h-px flex-1 bg-zinc-800" />
+        <div className="h-px flex-1 bg-stroke-subtle" />
+        <span className="text-xs text-text-tertiary">or</span>
+        <div className="h-px flex-1 bg-stroke-subtle" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -90,7 +90,7 @@ export function SignInForm() {
         <button
           type="submit"
           disabled={loading || !email || !password}
-          className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
+          className="w-full bg-accent px-4 py-2.5 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover disabled:opacity-50"
         >
           {loading ? "Signing in…" : "Sign in with email"}
         </button>

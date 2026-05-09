@@ -102,15 +102,15 @@ export function BranchProtectionSettings(props: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-      <h3 className="text-base font-semibold text-zinc-100">Branch protection</h3>
-      <p className="mt-2 text-sm text-zinc-400">
+    <div className="border border-stroke-subtle bg-surface-1 p-6">
+      <h3 className="text-base font-semibold text-text-primary">Branch protection</h3>
+      <p className="mt-2 text-sm text-text-tertiary">
         Applies a basic rule: disallow force-push and require one approval before merge for the
         default branch ({defaultBranch}).
       </p>
 
       {loading ? (
-        <p className="mt-4 text-sm text-zinc-500">Loading…</p>
+        <p className="mt-4 text-sm text-text-tertiary">Loading…</p>
       ) : (
         <div className="mt-4 flex flex-wrap items-center gap-3">
           {protectedDefault ? (
@@ -121,7 +121,7 @@ export function BranchProtectionSettings(props: Props) {
               <button
                 type="button"
                 disabled={busy}
-                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-100 hover:bg-zinc-800 disabled:opacity-50"
+                className="border border-stroke-default px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-2 disabled:opacity-50"
                 onClick={() => void disable()}
               >
                 Remove protection
@@ -131,7 +131,7 @@ export function BranchProtectionSettings(props: Props) {
             <button
               type="button"
               disabled={busy}
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+              className="bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               onClick={() => void enable()}
             >
               Protect {defaultBranch}

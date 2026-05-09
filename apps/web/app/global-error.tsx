@@ -9,7 +9,7 @@ export default function GlobalError({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-100">
+      <body className="flex min-h-screen items-center justify-center bg-surface-0 text-text-primary">
         <div className="max-w-md text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-danger/10">
             <svg
@@ -27,17 +27,17 @@ export default function GlobalError({
             </svg>
           </div>
           <h2 className="text-lg font-semibold">Something went wrong</h2>
-          <p className="mt-2 text-sm text-zinc-400">
+          <p className="mt-2 text-sm text-text-tertiary">
             {error.message || "An unexpected error occurred."}
           </p>
           {error.digest && (
-            <p className="mt-1 font-mono text-xs text-zinc-600">
+            <p className="mt-1 font-mono text-xs text-text-tertiary">
               Error ID: {error.digest}
             </p>
           )}
           <button
             onClick={reset}
-            className="mt-6 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
+            className="mt-6 bg-accent px-4 py-2 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover"
           >
             Try again
           </button>

@@ -29,9 +29,9 @@ export function ChatInput({ isStreaming, onSend, onStop }: ChatInputProps) {
   }
 
   return (
-    <div className="shrink-0 border-t border-zinc-800 px-4 py-3">
+    <div className="shrink-0 border-t border-stroke-subtle px-(--of-space-md) py-(--of-space-md)">
       <form onSubmit={handleSubmit} className="mx-auto max-w-2xl">
-        <div className="flex items-end gap-2 rounded-xl border border-zinc-700 bg-zinc-900 p-2 transition focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/25">
+        <div className="flex items-end gap-2 border border-stroke-default bg-surface-1 p-2 transition-colors duration-(--of-duration-instant) focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/25">
           <textarea
             ref={textareaRef}
             value={input}
@@ -39,17 +39,17 @@ export function ChatInput({ isStreaming, onSend, onStop }: ChatInputProps) {
             onKeyDown={handleKeyDown}
             placeholder="Message the agent…"
             rows={1}
-            className="max-h-36 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none"
+            className="max-h-36 flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] text-text-primary placeholder-text-tertiary outline-none"
             disabled={isStreaming}
           />
           {isStreaming ? (
             <button
               type="button"
               onClick={onStop}
-              className="flex items-center gap-1.5 rounded-lg bg-zinc-700 px-3 py-1.5 text-sm font-medium text-zinc-200 transition hover:bg-zinc-600"
+              className="flex items-center gap-1.5 bg-surface-3 px-3 py-1.5 text-sm font-medium text-text-secondary transition-colors duration-(--of-duration-instant) hover:bg-surface-2"
             >
               <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="6" width="12" height="12" rx="2" />
+                <rect x="6" y="6" width="12" height="12" rx="0" />
               </svg>
               Stop
             </button>
@@ -57,7 +57,7 @@ export function ChatInput({ isStreaming, onSend, onStop }: ChatInputProps) {
             <button
               type="submit"
               disabled={!input.trim()}
-              className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1.5 bg-accent px-3 py-1.5 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path

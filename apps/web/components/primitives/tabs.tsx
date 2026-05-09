@@ -56,7 +56,7 @@ export function Tabs({
   return (
     <div
       className={cn(
-        "relative flex border-b border-zinc-800",
+        "relative flex border-b border-stroke-subtle",
         className
       )}
     >
@@ -69,10 +69,10 @@ export function Tabs({
           }}
           onClick={() => handleTabClick(tab.id)}
           className={cn(
-            "relative px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer",
+            "relative px-4 py-2.5 text-sm font-medium transition-colors duration-(--of-duration-instant) cursor-pointer",
             activeTab === tab.id
-              ? "text-zinc-100"
-              : "text-zinc-400 hover:text-zinc-200"
+              ? "text-text-primary"
+              : "text-text-tertiary hover:text-text-primary"
           )}
         >
           {tab.label}
@@ -81,8 +81,8 @@ export function Tabs({
               className={cn(
                 "ml-1.5 rounded-full px-1.5 py-0.5 text-xs",
                 activeTab === tab.id
-                  ? "bg-zinc-700 text-zinc-200"
-                  : "bg-zinc-800 text-zinc-500"
+                  ? "bg-surface-3 text-text-primary"
+                  : "bg-surface-2 text-text-tertiary"
               )}
             >
               {tab.count}

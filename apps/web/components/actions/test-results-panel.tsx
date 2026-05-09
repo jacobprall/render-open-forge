@@ -35,7 +35,7 @@ export function TestResultsPanel({ owner, repo, runId }: Props) {
   }, [load])
 
   if (loading) {
-    return <p className="text-sm text-zinc-500">Loading test results…</p>
+    return <p className="text-sm text-text-tertiary">Loading test results…</p>
   }
 
   if (error) {
@@ -43,7 +43,7 @@ export function TestResultsPanel({ owner, repo, runId }: Props) {
   }
 
   if (!results || results.testSuites.length === 0) {
-    return <p className="text-sm text-zinc-500">No test results available for this run.</p>
+    return <p className="text-sm text-text-tertiary">No test results available for this run.</p>
   }
 
   const totalTests = results.testSuites.reduce((s, ts) => s + ts.tests, 0)
@@ -76,7 +76,7 @@ function CountBadge({ label, count, color }: { label: string; count: number; col
     emerald: "bg-accent-bg text-accent border-accent/20",
     red: "bg-danger/15 text-danger border-danger/20",
     orange: "bg-orange-500/15 text-orange-300 border-orange-500/20",
-    zinc: "bg-zinc-500/15 text-zinc-300 border-zinc-500/20",
+    zinc: "bg-text-tertiary/15 text-text-secondary border-text-tertiary/20",
   }
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${colorMap[color] ?? colorMap.zinc}`}>
@@ -89,15 +89,15 @@ function SuiteSection({ suite }: { suite: TestSuite }) {
   const [expanded, setExpanded] = useState(suite.failures > 0 || suite.errors > 0)
 
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50">
+    <div className="border border-stroke-subtle bg-surface-1/50">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-medium text-zinc-100 hover:bg-zinc-800/50"
+        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-medium text-text-primary hover:bg-surface-2/50"
       >
         <span className="flex items-center gap-2">
           <svg
-            className={`h-4 w-4 text-zinc-500 transition-transform ${expanded ? "rotate-90" : ""}`}
+            className={`h-4 w-4 text-text-tertiary transition-transform ${expanded ? "rotate-90" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={2}
@@ -107,17 +107,17 @@ function SuiteSection({ suite }: { suite: TestSuite }) {
           </svg>
           {suite.name || "Test Suite"}
         </span>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-text-tertiary">
           {suite.tests} tests · {suite.time.toFixed(2)}s
         </span>
       </button>
 
       {expanded && (
-        <div className="border-t border-zinc-800">
+        <div className="border-t border-stroke-subtle">
           {suite.testCases.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-zinc-500">No test cases recorded.</p>
+            <p className="px-4 py-3 text-sm text-text-tertiary">No test cases recorded.</p>
           ) : (
-            <ul className="divide-y divide-zinc-800/60">
+            <ul className="divide-y divide-stroke-subtle/60">
               {suite.testCases.map((tc, i) => (
                 <TestCaseRow key={i} tc={tc} />
               ))}
@@ -133,7 +133,7 @@ const statusIcons: Record<TestCase["status"], { icon: string; color: string }> =
   pass: { icon: "✓", color: "text-accent-text" },
   fail: { icon: "✗", color: "text-danger" },
   error: { icon: "!", color: "text-orange-400" },
-  skip: { icon: "–", color: "text-zinc-500" },
+  skip: { icon: "–", color: "text-text-tertiary" },
 }
 
 function TestCaseRow({ tc }: { tc: TestCase }) {
@@ -147,19 +147,19 @@ function TestCaseRow({ tc }: { tc: TestCase }) {
         type="button"
         disabled={!hasDetails}
         onClick={() => hasDetails && setExpanded(!expanded)}
-        className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-zinc-800/30 disabled:cursor-default"
+        className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-surface-2/30 disabled:cursor-default"
       >
         <span className={`font-mono font-bold ${color}`}>{icon}</span>
-        <span className="flex-1 truncate text-zinc-200">
+        <span className="flex-1 truncate text-text-primary">
           {tc.className ? `${tc.className} › ` : ""}
           {tc.name}
         </span>
         {tc.time > 0 && (
-          <span className="shrink-0 text-xs tabular-nums text-zinc-500">{tc.time.toFixed(3)}s</span>
+          <span className="shrink-0 text-xs tabular-nums text-text-tertiary">{tc.time.toFixed(3)}s</span>
         )}
         {hasDetails && (
           <svg
-            className={`h-3 w-3 text-zinc-600 transition-transform ${expanded ? "rotate-90" : ""}`}
+            className={`h-3 w-3 text-text-tertiary transition-transform ${expanded ? "rotate-90" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={2}
@@ -170,12 +170,12 @@ function TestCaseRow({ tc }: { tc: TestCase }) {
         )}
       </button>
       {expanded && hasDetails && (
-        <div className="mx-4 mb-3 rounded-md border border-zinc-800 bg-zinc-950 p-3">
+        <div className="mx-4 mb-3 border border-stroke-subtle bg-surface-0 p-3">
           {tc.message && (
             <p className="mb-1 text-xs font-medium text-danger">{tc.message}</p>
           )}
           {tc.stackTrace && (
-            <pre className="max-h-48 overflow-auto whitespace-pre-wrap wrap-break-words font-mono text-xs leading-relaxed text-zinc-400">
+            <pre className="max-h-48 overflow-auto whitespace-pre-wrap wrap-break-words font-mono text-xs leading-relaxed text-text-tertiary">
               {tc.stackTrace}
             </pre>
           )}

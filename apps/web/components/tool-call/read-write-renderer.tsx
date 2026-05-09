@@ -2,6 +2,8 @@
 
 import { FileText, FilePen, FileEdit } from "lucide-react";
 import { ToolLayout, type ToolStatus } from "./tool-layout";
+import { CodeBlock } from "@/components/code-block";
+import { InlineDiffView } from "./inline-diff";
 
 interface ReadArgs {
   path?: string;
@@ -72,9 +74,12 @@ export function ReadRenderer({
       {result?.error ? (
         <span className="text-danger">{result.error}</span>
       ) : result?.content != null ? (
-        <pre className="text-xs whitespace-pre-wrap text-zinc-300">
-          {result.content}
-        </pre>
+        <CodeBlock
+          code={result.content}
+          filePath={filePath}
+          showLineNumbers={false}
+          maxHeight="max-h-64"
+        />
       ) : null}
     </ToolLayout>
   );
@@ -105,16 +110,17 @@ export function WriteRenderer({
     >
       {result?.error && <span className="text-danger">{result.error}</span>}
       {result?.bytesWritten != null && (
-        <span className="text-zinc-400">
+        <span className="text-text-tertiary">
           {result.bytesWritten} bytes written
         </span>
       )}
       {args?.content && (
-        <pre className="text-xs whitespace-pre-wrap text-zinc-300 mt-1">
-          {args.content.length > 800
-            ? args.content.slice(0, 800) + "\n…"
-            : args.content}
-        </pre>
+        <CodeBlock
+          code={args.content.length > 800 ? args.content.slice(0, 800) + "\n…" : args.content}
+          filePath={filePath}
+          showLineNumbers={false}
+          maxHeight="max-h-48"
+        />
       )}
     </ToolLayout>
   );
@@ -142,24 +148,31 @@ export function EditRenderer({
       title="edit"
       subtitle={filePath}
       status={derivedStatus}
+      defaultOpen
     >
       {result?.error && <span className="text-danger">{result.error}</span>}
       {result?.replacements != null && (
-        <span className="text-zinc-400">
+        <span className="text-text-tertiary">
           {result.replacements} replacement
           {result.replacements !== 1 ? "s" : ""}
         </span>
       )}
-      {args?.oldString && (
-        <div className="mt-1 space-y-1">
-          <pre className="text-xs bg-danger/10 text-danger whitespace-pre-wrap px-1 rounded">
+      {args?.oldString && args?.newString != null ? (
+        <InlineDiffView
+          filePath={filePath}
+          oldString={args.oldString.length > 800 ? args.oldString.slice(0, 800) + "…" : args.oldString}
+          newString={args.newString.length > 800 ? args.newString.slice(0, 800) + "…" : args.newString}
+        />
+      ) : args?.oldString ? (
+        <div className="space-y-1">
+          <pre className="text-xs bg-danger/10 text-danger whitespace-pre-wrap px-1">
             {`- ${args.oldString.length > 400 ? args.oldString.slice(0, 400) + "…" : args.oldString}`}
           </pre>
-          <pre className="text-xs bg-accent-bg text-accent-text whitespace-pre-wrap px-1 rounded">
+          <pre className="text-xs bg-accent-bg text-accent-text whitespace-pre-wrap px-1">
             {`+ ${args.newString ? (args.newString.length > 400 ? args.newString.slice(0, 400) + "…" : args.newString) : ""}`}
           </pre>
         </div>
-      )}
+      ) : null}
     </ToolLayout>
   );
 }

@@ -67,29 +67,29 @@ export function MirrorSync({ mirrorId, remoteRepoUrl, direction, lastSyncAt, sta
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+    <div className="border border-stroke-subtle bg-surface-1 p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5">
-            <span className="text-sm font-medium text-zinc-400">{provider}</span>
-            <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-300">
+            <span className="text-sm font-medium text-text-tertiary">{provider}</span>
+            <span className="bg-surface-2 px-2 py-0.5 text-xs font-medium text-text-secondary">
               {directionLabels[direction] ?? direction}
             </span>
             <div className="flex items-center gap-1">
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
-                  status === "active" ? "bg-accent" : status === "error" ? "bg-danger" : "bg-zinc-500"
+                  status === "active" ? "bg-accent" : status === "error" ? "bg-danger" : "bg-surface-3"
                 }`}
               />
-              <span className="text-xs text-zinc-500 capitalize">{status}</span>
+              <span className="text-xs text-text-tertiary capitalize">{status}</span>
             </div>
           </div>
 
-          <div className="mt-1.5 truncate text-xs text-zinc-500" title={remoteRepoUrl}>
+          <div className="mt-1.5 truncate text-xs text-text-tertiary" title={remoteRepoUrl}>
             {cleanUrl}
           </div>
 
-          <div className="mt-2 text-xs text-zinc-600">
+          <div className="mt-2 text-xs text-text-tertiary">
             Last sync: {formatRelative(lastSync)}
           </div>
         </div>
@@ -97,11 +97,11 @@ export function MirrorSync({ mirrorId, remoteRepoUrl, direction, lastSyncAt, sta
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="shrink-0 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50"
+          className="shrink-0 border border-stroke-default px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle hover:text-text-primary disabled:opacity-50"
         >
           {syncing ? (
             <span className="flex items-center gap-1.5">
-              <span className="h-3 w-3 animate-spin rounded-full border border-zinc-500 border-t-zinc-200" />
+              <span className="h-3 w-3 animate-spin rounded-full border border-stroke-default border-t-text-primary" />
               Syncing
             </span>
           ) : (
@@ -111,7 +111,7 @@ export function MirrorSync({ mirrorId, remoteRepoUrl, direction, lastSyncAt, sta
       </div>
 
       {error && (
-        <div className="mt-3 rounded-lg border border-danger/20 bg-danger/5 px-3 py-2 text-xs text-danger">
+        <div className="mt-3 border border-danger/20 bg-danger/5 px-3 py-2 text-xs text-danger">
           {error}
         </div>
       )}

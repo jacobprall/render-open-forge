@@ -29,7 +29,7 @@ function barColor(pct: number): string {
 
 function textColor(pct: number): string {
   if (pct >= 85) return "text-danger";
-  if (pct >= 60) return "text-amber-400";
+  if (pct >= 60) return "text-warning";
   return "text-accent-text";
 }
 
@@ -49,19 +49,19 @@ export default function OrgUsagePage() {
 
   return (
     <div className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-2 text-2xl font-bold text-zinc-100">
+      <h1 className="mb-2 text-2xl font-bold text-text-primary">
         Usage Dashboard
       </h1>
-      <p className="mb-6 text-sm text-zinc-400">
-        Resource usage for <span className="font-medium text-zinc-200">{org}</span>
+      <p className="mb-6 text-sm text-text-tertiary">
+        Resource usage for <span className="font-medium text-text-primary">{org}</span>
       </p>
 
       {loading ? (
-        <p className="text-sm text-zinc-400">Loading usage data...</p>
+        <p className="text-sm text-text-tertiary">Loading usage data...</p>
       ) : error ? (
         <p className="text-sm text-danger">{error}</p>
       ) : quotas.length === 0 ? (
-        <p className="text-sm text-zinc-400">No usage data available.</p>
+        <p className="text-sm text-text-tertiary">No usage data available.</p>
       ) : (
         <div className="space-y-4">
           {quotas.map((q) => {
@@ -69,18 +69,18 @@ export default function OrgUsagePage() {
             return (
               <div
                 key={q.label}
-                className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
+                className="border border-stroke-subtle bg-surface-1 p-4"
               >
                 <div className="mb-2 flex items-baseline justify-between">
-                  <span className="text-sm font-medium text-zinc-200">
+                  <span className="text-sm font-medium text-text-primary">
                     {q.label}
                   </span>
                   <span className={`text-xs font-mono ${textColor(pct)}`}>
                     {q.used.toLocaleString()} / {q.limit.toLocaleString()} {q.unit}
-                    <span className="ml-2 text-zinc-500">({pct}%)</span>
+                    <span className="ml-2 text-text-tertiary">({pct}%)</span>
                   </span>
                 </div>
-                <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-800">
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-2">
                   <div
                     className={`h-full rounded-full transition-all ${barColor(pct)}`}
                     style={{ width: `${pct}%` }}

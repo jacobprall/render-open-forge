@@ -148,7 +148,7 @@ export const agentRuns = pgTable(
       enum: ["queued", "running", "completed", "aborted", "failed", "error"],
     }).notNull().default("queued"),
     trigger: text("trigger", {
-      enum: ["user_message", "ci_failure", "review_comment", "pr_opened", "pr_merged", "workflow_run"],
+      enum: ["user_message", "ci_failure", "review_comment", "pr_opened", "pr_merged", "workflow_run", "deploy_failure"],
     }),
     startedAt: timestamp("started_at"),
     finishedAt: timestamp("finished_at"),

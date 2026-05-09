@@ -41,7 +41,7 @@ export default async function PullRequestDetailPage({
       {/* Back link */}
       <Link
         href={`${basePath}/pulls`}
-        className="mb-4 inline-flex items-center gap-1 text-sm text-zinc-400 transition hover:text-zinc-200"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-text-tertiary transition-colors duration-(--of-duration-instant) hover:text-text-primary"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -52,9 +52,9 @@ export default async function PullRequestDetailPage({
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-start gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
+          <h1 className="text-2xl font-bold tracking-tight text-text-primary">
             {pr.title}
-            <span className="ml-2 font-normal text-zinc-500">#{pr.number}</span>
+            <span className="ml-2 font-normal text-text-tertiary">#{pr.number}</span>
           </h1>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -80,7 +80,7 @@ export default async function PullRequestDetailPage({
               Open
             </span>
           )}
-          <span className="text-sm text-zinc-400">
+          <span className="text-sm text-text-tertiary">
             {pr.author} opened {relativeTime(pr.createdAt)}
           </span>
         </div>
@@ -88,32 +88,32 @@ export default async function PullRequestDetailPage({
 
       {/* Branch info */}
       <div className="mb-6 flex items-center gap-2 text-sm">
-        <span className="rounded-md bg-zinc-800 px-2.5 py-1 font-mono text-xs text-accent-text">
+        <span className="bg-surface-2 px-2.5 py-1 font-mono text-xs text-accent-text">
           {pr.headRef}
         </span>
-        <svg className="h-4 w-4 text-zinc-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <svg className="h-4 w-4 text-text-tertiary" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
         </svg>
-        <span className="rounded-md bg-zinc-800 px-2.5 py-1 font-mono text-xs text-zinc-300">
+        <span className="bg-surface-2 px-2.5 py-1 font-mono text-xs text-text-secondary">
           {pr.baseRef}
         </span>
       </div>
 
       {/* Body */}
-      <div className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-        <h3 className="mb-3 text-sm font-medium text-zinc-400">Description</h3>
+      <div className="mb-8 border border-stroke-subtle bg-surface-1 p-6">
+        <h3 className="mb-3 text-sm font-medium text-text-tertiary">Description</h3>
         {pr.body ? (
-          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-zinc-300">
+          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-text-secondary">
             {pr.body}
           </pre>
         ) : (
-          <p className="text-sm italic text-zinc-600">No description provided.</p>
+          <p className="text-sm italic text-text-tertiary">No description provided.</p>
         )}
       </div>
 
       {rawDiff ? (
-        <div className="mb-8 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/80">
-          <h3 className="border-b border-zinc-800 px-6 py-3 text-sm font-medium text-zinc-400">
+        <div className="mb-8 overflow-hidden border border-stroke-subtle bg-surface-0">
+          <h3 className="border-b border-stroke-subtle px-6 py-3 text-sm font-medium text-text-tertiary">
             Changes
           </h3>
           <div className="max-h-[70vh] overflow-y-auto px-4 py-3">
@@ -124,7 +124,7 @@ export default async function PullRequestDetailPage({
 
       {/* Comments & Reviews */}
       <div className="mb-8">
-        <h3 className="mb-4 text-sm font-medium text-zinc-400">Discussion</h3>
+        <h3 className="mb-4 text-sm font-medium text-text-tertiary">Discussion</h3>
         <PRComments owner={owner} repo={repo} number={pr.number} />
       </div>
 
@@ -134,7 +134,7 @@ export default async function PullRequestDetailPage({
       )}
 
       {pr.merged && (
-        <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-5">
+        <div className="border border-purple-500/20 bg-purple-500/5 p-5">
           <div className="flex items-center gap-2 text-purple-400">
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 16 16">
               <path d="M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218ZM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z" />

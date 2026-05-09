@@ -19,7 +19,7 @@ function PrBadge({ prNumber, prStatus, repoPath }: { prNumber: number; prStatus:
     <Link
       href={`/${repoPath}/pulls/${prNumber}`}
       onClick={(e) => e.stopPropagation()}
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition hover:brightness-125 ${style.bg}`}
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors duration-(--of-duration-instant) hover:brightness-125 ${style.bg}`}
     >
       <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 16 16">
         <path d={style.icon} />
@@ -37,12 +37,12 @@ function skillChips(session: Session) {
       {skills.slice(0, 5).map((s) => (
         <span
           key={`${s.source}-${s.slug}`}
-          className="font-mono text-[10px] text-zinc-500"
+          className="font-mono text-[10px] text-text-tertiary"
         >
           {s.slug}
         </span>
       ))}
-      {skills.length > 5 ? <span className="text-[10px] text-zinc-600">+{skills.length - 5}</span> : null}
+      {skills.length > 5 ? <span className="text-[10px] text-text-tertiary">+{skills.length - 5}</span> : null}
     </span>
   );
 }
@@ -96,12 +96,12 @@ export function SessionCard({ session }: { session: Session }) {
   return (
     <Link
       href={`/sessions/${session.id}`}
-      className="block rounded-lg border border-stroke-default p-4 transition hover:border-zinc-600 hover:bg-surface-1"
+      className="block border border-stroke-default p-(--of-space-md) transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle hover:bg-surface-1"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate font-medium text-zinc-100">{session.title}</h3>
+            <h3 className="truncate font-medium text-text-primary">{session.title}</h3>
             <StatusBadge status={session.status} dot={false} />
             {session.prNumber != null && (
               <PrBadge
@@ -112,14 +112,14 @@ export function SessionCard({ session }: { session: Session }) {
             )}
             {skillChips(session)}
           </div>
-          <p className="mt-1 truncate font-mono text-xs text-zinc-500">
+          <p className="mt-1 truncate font-mono text-xs text-text-tertiary">
             {session.repoPath}
-            <span className="text-zinc-600"> · </span>
+            <span className="text-text-tertiary"> · </span>
             {session.branch}
           </p>
         </div>
         <div className="flex items-start gap-3">
-          <div className="flex flex-col items-end gap-1 text-xs text-zinc-500">
+          <div className="flex flex-col items-end gap-1 text-xs text-text-tertiary">
             <span suppressHydrationWarning>
               {session.status === "running" ? "Active" : "Last activity"}{" "}
               {formatRelativeTime(session.lastActivityAt ?? session.createdAt)}
@@ -139,14 +139,14 @@ export function SessionCard({ session }: { session: Session }) {
                   <button
                     onClick={handleConfirm}
                     disabled={isPending}
-                    className="rounded px-2 py-1 text-xs font-medium text-danger transition hover:bg-danger/10 disabled:opacity-50"
+                    className="rounded px-2 py-1 text-xs font-medium text-danger transition-colors duration-(--of-duration-instant) hover:bg-danger/10 disabled:opacity-50"
                   >
                     {isPending ? "Archiving…" : "Confirm"}
                   </button>
                   <button
                     onClick={handleCancel}
                     disabled={isPending}
-                    className="rounded px-2 py-1 text-xs font-medium text-zinc-400 transition hover:bg-zinc-700/50"
+                    className="rounded px-2 py-1 text-xs font-medium text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-3"
                   >
                     Cancel
                   </button>
@@ -155,7 +155,7 @@ export function SessionCard({ session }: { session: Session }) {
                 <button
                   onClick={handleArchive}
                   title="Archive session"
-                  className="rounded p-1 text-zinc-700 transition hover:bg-zinc-700/50 hover:text-zinc-400"
+                  className="rounded p-1 text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-3 hover:text-text-tertiary"
                 >
                   <Archive className="h-4 w-4" />
                 </button>

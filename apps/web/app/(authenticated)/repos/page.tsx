@@ -20,7 +20,7 @@ function RepoCard({ repo }: { repo: ForgeRepo }) {
   return (
     <Link
       href={`/${repo.fullName}`}
-      className="group block rounded-xl border border-stroke-default bg-surface-1 p-5 transition hover:border-stroke-subtle hover:bg-surface-2"
+      className="group block border border-stroke-default bg-surface-1 p-5 transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle hover:bg-surface-2"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -89,7 +89,7 @@ export default async function ReposPage({
     >
       {repos.length > 0 && (
         <div className="mb-6">
-          <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surface-2" />}>
+          <Suspense fallback={<div className="h-10 animate-pulse bg-surface-2" />}>
             <RepoSearch />
           </Suspense>
         </div>

@@ -12,8 +12,8 @@ export default async function ApiKeysPage() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-zinc-100">LLM API keys</h2>
-        <p className="mt-1 text-sm text-zinc-400">
+        <h2 className="text-lg font-semibold text-text-primary">LLM API keys</h2>
+        <p className="mt-1 text-sm text-text-tertiary">
           Manage Anthropic and OpenAI credentials for the agent. Order of precedence: your personal key,
           then platform key, then environment variables on the web and worker.
         </p>

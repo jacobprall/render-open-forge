@@ -92,7 +92,7 @@ export function PRComments({
   }
 
   if (loading) {
-    return <p className="text-sm text-zinc-500">Loading comments…</p>;
+    return <p className="text-sm text-text-tertiary">Loading comments…</p>;
   }
 
   const inlineComments = comments.filter((c) => c.path);
@@ -102,49 +102,49 @@ export function PRComments({
     <div className="space-y-6">
       {/* General comments */}
       <div className="space-y-3">
-        <h4 className="text-sm font-medium text-zinc-400">
+        <h4 className="text-sm font-medium text-text-tertiary">
           Comments ({comments.length})
         </h4>
         {comments.length === 0 && (
-          <p className="text-sm text-zinc-600">No comments yet.</p>
+          <p className="text-sm text-text-tertiary">No comments yet.</p>
         )}
 
         {generalComments.map((c) => (
           <div
             key={`gen-${c.id}`}
-            className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4"
+            className="border border-stroke-subtle bg-surface-1/50 p-4"
           >
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-zinc-200">{c.user.login}</span>
-                <span className="text-xs text-zinc-500" suppressHydrationWarning>{relTime(c.createdAt)}</span>
+                <span className="text-sm font-medium text-text-primary">{c.user.login}</span>
+                <span className="text-xs text-text-tertiary" suppressHydrationWarning>{relTime(c.createdAt)}</span>
               </div>
             </div>
-            <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-300">{c.body}</pre>
+            <pre className="whitespace-pre-wrap font-sans text-sm text-text-secondary">{c.body}</pre>
           </div>
         ))}
 
         {/* Inline comments grouped by file */}
         {inlineComments.length > 0 && (
           <div className="space-y-2">
-            <h5 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+            <h5 className="text-xs font-medium uppercase tracking-wide text-text-tertiary">
               Inline comments
             </h5>
             {inlineComments.map((c) => (
               <div
                 key={`inline-${c.id}`}
-                className={`rounded-lg border p-4 ${
+                className={`border p-4 ${
                   c.resolved
-                    ? "border-zinc-800/50 bg-zinc-900/30 opacity-60"
+                    ? "border-stroke-subtle/50 bg-surface-1/30 opacity-60"
                     : "border-amber-500/20 bg-amber-500/5"
                 }`}
               >
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-zinc-200">{c.user.login}</span>
-                    <span className="text-xs text-zinc-500" suppressHydrationWarning>{relTime(c.createdAt)}</span>
+                    <span className="text-sm font-medium text-text-primary">{c.user.login}</span>
+                    <span className="text-xs text-text-tertiary" suppressHydrationWarning>{relTime(c.createdAt)}</span>
                     {c.path && (
-                      <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-xs text-zinc-400">
+                      <span className="bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-text-tertiary">
                         {c.path}
                         {c.line != null ? `:${c.line}` : ""}
                       </span>
@@ -153,12 +153,12 @@ export function PRComments({
                   <button
                     type="button"
                     onClick={() => toggleResolve(c.id, !!c.resolved)}
-                    className="text-xs text-zinc-400 hover:text-zinc-200"
+                    className="text-xs text-text-tertiary hover:text-text-primary"
                   >
                     {c.resolved ? "Unresolve" : "Resolve"}
                   </button>
                 </div>
-                <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-300">{c.body}</pre>
+                <pre className="whitespace-pre-wrap font-sans text-sm text-text-secondary">{c.body}</pre>
               </div>
             ))}
           </div>
@@ -166,9 +166,9 @@ export function PRComments({
       </div>
 
       {/* Post new comment */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+      <div className="border border-stroke-subtle bg-surface-1/50 p-4">
         <textarea
-          className="w-full resize-none rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-500 focus:border-accent focus:outline-none"
+          className="w-full resize-none border border-stroke-default bg-surface-2/50 px-3 py-2 text-sm text-text-primary placeholder-text-tertiary focus:border-accent focus:outline-none"
           rows={3}
           placeholder="Add a comment…"
           value={newComment}
@@ -180,7 +180,7 @@ export function PRComments({
             type="button"
             onClick={() => void post()}
             disabled={posting || !newComment.trim()}
-            className="ml-auto rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+            className="ml-auto bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
             {posting ? "Posting…" : "Comment"}
           </button>

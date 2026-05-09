@@ -40,12 +40,12 @@ export default async function RepoLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950">
-      <div className="border-b border-zinc-800 bg-zinc-950">
+    <div className="min-h-screen bg-surface-0">
+      <div className="border-b border-stroke-subtle bg-surface-0">
         <div className="mx-auto max-w-6xl px-6 pt-6">
           <div className="mb-4 flex items-center gap-3">
             <svg
-              className="h-5 w-5 text-zinc-400"
+              className="h-5 w-5 text-text-tertiary"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -64,7 +64,7 @@ export default async function RepoLayout({
               >
                 {owner}
               </Link>
-              <span className="text-zinc-500">/</span>
+              <span className="text-text-tertiary">/</span>
               <Link
                 href={basePath}
                 className="font-semibold text-accent-text hover:underline"
@@ -73,11 +73,11 @@ export default async function RepoLayout({
               </Link>
             </div>
             {repoData.isPrivate ? (
-              <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
+              <span className="rounded-full border border-stroke-default px-2 py-0.5 text-xs text-text-tertiary">
                 Private
               </span>
             ) : (
-              <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
+              <span className="rounded-full border border-stroke-default px-2 py-0.5 text-xs text-text-tertiary">
                 Public
               </span>
             )}

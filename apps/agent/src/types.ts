@@ -26,5 +26,6 @@ export interface AgentJob {
     | "review_comment"
     | "pr_opened"
     | "pr_merged"
-    | "workflow_run";
+    | "workflow_run"
+    | "deploy_failure";
 }

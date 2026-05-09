@@ -12,6 +12,10 @@ export async function savePreferencesAction(formData: FormData): Promise<{ error
   const session = await getSession();
   if (!session) redirect("/");
 
+  const rawTheme = (formData.get("theme") as string) || null;
+  const validThemes = new Set(["default", "terminal", "typewriter", "blueprint", "warm-analog"]);
+  const theme = rawTheme && validThemes.has(rawTheme) ? rawTheme as UserPreferencesData["theme"] : null;
+
   const data: UserPreferencesData = {
     defaultModelId: (formData.get("defaultModelId") as string) || null,
     defaultSubagentModelId: (formData.get("defaultSubagentModelId") as string) || null,
@@ -22,6 +26,7 @@ export async function savePreferencesAction(formData: FormData): Promise<{ error
     accentColor: (formData.get("accentColor") as string) || null,
     secondaryColor: (formData.get("secondaryColor") as string) || null,
     tertiaryColor: (formData.get("tertiaryColor") as string) || null,
+    theme,
   };
 
   try {

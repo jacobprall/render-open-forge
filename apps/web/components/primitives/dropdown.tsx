@@ -52,7 +52,7 @@ export function Dropdown({
       {open && (
         <div
           className={cn(
-            "absolute z-50 mt-1 min-w-[180px] rounded-lg border border-zinc-800 bg-zinc-900 p-1 shadow-xl",
+            "absolute z-50 mt-1 min-w-[180px] border border-stroke-subtle bg-surface-1 p-1 shadow-xl",
             align === "right" ? "right-0" : "left-0"
           )}
         >
@@ -84,10 +84,10 @@ export const DropdownItem = React.forwardRef<
     <button
       ref={ref}
       className={cn(
-        "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors text-left cursor-pointer",
+        "flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors duration-(--of-duration-instant) text-left cursor-pointer",
         destructive
           ? "text-red-400 hover:bg-red-500/10"
-          : "text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100",
+          : "text-text-secondary hover:bg-surface-2 hover:text-text-primary",
         className
       )}
       onClick={(e) => {
@@ -104,5 +104,5 @@ export const DropdownItem = React.forwardRef<
 DropdownItem.displayName = "DropdownItem";
 
 export function DropdownSeparator() {
-  return <div className="my-1 h-px bg-zinc-800" />;
+  return <div className="my-1 h-px bg-stroke-subtle" />;
 }

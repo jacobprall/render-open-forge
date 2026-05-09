@@ -91,8 +91,8 @@ export function ChatPanel({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
-        <div className="mx-auto max-w-2xl flex flex-col gap-4">
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-(--of-space-md) py-(--of-space-xl)">
+        <div className="mx-auto max-w-2xl flex flex-col gap-(--of-space-lg)">
           <MessageArea
             messages={messages}
             streamingParts={stream.streamingParts}

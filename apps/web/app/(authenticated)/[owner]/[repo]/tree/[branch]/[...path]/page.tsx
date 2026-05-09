@@ -76,9 +76,9 @@ export default async function TreePage({
           </Link>
           {breadcrumbs.map((crumb, i) => (
             <span key={crumb.href} className="flex items-center gap-1">
-              <span className="text-zinc-600">/</span>
+              <span className="text-text-tertiary">/</span>
               {i === breadcrumbs.length - 1 ? (
-                <span className="font-medium text-zinc-200">
+                <span className="font-medium text-text-primary">
                   {crumb.label}
                 </span>
               ) : (
@@ -95,7 +95,7 @@ export default async function TreePage({
       </div>
 
       {/* File listing */}
-      <div className="overflow-hidden rounded-lg border border-zinc-800">
+      <div className="overflow-hidden border border-stroke-subtle">
         {/* Parent directory link */}
         <Link
           href={
@@ -103,10 +103,10 @@ export default async function TreePage({
               ? `/${owner}/${repo}`
               : `/${owner}/${repo}/tree/${encodeURIComponent(branch)}/${pathSegments.slice(0, -1).join("/")}`
           }
-          className="flex items-center gap-3 border-b border-zinc-800/50 px-4 py-2 text-sm text-zinc-400 transition hover:bg-zinc-900/50 hover:text-zinc-200"
+          className="flex items-center gap-3 border-b border-stroke-subtle px-4 py-2 text-sm text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-1 hover:text-text-primary"
         >
           <svg
-            className="h-4 w-4 text-zinc-500"
+            className="h-4 w-4 text-text-tertiary"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
@@ -120,7 +120,7 @@ export default async function TreePage({
           </svg>
           ..
         </Link>
-        <div className="divide-y divide-zinc-800/50">
+        <div className="divide-y divide-stroke-subtle">
           {sorted.map((file) => (
             <Link
               key={file.path}
@@ -129,7 +129,7 @@ export default async function TreePage({
                   ? `/${owner}/${repo}/tree/${encodeURIComponent(branch)}/${file.path}`
                   : `/${owner}/${repo}/blob/${encodeURIComponent(branch)}/${file.path}`
               }
-              className="flex items-center gap-3 px-4 py-2 transition hover:bg-zinc-900/50"
+              className="flex items-center gap-3 px-4 py-2 transition-colors duration-(--of-duration-instant) hover:bg-surface-1"
             >
               {file.type === "dir" ? (
                 <svg
@@ -147,7 +147,7 @@ export default async function TreePage({
                 </svg>
               ) : (
                 <svg
-                  className="h-4 w-4 shrink-0 text-zinc-500"
+                  className="h-4 w-4 shrink-0 text-text-tertiary"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
@@ -160,16 +160,16 @@ export default async function TreePage({
                   />
                 </svg>
               )}
-              <span className="text-sm text-zinc-200">{file.name}</span>
+              <span className="text-sm text-text-primary">{file.name}</span>
               {file.type === "file" && (
-                <span className="ml-auto text-xs text-zinc-600">
+                <span className="ml-auto text-xs text-text-tertiary">
                   {formatBytes(file.size)}
                 </span>
               )}
             </Link>
           ))}
           {sorted.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-zinc-500">
+            <div className="px-4 py-8 text-center text-sm text-text-tertiary">
               This directory is empty
             </div>
           )}

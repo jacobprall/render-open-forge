@@ -46,7 +46,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="relative rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+        className="relative p-2 text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-2 hover:text-text-primary"
         aria-label="Notifications"
       >
         <svg
@@ -69,22 +69,22 @@ export function NotificationBell() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl">
-          <div className="border-b border-zinc-800 px-4 py-2">
-            <span className="text-sm font-medium text-zinc-200">Notifications</span>
+        <div className="absolute right-0 top-full z-50 mt-2 w-80 border border-stroke-subtle bg-surface-1 shadow-xl">
+          <div className="border-b border-stroke-subtle px-4 py-2">
+            <span className="text-sm font-medium text-text-primary">Notifications</span>
           </div>
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-zinc-500">No notifications</div>
+              <div className="px-4 py-6 text-center text-sm text-text-tertiary">No notifications</div>
             ) : (
               notifications.map((n) => (
                 <a
                   key={n.id}
                   href={n.link || "#"}
-                  className="block border-b border-zinc-800 px-4 py-3 transition-colors last:border-0 hover:bg-zinc-800/50"
+                  className="block border-b border-stroke-subtle px-4 py-3 transition-colors duration-(--of-duration-instant) last:border-0 hover:bg-surface-2/50"
                 >
-                  <p className="text-sm font-medium text-zinc-200">{n.title}</p>
-                  <p className="mt-0.5 text-xs text-zinc-400">{n.body}</p>
+                  <p className="text-sm font-medium text-text-primary">{n.title}</p>
+                  <p className="mt-0.5 text-xs text-text-tertiary">{n.body}</p>
                 </a>
               ))
             )}

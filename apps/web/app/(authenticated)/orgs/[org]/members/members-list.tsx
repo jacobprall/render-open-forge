@@ -88,38 +88,38 @@ export function MembersList({ org }: { org: string }) {
     <div className="space-y-6">
       <form
         onSubmit={(e) => void handleAdd(e)}
-        className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6"
+        className="border border-stroke-subtle bg-surface-1 p-6"
       >
-        <h2 className="text-base font-semibold text-zinc-100">Add Member</h2>
+        <h2 className="text-base font-semibold text-text-primary">Add Member</h2>
         <div className="mt-3 flex gap-3">
           <input
             type="text"
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="flex-1 border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary placeholder-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
           <button
             type="submit"
             disabled={adding || !username.trim()}
-            className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
+            className="shrink-0 bg-accent px-4 py-2 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover disabled:opacity-50"
           >
             {adding ? "Adding…" : "Add Member"}
           </button>
         </div>
       </form>
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-        <h2 className="text-base font-semibold text-zinc-100">Current Members</h2>
+      <div className="border border-stroke-subtle bg-surface-1 p-6">
+        <h2 className="text-base font-semibold text-text-primary">Current Members</h2>
 
         {loading ? (
-          <p className="mt-4 text-sm text-zinc-500">Loading…</p>
+          <p className="mt-4 text-sm text-text-tertiary">Loading…</p>
         ) : loadError ? (
           <p className="mt-4 text-sm text-danger">{loadError}</p>
         ) : members.length === 0 ? (
-          <p className="mt-4 text-sm text-zinc-500">No members found.</p>
+          <p className="mt-4 text-sm text-text-tertiary">No members found.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
+          <ul className="mt-4 divide-y divide-stroke-subtle border border-stroke-subtle">
             {members.map((member) => (
               <li key={member.id} className="flex items-center justify-between gap-4 px-4 py-3">
                 <div className="flex items-center gap-3">
@@ -128,12 +128,12 @@ export function MembersList({ org }: { org: string }) {
                     alt={member.login}
                     width={32}
                     height={32}
-                    className="h-8 w-8 rounded-full bg-zinc-700"
+                    className="h-8 w-8 rounded-full bg-surface-3"
                   />
                   <div>
-                    <span className="text-sm font-medium text-zinc-200">{member.full_name || member.login}</span>
+                    <span className="text-sm font-medium text-text-primary">{member.full_name || member.login}</span>
                     {member.full_name ? (
-                      <span className="ml-2 text-xs text-zinc-500">@{member.login}</span>
+                      <span className="ml-2 text-xs text-text-tertiary">@{member.login}</span>
                     ) : null}
                   </div>
                 </div>
@@ -141,7 +141,7 @@ export function MembersList({ org }: { org: string }) {
                   type="button"
                   disabled={removing === member.login}
                   onClick={() => void handleRemove(member.login)}
-                  className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-400 transition hover:border-danger/40 hover:text-danger disabled:opacity-50"
+                  className="border border-stroke-default px-3 py-1 text-xs font-medium text-text-tertiary transition-colors duration-(--of-duration-instant) hover:border-danger/40 hover:text-danger disabled:opacity-50"
                 >
                   {removing === member.login ? "Removing…" : "Remove"}
                 </button>

@@ -56,14 +56,14 @@ export function JobLogsPoller(props: {
 
   if (error) {
     return (
-      <p className="text-sm text-red-400" role="status">
+      <p className="text-sm text-danger" role="status">
         {error}
       </p>
     );
   }
 
   return (
-    <pre className="max-h-128 overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg border border-zinc-800 bg-zinc-950 p-4 font-mono text-xs leading-relaxed text-zinc-200">
+    <pre className="max-h-128 overflow-auto whitespace-pre-wrap wrap-break-word border border-stroke-subtle bg-surface-0 p-4 font-mono text-xs leading-relaxed text-text-primary">
       {text || "Fetching logs…"}
     </pre>
   );

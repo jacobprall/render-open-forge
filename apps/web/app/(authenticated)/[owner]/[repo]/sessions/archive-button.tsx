@@ -18,14 +18,14 @@ export function ArchiveButton({ sessionId }: { sessionId: string }) {
             });
           }}
           disabled={isPending}
-          className="rounded px-2 py-1 text-xs font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+          className="rounded px-2 py-1 text-xs font-medium text-danger transition-colors duration-(--of-duration-instant) hover:bg-red-500/10 disabled:opacity-50"
         >
           {isPending ? "Archiving\u2026" : "Confirm"}
         </button>
         <button
           onClick={() => setShowConfirm(false)}
           disabled={isPending}
-          className="rounded px-2 py-1 text-xs font-medium text-zinc-400 transition hover:bg-zinc-700/50"
+          className="rounded px-2 py-1 text-xs font-medium text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-3"
         >
           Cancel
         </button>
@@ -37,7 +37,7 @@ export function ArchiveButton({ sessionId }: { sessionId: string }) {
     <button
       onClick={() => setShowConfirm(true)}
       title="Archive session"
-      className="rounded p-1 text-zinc-600 opacity-0 transition group-hover:opacity-100 hover:bg-zinc-700/50 hover:text-zinc-300"
+      className="rounded p-1 text-text-tertiary opacity-0 transition-colors duration-(--of-duration-instant) group-hover:opacity-100 hover:bg-surface-3 hover:text-text-secondary"
     >
       <svg
         className="h-4 w-4"

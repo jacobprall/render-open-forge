@@ -46,7 +46,7 @@ export function Tooltip({
       {visible && (
         <div
           className={cn(
-            "absolute z-50 whitespace-nowrap rounded-md bg-zinc-800 border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 shadow-lg pointer-events-none",
+            "absolute z-50 whitespace-nowrap bg-surface-2 border border-stroke-default px-2.5 py-1.5 text-xs text-text-primary shadow-lg pointer-events-none",
             positionStyles[side],
             className
           )}

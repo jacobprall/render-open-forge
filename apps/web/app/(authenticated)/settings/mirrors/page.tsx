@@ -16,13 +16,13 @@ interface Mirror {
 
 const directionLabels: Record<string, { label: string; color: string }> = {
   pull: { label: "Pull", color: "text-blue-400" },
-  push: { label: "Push", color: "text-amber-400" },
+  push: { label: "Push", color: "text-warning" },
   bidirectional: { label: "Bidirectional", color: "text-accent-text" },
 };
 
 const statusIndicators: Record<string, { dot: string; label: string }> = {
   active: { dot: "bg-accent", label: "Active" },
-  paused: { dot: "bg-zinc-500", label: "Paused" },
+  paused: { dot: "bg-surface-3", label: "Paused" },
   error: { dot: "bg-danger", label: "Error" },
 };
 
@@ -140,21 +140,21 @@ export default function MirrorsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-100">Mirrors</h2>
-          <p className="mt-1 text-sm text-zinc-400">
+          <h2 className="text-lg font-semibold text-text-primary">Mirrors</h2>
+          <p className="mt-1 text-sm text-text-tertiary">
             Repository mirrors syncing between local and external forge providers.
           </p>
         </div>
         <Link
           href="/repos/import"
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
+          className="bg-accent px-4 py-2 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover"
         >
           New Mirror
         </Link>
       </div>
 
       {bannerError && (
-        <div className="mb-4 rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div className="mb-4 border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
           {bannerError}
           {fetchError ? (
             <button
@@ -178,15 +178,15 @@ export default function MirrorsPage() {
 
       {loading && (
         <div className="flex items-center justify-center py-16">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-accent" />
-          <span className="ml-3 text-sm text-zinc-400">Loading mirrors...</span>
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-stroke-default border-t-accent" />
+          <span className="ml-3 text-sm text-text-tertiary">Loading mirrors...</span>
         </div>
       )}
 
       {!loading && mirrors.length === 0 && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-12 text-center">
+        <div className="border border-stroke-subtle bg-surface-1 p-12 text-center">
           <svg
-            className="mx-auto mb-4 h-12 w-12 text-zinc-700"
+            className="mx-auto mb-4 h-12 w-12 text-text-tertiary"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1}
@@ -198,8 +198,8 @@ export default function MirrorsPage() {
               d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
             />
           </svg>
-          <p className="text-sm text-zinc-400">No mirrors configured yet.</p>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="text-sm text-text-tertiary">No mirrors configured yet.</p>
+          <p className="mt-1 text-xs text-text-tertiary">
             Import repositories from{" "}
             <Link href="/settings/connections" className="text-accent-text hover:underline">
               connected accounts
@@ -225,14 +225,14 @@ export default function MirrorsPage() {
             return (
               <div
                 key={mirror.id}
-                className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5"
+                className="border border-stroke-subtle bg-surface-1 p-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2.5">
                       <Link
                         href={`/${mirror.localRepoPath}`}
-                        className="truncate text-sm font-semibold text-zinc-100 hover:text-accent-text"
+                        className="truncate text-sm font-semibold text-text-primary hover:text-accent-text"
                       >
                         {mirror.localRepoPath}
                       </Link>
@@ -241,18 +241,18 @@ export default function MirrorsPage() {
                       </span>
                       <div className="flex items-center gap-1">
                         <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
-                        <span className="text-xs text-zinc-500">{status.label}</span>
+                        <span className="text-xs text-text-tertiary">{status.label}</span>
                       </div>
                     </div>
 
-                    <div className="mt-1.5 flex items-center gap-3 text-xs text-zinc-500">
-                      <span className="font-medium text-zinc-400">{provider}</span>
+                    <div className="mt-1.5 flex items-center gap-3 text-xs text-text-tertiary">
+                      <span className="font-medium text-text-tertiary">{provider}</span>
                       <span className="truncate" title={mirror.remoteRepoUrl}>
                         {mirror.remoteRepoUrl.replace(/^https?:\/\//, "").replace(/\.git$/, "")}
                       </span>
                     </div>
 
-                    <div className="mt-2 flex items-center gap-4 text-xs text-zinc-600">
+                    <div className="mt-2 flex items-center gap-4 text-xs text-text-tertiary">
                       <span>Last sync: {formatRelative(mirror.lastSyncAt)}</span>
                       <span>Created: {formatRelative(mirror.createdAt)}</span>
                     </div>
@@ -262,7 +262,7 @@ export default function MirrorsPage() {
                     {mirror.status === "error" && (
                       <button
                         onClick={() => handleResolve(mirror.id, "force-push")}
-                        className="rounded-lg border border-amber-500/30 px-3 py-1.5 text-xs font-medium text-amber-400 transition hover:border-amber-500/60 hover:text-amber-300"
+                        className="border border-amber-500/30 px-3 py-1.5 text-xs font-medium text-warning transition-colors duration-(--of-duration-instant) hover:border-amber-500/60 hover:text-warning"
                       >
                         Force Sync
                       </button>
@@ -271,11 +271,11 @@ export default function MirrorsPage() {
                     <button
                       onClick={() => handleSync(mirror.id)}
                       disabled={isSyncing}
-                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50"
+                      className="border border-stroke-default px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle hover:text-text-primary disabled:opacity-50"
                     >
                       {isSyncing ? (
                         <span className="flex items-center gap-1.5">
-                          <span className="h-3 w-3 animate-spin rounded-full border border-zinc-500 border-t-zinc-200" />
+                          <span className="h-3 w-3 animate-spin rounded-full border border-text-tertiary border-t-text-primary" />
                           Syncing
                         </span>
                       ) : (
@@ -286,7 +286,7 @@ export default function MirrorsPage() {
                     <button
                       onClick={() => handleDelete(mirror.id)}
                       disabled={isDeleting}
-                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-danger/50 hover:text-danger disabled:opacity-50"
+                      className="border border-stroke-default px-3 py-1.5 text-xs font-medium text-text-tertiary transition-colors duration-(--of-duration-instant) hover:border-danger/50 hover:text-danger disabled:opacity-50"
                     >
                       {isDeleting ? "Removing..." : "Remove"}
                     </button>

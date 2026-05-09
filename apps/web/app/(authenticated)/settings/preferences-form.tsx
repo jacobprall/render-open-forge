@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import useSWR from "swr";
 import { savePreferencesAction } from "./actions";
-import { AVAILABLE_COLORS } from "@/components/providers/theme-provider";
+import { AVAILABLE_COLORS, THEME_PRESETS, type ThemePreset } from "@/components/providers/theme-provider";
 import type { UserPreferencesData } from "@openforge/db/schema";
 
 interface ModelOption {
@@ -32,7 +32,7 @@ function ModelSelect({
       name={name}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+      className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary transition-colors duration-(--of-duration-instant) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
     >
       {placeholder && <option value="">{placeholder}</option>}
       {loading && <option disabled>Loading models…</option>}
@@ -79,8 +79,8 @@ function ColorPicker({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-zinc-300">{label}</label>
-      <p className="mb-3 text-xs text-zinc-500">{description}</p>
+      <label className="mb-1.5 block text-sm font-medium text-text-secondary">{label}</label>
+      <p className="mb-3 text-xs text-text-tertiary">{description}</p>
       <input type="hidden" name={name} value={value} />
       <div className="flex flex-wrap gap-2">
         {AVAILABLE_COLORS.map((color) => (
@@ -88,9 +88,9 @@ function ColorPicker({
             key={color}
             type="button"
             onClick={() => onChange(color)}
-            className={`h-8 w-8 rounded-full transition-all ${COLOR_SWATCHES[color] ?? "bg-zinc-600"} ${
+            className={`h-8 w-8 rounded-full transition-all ${COLOR_SWATCHES[color] ?? "bg-surface-3"} ${
               value === color
-                ? "ring-2 ring-white ring-offset-2 ring-offset-zinc-900 scale-110"
+                ? "ring-2 ring-white ring-offset-2 ring-offset-surface-0 scale-110"
                 : "hover:scale-110 opacity-70 hover:opacity-100"
             }`}
             aria-label={color}
@@ -115,6 +115,7 @@ export function PreferencesForm({ prefs }: { prefs: UserPreferencesData | null }
   const [accentColor, setAccentColor] = useState(prefs?.accentColor || "emerald");
   const [secondaryColor, setSecondaryColor] = useState(prefs?.secondaryColor || "blue");
   const [tertiaryColor, setTertiaryColor] = useState(prefs?.tertiaryColor || "violet");
+  const [theme, setTheme] = useState<ThemePreset>((prefs?.theme as ThemePreset) || "default");
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -131,14 +132,14 @@ export function PreferencesForm({ prefs }: { prefs: UserPreferencesData | null }
   }
 
   return (
-    <form action={handleSubmit} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+    <form action={handleSubmit} className="border border-stroke-subtle bg-surface-1 p-6">
       {error && (
-        <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="mb-4 border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
       {success && (
-        <div className="mb-4 rounded-lg border border-accent/20 bg-accent-bg px-4 py-3 text-sm text-accent-text">
+        <div className="mb-4 border border-accent/20 bg-accent-bg px-4 py-3 text-sm text-accent-text">
           Preferences saved successfully.
         </div>
       )}
@@ -146,7 +147,7 @@ export function PreferencesForm({ prefs }: { prefs: UserPreferencesData | null }
       <div className="space-y-6">
         {/* Default Model */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">
             Default Model
           </label>
           <ModelSelect
@@ -156,12 +157,12 @@ export function PreferencesForm({ prefs }: { prefs: UserPreferencesData | null }
             models={models}
             loading={modelsLoading}
           />
-          <p className="mt-1 text-xs text-zinc-500">Model used for main agent sessions</p>
+          <p className="mt-1 text-xs text-text-tertiary">Model used for main agent sessions</p>
         </div>
 
         {/* Default Subagent Model */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">
             Default Subagent Model
           </label>
           <ModelSelect
@@ -172,19 +173,19 @@ export function PreferencesForm({ prefs }: { prefs: UserPreferencesData | null }
             loading={modelsLoading}
             placeholder="Same as main model"
           />
-          <p className="mt-1 text-xs text-zinc-500">Model used for subagent tasks (optional)</p>
+          <p className="mt-1 text-xs text-text-tertiary">Model used for subagent tasks (optional)</p>
         </div>
 
         {/* Diff Mode */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">
             Diff Mode
           </label>
           <div className="flex gap-2">
             {(["unified", "split"] as const).map((mode) => (
               <label
                 key={mode}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-sm transition has-checked:border-accent has-checked:bg-accent-bg"
+                className="flex cursor-pointer items-center gap-2 border border-stroke-default px-4 py-2 text-sm transition-colors duration-(--of-duration-instant) has-checked:border-accent has-checked:bg-accent-bg"
               >
                 <input
                   type="radio"
@@ -193,7 +194,7 @@ export function PreferencesForm({ prefs }: { prefs: UserPreferencesData | null }
                   defaultChecked={(prefs?.defaultDiffMode || "unified") === mode}
                   className="sr-only"
                 />
-                <span className="text-zinc-300">{mode.charAt(0).toUpperCase() + mode.slice(1)}</span>
+                <span className="text-text-secondary">{mode.charAt(0).toUpperCase() + mode.slice(1)}</span>
               </label>
             ))}
           </div>
@@ -201,36 +202,67 @@ export function PreferencesForm({ prefs }: { prefs: UserPreferencesData | null }
 
         {/* Toggles */}
         <div className="space-y-4">
-          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-zinc-700 p-4 transition hover:border-zinc-600">
+          <label className="flex cursor-pointer items-center justify-between border border-stroke-default p-4 transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle">
             <div>
-              <div className="text-sm font-medium text-zinc-300">Auto commit & push</div>
-              <div className="text-xs text-zinc-500">Automatically commit and push changes after agent runs</div>
+              <div className="text-sm font-medium text-text-secondary">Auto commit & push</div>
+              <div className="text-xs text-text-tertiary">Automatically commit and push changes after agent runs</div>
             </div>
             <input
               type="checkbox"
               name="autoCommitPush"
               defaultChecked={prefs?.autoCommitPush ?? false}
-              className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-accent focus:ring-accent focus:ring-offset-0"
+              className="h-4 w-4 border-stroke-default bg-surface-2 text-accent focus:ring-accent focus:ring-offset-0"
             />
           </label>
 
-          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-zinc-700 p-4 transition hover:border-zinc-600">
+          <label className="flex cursor-pointer items-center justify-between border border-stroke-default p-4 transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle">
             <div>
-              <div className="text-sm font-medium text-zinc-300">Auto create PR</div>
-              <div className="text-xs text-zinc-500">Automatically create a pull request when work is complete</div>
+              <div className="text-sm font-medium text-text-secondary">Auto create PR</div>
+              <div className="text-xs text-text-tertiary">Automatically create a pull request when work is complete</div>
             </div>
             <input
               type="checkbox"
               name="autoCreatePr"
               defaultChecked={prefs?.autoCreatePr ?? false}
-              className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-accent focus:ring-accent focus:ring-offset-0"
+              className="h-4 w-4 border-stroke-default bg-surface-2 text-accent focus:ring-accent focus:ring-offset-0"
             />
           </label>
         </div>
 
+        {/* Theme Preset */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">
+            Theme
+          </label>
+          <p className="mb-3 text-xs text-text-tertiary">
+            Choose an overall visual theme for the interface
+          </p>
+          <input type="hidden" name="theme" value={theme} />
+          <div className="flex flex-wrap gap-2">
+            {THEME_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => {
+                  setTheme(preset.id);
+                  document.documentElement.setAttribute("data-theme", preset.id === "default" ? "" : preset.id);
+                  if (preset.id === "default") document.documentElement.removeAttribute("data-theme");
+                }}
+                className={`border px-4 py-2 text-sm font-medium transition-colors duration-(--of-duration-instant) ${
+                  theme === preset.id
+                    ? "border-accent bg-accent-bg text-accent-text"
+                    : "border-stroke-default bg-surface-2 text-text-secondary hover:bg-surface-3"
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Theme Colors */}
-        <div className="space-y-5 rounded-lg border border-zinc-800 bg-zinc-900/30 p-5">
-          <h3 className="text-sm font-semibold text-zinc-200">Theme Colors</h3>
+        <div className="space-y-5 border border-stroke-subtle bg-surface-1 p-5">
+          <h3 className="text-sm font-semibold text-text-primary">Theme Colors</h3>
           <ColorPicker
             label="Accent"
             description="Primary brand color used for buttons, links, and focus rings"
@@ -255,11 +287,11 @@ export function PreferencesForm({ prefs }: { prefs: UserPreferencesData | null }
         </div>
 
         {/* Submit */}
-        <div className="flex items-center gap-3 border-t border-zinc-800 pt-6">
+        <div className="flex items-center gap-3 border-t border-stroke-subtle pt-6">
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover disabled:opacity-50"
           >
             {isPending && (
               <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">

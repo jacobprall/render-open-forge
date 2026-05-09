@@ -31,10 +31,10 @@ export default async function EditFilePage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-6xl p-6">
-      <h1 className="mb-2 text-lg font-semibold text-zinc-100">
+      <h1 className="mb-2 text-lg font-semibold text-text-primary">
         {isNew ? "New File" : "Edit File"}
       </h1>
-      <p className="mb-4 text-sm text-zinc-400">
+      <p className="mb-4 text-sm text-text-tertiary">
         {owner}/{repo}/{filePath} (branch: {branch})
       </p>
       <FileEditor

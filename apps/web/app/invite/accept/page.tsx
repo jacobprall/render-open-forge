@@ -15,7 +15,7 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
   if (!raw) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <p className="text-zinc-400">Missing invite link. Ask your admin for a new invite.</p>
+        <p className="text-text-tertiary">Missing invite link. Ask your admin for a new invite.</p>
         <Link href="/" className="mt-4 text-sm text-accent-text hover:underline">
           Back to home
         </Link>
@@ -27,7 +27,7 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
   if (!signed) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <p className="text-center text-zinc-400">
+        <p className="text-center text-text-tertiary">
           This invite link is invalid or has expired.
         </p>
         <Link href="/" className="mt-4 text-sm text-accent-text hover:underline">
@@ -48,7 +48,7 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
   if (!invite) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <p className="text-center text-zinc-400">
+        <p className="text-center text-text-tertiary">
           This invite has already been used or does not exist.
         </p>
         <Link href="/" className="mt-4 text-sm text-accent-text hover:underline">
@@ -61,7 +61,7 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
   if (new Date() > invite.expiresAt) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <p className="text-center text-zinc-400">This invite has expired.</p>
+        <p className="text-center text-text-tertiary">This invite has expired.</p>
         <Link href="/" className="mt-4 text-sm text-accent-text hover:underline">
           Back to home
         </Link>
@@ -78,12 +78,12 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
   if (invitedUser?.passwordHash) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <p className="text-center text-zinc-400">
+        <p className="text-center text-text-tertiary">
           You have already set a password for this account.
         </p>
         <Link
           href="/"
-          className="mt-6 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
+          className="mt-6 bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
         >
           Sign in
         </Link>
@@ -95,11 +95,11 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
     <main className="flex min-h-screen flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-md text-center">
         <h1 className="text-2xl font-semibold tracking-tight">Welcome</h1>
-        <p className="mt-2 text-sm text-zinc-400">
+        <p className="mt-2 text-sm text-text-tertiary">
           Set a password for your OpenForge account.
         </p>
         <InvitePasswordForm token={raw} />
-        <p className="mt-8 text-xs text-zinc-500">
+        <p className="mt-8 text-xs text-text-tertiary">
           Wrong person?{" "}
           <Link href="/" className="text-accent-text hover:underline">
             Back to home

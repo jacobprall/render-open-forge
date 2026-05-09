@@ -18,7 +18,7 @@ export function CopyButton({ content }: { content: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="rounded-md border border-zinc-700 px-2.5 py-1 text-xs font-medium text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
+      className="border border-stroke-default px-2.5 py-1 text-xs font-medium text-text-tertiary transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle hover:text-text-primary"
       title="Copy file content"
     >
       {copied ? (

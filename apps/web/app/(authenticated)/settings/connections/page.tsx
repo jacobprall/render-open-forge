@@ -66,21 +66,21 @@ export default async function ConnectionsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-zinc-100">Connections</h2>
-        <p className="mt-1 text-sm text-zinc-400">
+        <h2 className="text-lg font-semibold text-text-primary">Connections</h2>
+        <p className="mt-1 text-sm text-text-tertiary">
           Manage your forge connections for accessing and working with repositories.
         </p>
       </div>
 
       <div className="space-y-4">
         {/* Primary forge — connected via sign-in */}
-        <div className="rounded-xl border border-accent/20 bg-zinc-900/50 p-6">
+        <div className="border border-accent/20 bg-surface-1 p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="text-accent-text">{providerIcon(primaryForge)}</div>
               <div>
-                <h3 className="font-semibold text-zinc-100">{providerLabel(primaryForge)}</h3>
-                <p className="text-sm text-zinc-400">
+                <h3 className="font-semibold text-text-primary">{providerLabel(primaryForge)}</h3>
+                <p className="text-sm text-text-tertiary">
                   Primary forge — signed in via OAuth
                 </p>
               </div>
@@ -90,7 +90,7 @@ export default async function ConnectionsPage() {
                 <span className="h-2 w-2 rounded-full bg-accent" />
                 <span className="text-sm font-medium text-accent-text">Connected</span>
               </div>
-              <p className="mt-0.5 text-xs text-zinc-500">
+              <p className="mt-0.5 text-xs text-text-tertiary">
                 {primaryConnection?.remoteUsername ?? session.username}
               </p>
             </div>
@@ -104,14 +104,14 @@ export default async function ConnectionsPage() {
           return (
             <div
               key={providerId}
-              className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6"
+              className="border border-stroke-subtle bg-surface-1 p-6"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="text-zinc-400">{providerIcon(providerId)}</div>
+                  <div className="text-text-tertiary">{providerIcon(providerId)}</div>
                   <div>
-                    <h3 className="font-semibold text-zinc-100">{providerLabel(providerId)}</h3>
-                    <p className="text-sm text-zinc-400">
+                    <h3 className="font-semibold text-text-primary">{providerLabel(providerId)}</h3>
+                    <p className="text-sm text-text-tertiary">
                       Connect to access and mirror {providerLabel(providerId)} repositories
                     </p>
                   </div>
@@ -125,14 +125,14 @@ export default async function ConnectionsPage() {
                         <span className="text-sm font-medium text-accent-text">Connected</span>
                       </div>
                       {connection.remoteUsername && (
-                        <p className="mt-0.5 text-xs text-zinc-500">
+                        <p className="mt-0.5 text-xs text-text-tertiary">
                           {connection.remoteUsername}
                         </p>
                       )}
                     </div>
                     <button
                       disabled
-                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-danger/50 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                      className="border border-stroke-default px-3 py-1.5 text-xs font-medium text-text-tertiary transition-colors duration-(--of-duration-instant) hover:border-danger/50 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Disconnect
                     </button>
@@ -140,12 +140,12 @@ export default async function ConnectionsPage() {
                 ) : hasOAuthRoute ? (
                   <a
                     href={`/api/oauth/${providerId}`}
-                    className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-600 hover:text-zinc-100"
+                    className="border border-stroke-default bg-surface-2 px-4 py-2 text-sm font-medium text-text-secondary transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle hover:text-text-primary"
                   >
                     Connect
                   </a>
                 ) : (
-                  <span className="text-xs text-zinc-600">Coming soon</span>
+                  <span className="text-xs text-text-tertiary">Coming soon</span>
                 )}
               </div>
             </div>
@@ -153,7 +153,7 @@ export default async function ConnectionsPage() {
         })}
       </div>
 
-      <p className="mt-6 text-xs text-zinc-600">
+      <p className="mt-6 text-xs text-text-tertiary">
         Forge tokens are stored securely in the database. Manage your active mirrors in{" "}
         <a href="/settings/mirrors" className="text-accent-text hover:underline">Mirror Settings</a>.
       </p>

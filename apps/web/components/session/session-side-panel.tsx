@@ -85,7 +85,7 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex h-full w-10 items-center justify-center border-l border-zinc-800 text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-300"
+        className="flex h-full w-10 items-center justify-center border-l border-stroke-subtle text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-1 hover:text-text-secondary"
         title="Open side panel"
       >
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,17 +99,17 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
   const totalDeletions = filesChanged.reduce((sum, f) => sum + f.deletions, 0);
 
   return (
-    <div className="flex w-80 flex-col border-l border-zinc-800">
+    <div className="flex w-80 flex-col border-l border-stroke-subtle">
       {/* Panel header */}
-      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-stroke-subtle px-4 py-3">
         <div className="flex gap-1">
           <button
             type="button"
             onClick={() => setActiveTab("files")}
-            className={`rounded px-2.5 py-1 text-xs font-medium transition ${
+            className={`px-2.5 py-1 text-xs font-medium transition-colors duration-(--of-duration-instant) ${
               activeTab === "files"
-                ? "bg-zinc-800 text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "bg-surface-2 text-text-primary"
+                : "text-text-tertiary hover:text-text-secondary"
             }`}
           >
             Files
@@ -117,10 +117,10 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
           <button
             type="button"
             onClick={() => setActiveTab("ci")}
-            className={`rounded px-2.5 py-1 text-xs font-medium transition ${
+            className={`px-2.5 py-1 text-xs font-medium transition-colors duration-(--of-duration-instant) ${
               activeTab === "ci"
-                ? "bg-zinc-800 text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "bg-surface-2 text-text-primary"
+                : "text-text-tertiary hover:text-text-secondary"
             }`}
           >
             CI
@@ -129,7 +129,7 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
         <button
           type="button"
           onClick={() => setIsOpen(false)}
-          className="text-zinc-500 transition hover:text-zinc-300"
+          className="text-text-tertiary transition-colors duration-(--of-duration-instant) hover:text-text-secondary"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -142,10 +142,10 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
         {activeTab === "files" && (
           <div className="p-4">
             {filesChanged.length === 0 ? (
-              <p className="text-center text-sm text-zinc-500">No files changed yet.</p>
+              <p className="text-center text-sm text-text-tertiary">No files changed yet.</p>
             ) : (
               <>
-                <div className="mb-3 flex items-center justify-between text-xs text-zinc-400">
+                <div className="mb-3 flex items-center justify-between text-xs text-text-tertiary">
                   <span>{filesChanged.length} file{filesChanged.length !== 1 ? "s" : ""} changed</span>
                   <span className="font-mono">
                     <span className="text-accent-text">+{totalAdditions}</span>
@@ -157,9 +157,9 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
                   {filesChanged.map((file) => (
                     <div
                       key={file.path}
-                      className="flex items-center justify-between rounded px-2 py-1.5 text-xs hover:bg-zinc-800/50"
+                      className="flex items-center justify-between px-2 py-1.5 text-xs hover:bg-surface-2/50"
                     >
-                      <span className="truncate font-mono text-zinc-300" title={file.path}>
+                      <span className="truncate font-mono text-text-secondary" title={file.path}>
                         {file.path.split("/").pop()}
                       </span>
                       <span className="ml-2 shrink-0 font-mono">
@@ -180,8 +180,8 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
             <div className="flex items-center gap-2">
               {ciStatus === "idle" && (
                 <>
-                  <div className="h-2.5 w-2.5 rounded-full bg-zinc-600" />
-                  <span className="text-sm text-zinc-500">No webhook activity yet.</span>
+                  <div className="h-2.5 w-2.5 rounded-full bg-text-tertiary" />
+                  <span className="text-sm text-text-tertiary">No webhook activity yet.</span>
                 </>
               )}
               {ciStatus === "running" && (
@@ -205,15 +205,15 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
             </div>
 
             {ciEvents.length === 0 ? (
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-text-tertiary">
                 Configure a webhook to <span className="font-mono">/api/webhooks</span>
                 {' '}with a shared secret to populate CI signals.
               </p>
             ) : (
-              <ul className="space-y-2 text-xs text-zinc-400">
+              <ul className="space-y-2 text-xs text-text-tertiary">
                 {ciEvents.slice(0, 20).map((ev, i) => (
-                  <li key={`${ev.type}-${i}`} className="rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1.5">
-                    <span className="font-mono text-zinc-300">{ev.type}</span>
+                  <li key={`${ev.type}-${i}`} className="border border-stroke-subtle bg-surface-1/60 px-2 py-1.5">
+                    <span className="font-mono text-text-secondary">{ev.type}</span>
                     {ev.status ? (
                       <span
                         className={`ml-2 ${

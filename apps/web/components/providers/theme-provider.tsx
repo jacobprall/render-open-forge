@@ -8,6 +8,16 @@ export interface ThemeColors {
   tertiaryColor: string | null;
 }
 
+export type ThemePreset = "default" | "terminal" | "typewriter" | "blueprint" | "warm-analog";
+
+export const THEME_PRESETS: { id: ThemePreset; label: string }[] = [
+  { id: "default", label: "Default" },
+  { id: "terminal", label: "Terminal" },
+  { id: "typewriter", label: "Typewriter" },
+  { id: "blueprint", label: "Blueprint" },
+  { id: "warm-analog", label: "Warm Analog" },
+];
+
 const COLOR_PRESETS: Record<string, { base: string; hover: string; bg: string; text: string }> = {
   purple:   { base: "#8a05ff",                 hover: "#9b52fb",                bg: "#2a0052",                        text: "#d1b8ff" },
   emerald:  { base: "oklch(0.696 0.17 162)",  hover: "oklch(0.637 0.16 162)",  bg: "oklch(0.696 0.17 162 / 0.1)",  text: "oklch(0.765 0.155 162)" },
@@ -36,11 +46,22 @@ function applyColorGroup(prefix: string, colorName: string | null, fallback: str
 
 export function ThemeProvider({
   colors,
+  theme = "default",
   children,
 }: {
   colors: ThemeColors;
+  theme?: ThemePreset;
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "default") {
+      root.removeAttribute("data-theme");
+    } else {
+      root.setAttribute("data-theme", theme);
+    }
+  }, [theme]);
+
   useEffect(() => {
     applyColorGroup("accent", colors.accentColor, "purple");
     applyColorGroup("secondary", colors.secondaryColor, "purple");

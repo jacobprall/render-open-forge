@@ -11,9 +11,9 @@ export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const roundedStyles = {
-  sm: "rounded-sm",
-  md: "rounded-md",
-  lg: "rounded-lg",
+  sm: "",
+  md: "",
+  lg: "",
   full: "rounded-full",
 } as const;
 
@@ -28,7 +28,7 @@ export function Skeleton({
   return (
     <div
       className={cn(
-        "animate-pulse bg-zinc-800",
+        "animate-pulse bg-surface-2",
         roundedStyles[rounded],
         className
       )}

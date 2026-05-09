@@ -63,6 +63,8 @@ services:
         generateValue: true
       - key: RENDER_API_KEY
         sync: false
+      - key: RENDER_WEBHOOK_SECRET
+        sync: false
       - key: RENDER_CI_WORKFLOW_SLUG
         value: openforge-ci
       - key: CI_RUNNER_SECRET

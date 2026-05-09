@@ -8,7 +8,7 @@ interface Token {
 const COLORS: Record<Token["type"], string> = {
   keyword: "text-purple-400",
   string: "text-amber-300",
-  comment: "text-zinc-500 italic",
+  comment: "text-text-tertiary italic",
   number: "text-sky-400",
   default: "",
 };

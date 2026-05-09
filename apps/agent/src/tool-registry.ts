@@ -47,6 +47,7 @@ import {
 } from "./tools";
 import type { AgentJob, StreamEvent } from "./types";
 import { publishEvent } from "./run-persistence";
+import { applyTrustTiers } from "./trust-tiers";
 
 // ─── Tool registry ───────────────────────────────────────────────────────────
 
@@ -93,20 +94,25 @@ export function buildToolSet(
 ): ToolSet {
   const reqId = job.requestId;
   const makeSubTools = () => buildSubagentToolSet(db);
+  const publishFn = async (event: Record<string, unknown>) => {
+    await publishEvent(events, job.runId, event as unknown as StreamEvent, reqId);
+  };
+  const baseTools = applyTrustTiers(
+    makeSubTools(),
+    job.runId,
+    () => redis.duplicate(),
+    publishFn,
+  );
   return {
-    ...makeSubTools(),
+    ...baseTools,
     task: taskTool(
-      async (event) => {
-        await publishEvent(events, job.runId, event as unknown as StreamEvent, reqId);
-      },
+      publishFn,
       makeSubTools,
       model,
       skillsPromptSuffix,
     ),
     todo_write: todoWriteTool(),
-    ask_user_question: askUserQuestionTool(job.runId, () => redis.duplicate(), async (event) => {
-      await publishEvent(events, job.runId, event as unknown as StreamEvent, reqId);
-    }),
+    ask_user_question: askUserQuestionTool(job.runId, () => redis.duplicate(), publishFn),
     merge_pr: mergePrTool(),
     close_pr: closePrTool(),
     add_pr_comment: addPrCommentTool(),

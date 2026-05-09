@@ -33,10 +33,10 @@ export default function SettingsLayout({
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    className={`flex items-center gap-2.5 px-3 py-2 text-sm font-medium transition-colors duration-(--of-duration-instant) border-l-2 ${
                       active
-                        ? "bg-surface-2/70 text-text-primary"
-                        : "text-text-secondary hover:bg-surface-1 hover:text-text-primary"
+                        ? "bg-surface-2/70 text-text-primary border-l-accent"
+                        : "text-text-secondary hover:bg-surface-1 hover:text-text-primary border-l-transparent"
                     }`}
                   >
                     <Icon className="h-4 w-4" />

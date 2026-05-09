@@ -39,12 +39,12 @@ export function ReviewButton({ sessionId }: { sessionId: string }) {
       <button
         onClick={handleClick}
         disabled={isPending}
-        className="rounded bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-200 transition hover:bg-zinc-700 disabled:opacity-50"
+        className="rounded bg-surface-2 px-2.5 py-1 text-xs font-medium text-text-primary transition-colors duration-(--of-duration-instant) hover:bg-surface-3 disabled:opacity-50"
       >
         {isPending ? "Starting..." : "Agent Review"}
       </button>
       {error && (
-        <div className="absolute right-0 top-full mt-1 z-10 whitespace-nowrap rounded border border-danger/20 bg-zinc-900 px-2 py-1 text-xs text-danger">
+        <div className="absolute right-0 top-full mt-1 z-10 whitespace-nowrap rounded border border-danger/20 bg-surface-1 px-2 py-1 text-xs text-danger">
           {error}
         </div>
       )}

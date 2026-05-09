@@ -57,20 +57,20 @@ export function NewPrForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div className="border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">
             Head branch <span className="text-danger">*</span>
           </label>
           <select
             value={head}
             onChange={(e) => setHead(e.target.value)}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary transition-colors duration-(--of-duration-instant) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">Select branch…</option>
             {branches
@@ -81,16 +81,16 @@ export function NewPrForm({
                 </option>
               ))}
           </select>
-          <p className="mt-1 text-xs text-zinc-500">The branch with your changes</p>
+          <p className="mt-1 text-xs text-text-tertiary">The branch with your changes</p>
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">
             Base branch <span className="text-danger">*</span>
           </label>
           <select
             value={base}
             onChange={(e) => setBase(e.target.value)}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary transition-colors duration-(--of-duration-instant) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           >
             {branches.map((b) => (
               <option key={b} value={b}>
@@ -98,12 +98,12 @@ export function NewPrForm({
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-zinc-500">The branch you want to merge into</p>
+          <p className="mt-1 text-xs text-text-tertiary">The branch you want to merge into</p>
         </div>
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+        <label className="mb-1.5 block text-sm font-medium text-text-secondary">
           Title <span className="text-danger">*</span>
         </label>
         <input
@@ -111,12 +111,12 @@ export function NewPrForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="What does this PR do?"
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+          className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary placeholder-text-tertiary transition-colors duration-(--of-duration-instant) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+        <label className="mb-1.5 block text-sm font-medium text-text-secondary">
           Description
         </label>
         <textarea
@@ -124,7 +124,7 @@ export function NewPrForm({
           onChange={(e) => setBody(e.target.value)}
           rows={6}
           placeholder="Add a description of your changes…"
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 transition focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+          className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary placeholder-text-tertiary transition-colors duration-(--of-duration-instant) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
@@ -132,7 +132,7 @@ export function NewPrForm({
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
+          className="inline-flex items-center gap-2 bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover disabled:opacity-50"
         >
           {isPending && (
             <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">

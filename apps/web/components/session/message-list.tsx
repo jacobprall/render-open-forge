@@ -9,12 +9,12 @@ import { AskUserCard } from "./ask-user-card";
 
 const Markdown = dynamic(
   () => import("@/components/markdown").then((m) => ({ default: m.Markdown })),
-  { ssr: false, loading: () => <span className="text-xs text-zinc-500">…</span> },
+  { ssr: false, loading: () => <span className="text-xs text-text-tertiary">…</span> },
 );
 
 const ToolCallLazy = dynamic(
   () => import("@/components/tool-call").then((m) => ({ default: m.ToolCall })),
-  { ssr: false, loading: () => <span className="text-xs text-zinc-500">…</span> },
+  { ssr: false, loading: () => <span className="text-xs text-text-tertiary">…</span> },
 );
 
 export function MessageArea({
@@ -39,15 +39,15 @@ export function MessageArea({
   return (
     <>
       {liveFileChanges.length > 0 && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 overflow-hidden">
+        <div className="border border-stroke-subtle bg-surface-1 overflow-hidden">
           <button
             type="button"
-            className="w-full flex items-center justify-between px-3 py-2 text-left text-xs font-medium text-zinc-300"
+            className="w-full flex items-center justify-between px-(--of-space-md) py-(--of-space-sm) text-left text-xs font-medium text-text-secondary transition-colors duration-(--of-duration-instant) hover:bg-surface-2"
             onClick={() => setFilesPanelOpen((o) => !o)}
           >
             <span>Files changed — {liveFileChanges.length}</span>
             <svg
-              className={`h-3.5 w-3.5 text-zinc-500 transition-transform ${filesPanelOpen ? "rotate-180" : ""}`}
+              className={`h-3.5 w-3.5 text-text-tertiary transition-transform duration-(--of-duration-fast) ${filesPanelOpen ? "rotate-180" : ""}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -56,13 +56,13 @@ export function MessageArea({
             </svg>
           </button>
           {filesPanelOpen ? (
-            <ul className="divide-y divide-zinc-800/50 border-t border-zinc-800 max-h-48 overflow-y-auto text-xs font-mono px-3 py-1 contain-content">
+            <ul className="divide-y divide-stroke-subtle/50 border-t border-stroke-subtle max-h-48 overflow-y-auto text-xs font-mono px-(--of-space-md) py-1 contain-content">
               {liveFileChanges.map((f) => (
                 <li key={f.path} className="py-1.5 flex justify-between gap-2">
-                  <span className="truncate text-zinc-400">{f.path}</span>
+                  <span className="truncate text-text-tertiary">{f.path}</span>
                   <span className="shrink-0 tabular-nums">
                     <span className="text-accent-text">+{f.additions}</span>
-                    <span className="text-zinc-600 mx-1">/</span>
+                    <span className="text-text-tertiary mx-1">/</span>
                     <span className="text-danger">-{f.deletions}</span>
                   </span>
                 </li>
@@ -73,8 +73,8 @@ export function MessageArea({
       )}
 
       {messages.length === 0 && !isStreaming ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-bg">
+        <div className="flex flex-col items-center justify-center py-32 text-center gap-(--of-space-md)">
+          <div className="flex h-12 w-12 items-center justify-center bg-accent-bg">
             <svg
               className="h-6 w-6 text-accent-text"
               fill="none"
@@ -89,8 +89,8 @@ export function MessageArea({
               />
             </svg>
           </div>
-          <p className="font-medium text-zinc-200">Start a conversation</p>
-          <p className="text-sm text-zinc-500">Ask the agent to help with your codebase.</p>
+          <p className="font-medium text-text-primary">Start a conversation</p>
+          <p className="text-[15px] text-text-tertiary">Ask the agent to help with your codebase.</p>
         </div>
       ) : (
         messages.map((msg) => <MessageBubble key={msg.id} message={msg} />)
@@ -105,7 +105,7 @@ export function MessageArea({
       ) : null}
 
       {isStreaming && streamingParts.length === 0 ? (
-        <div className="flex items-center gap-2.5 text-xs text-zinc-400">
+        <div className="flex items-center gap-2.5 text-xs text-text-tertiary">
           <span className="inline-flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-accent/70 animate-[bounce_1.4s_ease-in-out_infinite]" />
             <span className="h-1.5 w-1.5 rounded-full bg-accent/70 animate-[bounce_1.4s_ease-in-out_0.2s_infinite]" />
@@ -120,8 +120,8 @@ export function MessageArea({
       ) : null}
 
       {error ? (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
-          <p className="text-sm text-danger">{error}</p>
+        <div className="border border-danger/20 bg-danger/5 p-(--of-space-md)">
+          <p className="text-[15px] text-danger">{error}</p>
         </div>
       ) : null}
     </>
@@ -134,7 +134,7 @@ export function MessageBubble({ message }: { message: Message }) {
   if (isUser) {
     return (
       <div className="flex justify-end [content-visibility:auto]">
-        <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-accent px-3.5 py-2 text-[13px] leading-relaxed text-white shadow-sm">
+        <div className="max-w-[80%] bg-accent px-(--of-space-md) py-(--of-space-sm) text-[15px] leading-relaxed text-white">
           {message.parts
             .filter((p) => p.type === "text")
             .map((p, i) => (
@@ -179,12 +179,12 @@ export function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; s
             return (
               <div
                 key={i}
-                className="inline-flex items-center gap-1.5 text-[11px] border border-zinc-800/60 rounded-md px-2 py-1 bg-zinc-900/40"
+                className="inline-flex items-center gap-1.5 text-[11px] border border-stroke-subtle px-2 py-1 bg-surface-1"
               >
                 <span className="text-accent-text/80 tabular-nums font-mono">+{part.additions}</span>
-                <span className="text-zinc-700">/</span>
+                <span className="text-text-tertiary">/</span>
                 <span className="text-danger/80 tabular-nums font-mono">-{part.deletions}</span>
-                <span className="ml-1 font-mono text-zinc-500 break-all">{part.path}</span>
+                <span className="ml-1 font-mono text-text-tertiary break-all">{part.path}</span>
               </div>
             );
 
@@ -192,10 +192,10 @@ export function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; s
             return (
               <div
                 key={i}
-                className="flex items-center gap-1.5 text-[11px] border border-zinc-800/60 rounded-md px-2.5 py-1.5 bg-zinc-900/40"
+                className="flex items-center gap-1.5 text-[11px] border border-stroke-subtle px-2.5 py-1.5 bg-surface-1"
               >
                 {part.status === "running" ? (
-                  <svg className="h-3 w-3 animate-spin text-amber-400/80" fill="none" viewBox="0 0 24 24">
+                  <svg className="h-3 w-3 animate-spin text-warning/80" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
@@ -210,9 +210,9 @@ export function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; s
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 ) : null}
-                <span className="text-zinc-400">{part.task}</span>
+                <span className="text-text-secondary">{part.task}</span>
                 {part.result != null && String(part.result).length > 0 ? (
-                  <span className="ml-auto text-zinc-600">{String(part.result)}</span>
+                  <span className="ml-auto text-text-tertiary">{String(part.result)}</span>
                 ) : null}
                 {part.error != null && String(part.error).length > 0 ? (
                   <span className="ml-auto text-danger/80">{String(part.error)}</span>

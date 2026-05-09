@@ -92,7 +92,7 @@ export function ToolCall({ toolName, args, result, status }: ToolCallProps) {
           status={status ?? (result !== undefined ? "success" : "idle")}
         >
           {result != null && (
-            <pre className="text-xs whitespace-pre-wrap text-zinc-300">
+            <pre className="text-xs whitespace-pre-wrap text-text-secondary">
               {typeof result === "object"
                 ? (result as Record<string, unknown>).body
                   ? String((result as Record<string, unknown>).body).slice(0, 1000)
@@ -111,12 +111,12 @@ export function ToolCall({ toolName, args, result, status }: ToolCallProps) {
           status={status ?? (result !== undefined ? "success" : "idle")}
         >
           {args && (
-            <pre className="text-xs whitespace-pre-wrap text-zinc-300">
+            <pre className="text-xs whitespace-pre-wrap text-text-secondary">
               {JSON.stringify(args, null, 2).slice(0, 800)}
             </pre>
           )}
           {result != null && (
-            <pre className="text-xs whitespace-pre-wrap text-zinc-300 mt-2">
+            <pre className="text-xs whitespace-pre-wrap text-text-secondary mt-2">
               {JSON.stringify(result, null, 2).slice(0, 800)}
             </pre>
           )}

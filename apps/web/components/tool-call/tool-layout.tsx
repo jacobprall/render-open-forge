@@ -12,6 +12,7 @@ interface Props {
   subtitle?: string;
   status?: ToolStatus;
   defaultOpen?: boolean;
+  preview?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
 }
@@ -22,6 +23,7 @@ export function ToolLayout({
   subtitle,
   status = "idle",
   defaultOpen = false,
+  preview,
   children,
   className,
 }: Props) {
@@ -29,7 +31,7 @@ export function ToolLayout({
 
   const statusIcon =
     status === "running" ? (
-      <Loader2 className="size-3 text-zinc-400 animate-spin" />
+      <Loader2 className="size-3 text-text-tertiary animate-spin" />
     ) : status === "success" ? (
       <CheckCircle2 className="size-3 text-accent-text" />
     ) : status === "error" ? (
@@ -39,34 +41,46 @@ export function ToolLayout({
   return (
     <div
       className={cn(
-        "rounded-md border border-zinc-800 bg-zinc-900/50 text-xs overflow-hidden",
+        "border border-stroke-subtle bg-surface-1 text-xs overflow-hidden",
         className,
       )}
     >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 px-3 py-2 w-full text-left hover:bg-zinc-800/60 transition-colors"
+        className="flex items-center gap-2 px-(--of-space-md) py-(--of-space-sm) w-full text-left hover:bg-surface-2 transition-colors duration-(--of-duration-instant)"
       >
         {open ? (
-          <ChevronDown className="size-3 text-zinc-400 shrink-0" />
+          <ChevronDown className="size-3 text-text-tertiary shrink-0" />
         ) : (
-          <ChevronRight className="size-3 text-zinc-400 shrink-0" />
+          <ChevronRight className="size-3 text-text-tertiary shrink-0" />
         )}
-        {icon && <span className="shrink-0 text-zinc-400">{icon}</span>}
-        <span className="font-medium text-zinc-100 truncate">{title}</span>
+        {icon && <span className="shrink-0 text-text-tertiary">{icon}</span>}
+        <span className="font-medium text-text-primary truncate">{title}</span>
         {subtitle && (
-          <span className="text-zinc-400 truncate font-normal ml-0.5">
+          <span className="text-text-tertiary truncate font-normal ml-0.5">
             {subtitle}
           </span>
         )}
         {statusIcon && <span className="ml-auto shrink-0">{statusIcon}</span>}
       </button>
-      {open && children && (
-        <div className="border-t border-zinc-800 bg-zinc-950/50 px-3 py-2 font-mono overflow-auto max-h-72">
-          {children}
+      {!open && preview && (
+        <div className="border-t border-stroke-subtle bg-surface-0 px-(--of-space-md) py-(--of-space-xs) font-mono text-text-tertiary overflow-hidden">
+          {preview}
         </div>
       )}
+      <div
+        className="grid transition-[grid-template-rows] duration-(--of-duration-fast)"
+        style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden">
+          {children && (
+            <div className="border-t border-stroke-subtle bg-surface-0 px-(--of-space-md) py-(--of-space-sm) font-mono overflow-auto max-h-72">
+              {children}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

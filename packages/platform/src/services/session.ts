@@ -4,6 +4,7 @@ import {
   chatMessages,
   chats,
   ciEvents,
+  infraResources,
   prEvents,
   sessions,
   specs,
@@ -51,6 +52,8 @@ export interface CreateSessionParams {
   title?: string;
   forgeType?: "forgejo" | "github" | "gitlab";
   activeSkills?: Array<{ source: "builtin" | "user" | "repo"; slug: string }>;
+  firstMessage?: string;
+  modelId?: string;
 }
 
 export interface SendMessageParams {
@@ -153,12 +156,63 @@ export class SessionService {
       activeSkills: Array.isArray(activeSkills) && activeSkills.length > 0 ? activeSkills : null,
     });
 
+    const modelId = params.modelId?.trim() || preferredModel || DEFAULT_MODEL_ID;
+
     await this.db.insert(chats).values({
       id: chatId,
       sessionId,
       title,
-      ...(preferredModel ? { modelId: preferredModel } : {}),
+      ...(modelId ? { modelId } : {}),
     });
+
+    const firstMessage = params.firstMessage?.trim();
+    if (firstMessage) {
+      const messageId = crypto.randomUUID();
+      const runId = crypto.randomUUID();
+      const requestId = crypto.randomUUID();
+
+      await this.db.insert(chatMessages).values({
+        id: messageId,
+        chatId,
+        role: "user",
+        parts: [{ type: "text", text: firstMessage }],
+      });
+
+      await this.db.insert(agentRuns).values({
+        id: runId,
+        chatId,
+        sessionId,
+        userId: auth.userId,
+        modelId,
+        status: "queued",
+        createdAt: new Date(),
+      });
+
+      await this.db
+        .update(chats)
+        .set({ activeRunId: runId, updatedAt: new Date() })
+        .where(eq(chats.id, chatId));
+
+      const forge = getForgeProviderForAuth(auth);
+      const sessionRow = await this.db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1).then((r) => r[0]);
+
+      const resolvedSkills = sessionRow
+        ? await resolveSkillsForSession(sessionRow, forge, auth.username)
+        : [];
+
+      await this.queue.ensureGroup();
+      await this.queue.enqueue({
+        runId,
+        chatId,
+        sessionId,
+        userId: auth.userId,
+        messages: [{ role: "user" as const, content: [{ type: "text", text: firstMessage }] }],
+        resolvedSkills,
+        modelId,
+        requestId,
+        maxRetries: 3,
+      });
+    }
 
     return { sessionId };
   }
@@ -698,6 +752,130 @@ export class SessionService {
       .where(eq(ciEvents.sessionId, sessionId))
       .orderBy(desc(ciEvents.createdAt))
       .limit(50);
+  }
+
+  // -------------------------------------------------------------------------
+  // createFromDeployFailure — called by Render webhook
+  // -------------------------------------------------------------------------
+
+  async createFromDeployFailure(params: {
+    serviceId: string;
+    serviceName: string;
+    deployId: string;
+    commitId?: string;
+    commitMessage?: string;
+  }): Promise<{ sessionId: string; runId: string } | null> {
+    const { serviceId, serviceName, deployId, commitId, commitMessage } = params;
+
+    // Look up which session/repo owns this service via infraResources
+    const [resource] = await this.db
+      .select({
+        projectId: infraResources.projectId,
+        name: infraResources.name,
+      })
+      .from(infraResources)
+      .where(eq(infraResources.externalId, serviceId))
+      .limit(1);
+
+    if (!resource) {
+      logger.warn("deploy_failure webhook: no tracked resource for service", { serviceId });
+      return null;
+    }
+
+    // Find the most recent session for this project to determine user/repo context
+    const [latestSession] = await this.db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.repoPath, resource.projectId))
+      .orderBy(desc(sessions.lastActivityAt))
+      .limit(1);
+
+    if (!latestSession) {
+      logger.warn("deploy_failure webhook: no session found for project", { projectId: resource.projectId });
+      return null;
+    }
+
+    const title = `Deploy failure: ${serviceName}`;
+    const sessionId = crypto.randomUUID();
+    const chatId = crypto.randomUUID();
+
+    await this.db.insert(sessions).values({
+      id: sessionId,
+      userId: latestSession.userId,
+      forgeUsername: latestSession.forgeUsername,
+      title,
+      status: "running",
+      repoPath: latestSession.repoPath,
+      forgeType: latestSession.forgeType ?? "github",
+      branch: latestSession.branch,
+      baseBranch: latestSession.baseBranch ?? "main",
+      phase: "execute",
+      workflowMode: "standard",
+      projectContext: JSON.stringify({
+        deployFailure: {
+          serviceId,
+          serviceName,
+          deployId,
+          commitId,
+          commitMessage,
+        },
+      }),
+    });
+
+    await this.db.insert(chats).values({ id: chatId, sessionId, title });
+
+    const diagnosticPrompt = [
+      `A deploy just failed on Render.`,
+      `- Service: ${serviceName} (ID: ${serviceId})`,
+      `- Deploy ID: ${deployId}`,
+      commitId ? `- Commit: ${commitId}` : null,
+      commitMessage ? `- Commit message: ${commitMessage}` : null,
+      ``,
+      `Diagnose the failure:`,
+      `1. Use render_get_logs to read the deploy/build logs for service ${serviceId}`,
+      `2. Identify the root cause (build error, runtime crash, missing env var, etc.)`,
+      `3. If it's a code issue, fix it and push a commit`,
+      `4. If it's a configuration issue (env vars, build settings), explain what needs to change and ask for confirmation`,
+      `5. After fixing, trigger a redeploy with render_deploy`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const result = await enqueueSessionTriggerJob(this.db, this.queue, {
+      sessionRow: {
+        ...latestSession,
+        id: sessionId,
+        title,
+        projectContext: null,
+      },
+      userId: latestSession.userId,
+      chatTitle: title,
+      trigger: "deploy_failure",
+      fixContext: diagnosticPrompt,
+    });
+
+    if (!result) return null;
+
+    // Create an inbox notification via prEvents
+    await this.db.insert(prEvents).values({
+      id: crypto.randomUUID(),
+      userId: latestSession.userId,
+      sessionId,
+      repoPath: latestSession.repoPath,
+      prNumber: latestSession.prNumber ?? 0,
+      action: "ci_failed",
+      title,
+      actionNeeded: true,
+      read: false,
+      metadata: {
+        deployFailure: true,
+        serviceId,
+        deployId,
+        runId: result.runId,
+      },
+    });
+
+    return { sessionId, runId: result.runId };
   }
 
   // -------------------------------------------------------------------------

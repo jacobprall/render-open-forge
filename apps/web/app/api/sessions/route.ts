@@ -10,10 +10,12 @@ const activeSkillRefSchema = z.object({
 
 const createSessionBodySchema = z.object({
   repoPath: z.string().min(1),
-  branch: z.string().min(1),
+  branch: z.string().min(1).optional(),
   baseBranch: z.string().min(1).optional(),
   title: z.string().max(200).optional(),
   activeSkills: z.array(activeSkillRefSchema).optional(),
+  firstMessage: z.string().max(10000).optional(),
+  modelId: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -29,8 +31,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await getPlatform().sessions.create(auth, parsed.data);
-    return NextResponse.json(result);
+    const data = parsed.data;
+    const branch = data.branch || data.baseBranch || "main";
+    const result = await getPlatform().sessions.create(auth, {
+      ...data,
+      branch,
+    });
+    return NextResponse.json({ id: result.sessionId, ...result });
   } catch (err) {
     return handlePlatformError(err);
   }

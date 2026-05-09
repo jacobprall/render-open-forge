@@ -4,14 +4,14 @@ export default function NotFound() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="max-w-md text-center">
-        <p className="text-6xl font-bold text-zinc-700">404</p>
+        <p className="text-6xl font-bold text-text-tertiary">404</p>
         <h2 className="mt-4 text-lg font-semibold">Page not found</h2>
-        <p className="mt-2 text-sm text-zinc-400">
+        <p className="mt-2 text-sm text-text-tertiary">
           The page you're looking for doesn't exist or has been moved.
         </p>
         <Link
           href="/"
-          className="mt-6 inline-block rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
+          className="mt-6 inline-block bg-accent px-4 py-2 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover"
         >
           Go home
         </Link>

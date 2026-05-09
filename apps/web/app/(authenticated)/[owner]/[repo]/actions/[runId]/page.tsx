@@ -8,7 +8,7 @@ import { relativeTime } from "@/lib/utils";
 import { JobLogsPoller } from "@/components/actions/job-log-poller";
 
 const statusStyles: Record<string, string> = {
-  pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  pending: "bg-amber-500/10 text-warning border-amber-500/20",
   running: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   success: "bg-accent-bg text-accent-text border-accent/20",
   failure: "bg-danger/10 text-danger border-danger/20",
@@ -47,7 +47,7 @@ export default async function CIRunDetailPage({
         <div className="flex items-center justify-center p-12">
           <div className="text-center">
             <h2 className="text-xl font-semibold">Run not found</h2>
-            <p className="mt-2 text-sm text-zinc-400">
+            <p className="mt-2 text-sm text-text-tertiary">
               This CI run doesn&apos;t exist or has been deleted.
             </p>
             <Link
@@ -85,7 +85,7 @@ function RunDetail({
       <div className="mb-6">
         <Link
           href={`/${owner}/${repo}/actions`}
-          className="text-sm text-zinc-400 hover:text-zinc-200"
+          className="text-sm text-text-tertiary hover:text-text-primary"
         >
           ← Back to Actions
         </Link>
@@ -96,7 +96,7 @@ function RunDetail({
           <h2 className="text-xl font-semibold">
             {event.workflowName ?? "Workflow Run"}
           </h2>
-          <p className="mt-1 text-sm text-zinc-400">
+          <p className="mt-1 text-sm text-text-tertiary">
             Run ID: {event.runId ?? event.id}
           </p>
         </div>
@@ -108,18 +108,18 @@ function RunDetail({
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="rounded-lg border border-zinc-800 p-3">
-          <p className="text-xs text-zinc-500">Type</p>
+        <div className="border border-stroke-subtle p-3">
+          <p className="text-xs text-text-tertiary">Type</p>
           <p className="mt-1 text-sm font-medium">{event.type}</p>
         </div>
-        <div className="rounded-lg border border-zinc-800 p-3">
-          <p className="text-xs text-zinc-500">Triggered</p>
+        <div className="border border-stroke-subtle p-3">
+          <p className="text-xs text-text-tertiary">Triggered</p>
           <p className="mt-1 text-sm font-medium">
             {relativeTime(event.createdAt)}
           </p>
         </div>
-        <div className="rounded-lg border border-zinc-800 p-3">
-          <p className="text-xs text-zinc-500">Session</p>
+        <div className="border border-stroke-subtle p-3">
+          <p className="text-xs text-text-tertiary">Session</p>
           <p className="mt-1 text-sm font-medium">
             <Link
               href={`/sessions/${event.sessionId}`}
@@ -130,8 +130,8 @@ function RunDetail({
           </p>
         </div>
         {event.logsUrl && (
-          <div className="rounded-lg border border-zinc-800 p-3">
-            <p className="text-xs text-zinc-500">Logs</p>
+          <div className="border border-stroke-subtle p-3">
+            <p className="text-xs text-text-tertiary">Logs</p>
             <p className="mt-1 text-sm">
               <a
                 href={event.logsUrl}
@@ -147,24 +147,24 @@ function RunDetail({
       </div>
 
       <div className="mt-6">
-        <h3 className="mb-3 text-sm font-medium text-zinc-400">
+        <h3 className="mb-3 text-sm font-medium text-text-tertiary">
           Output / Logs
         </h3>
-        <p className="mb-2 text-xs text-zinc-500">
+        <p className="mb-2 text-xs text-text-tertiary">
           For live plaintext job logs here, open this page with{" "}
-          <code className="rounded bg-zinc-950 px-1 text-zinc-300">?job=FORGEJO_JOB_ID</code> in the URL (from the
+          <code className="bg-surface-0 px-1 text-text-secondary">?job=FORGEJO_JOB_ID</code> in the URL (from the
           Actions UI).
         </p>
         {jobLogsJobId ? (
           <JobLogsPoller owner={owner} repo={repo} jobId={jobLogsJobId} />
         ) : (
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+          <div className="border border-stroke-subtle bg-surface-1 p-4">
             {payload ? (
-              <pre className="overflow-auto font-mono text-xs text-zinc-300">
+              <pre className="overflow-auto font-mono text-xs text-text-secondary">
                 {JSON.stringify(payload, null, 2)}
               </pre>
             ) : (
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm text-text-tertiary">
                 No log output available for this run.
               </p>
             )}

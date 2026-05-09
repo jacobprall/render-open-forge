@@ -53,23 +53,23 @@ export function GlobRenderer({
       status={derivedStatus}
     >
       {result?.error ? (
-        <span className="text-red-400">{result.error}</span>
+        <span className="text-danger">{result.error}</span>
       ) : files.length > 0 ? (
         <div className="space-y-0.5">
-          <div className="text-zinc-400 mb-1">
+          <div className="text-text-tertiary mb-1">
             {files.length} file{files.length !== 1 ? "s" : ""}
           </div>
           {files.slice(0, 50).map((f, i) => (
-            <div key={i} className="text-zinc-300 text-xs">
+            <div key={i} className="text-text-secondary text-xs">
               {f}
             </div>
           ))}
           {files.length > 50 && (
-            <div className="text-zinc-400">… {files.length - 50} more</div>
+            <div className="text-text-tertiary">… {files.length - 50} more</div>
           )}
         </div>
       ) : result?.files !== undefined ? (
-        <span className="text-zinc-400">No matches</span>
+        <span className="text-text-tertiary">No matches</span>
       ) : null}
     </ToolLayout>
   );
@@ -101,27 +101,27 @@ export function GrepRenderer({
       status={derivedStatus}
     >
       {result?.error ? (
-        <span className="text-red-400">{result.error}</span>
+        <span className="text-danger">{result.error}</span>
       ) : output ? (
-        <pre className="text-xs whitespace-pre-wrap text-zinc-300">
+        <pre className="text-xs whitespace-pre-wrap text-text-secondary">
           {output.length > 2000 ? output.slice(0, 2000) + "\n…" : output}
         </pre>
       ) : matches.length > 0 ? (
         <div className="space-y-0.5">
           {matches.slice(0, 30).map((m, i) => (
             <div key={i} className="text-xs">
-              <span className="text-zinc-400">
+              <span className="text-text-tertiary">
                 {m.file}:{m.line}
               </span>
-              <span className="text-zinc-300 ml-1">{m.text}</span>
+              <span className="text-text-secondary ml-1">{m.text}</span>
             </div>
           ))}
           {matches.length > 30 && (
-            <div className="text-zinc-400">… {matches.length - 30} more</div>
+            <div className="text-text-tertiary">… {matches.length - 30} more</div>
           )}
         </div>
       ) : (
-        <span className="text-zinc-400">No matches</span>
+        <span className="text-text-tertiary">No matches</span>
       )}
     </ToolLayout>
   );

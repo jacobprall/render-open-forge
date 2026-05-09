@@ -47,14 +47,14 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
   }[spec.estimatedComplexity] as "success" | "info" | "pending" | "failure";
 
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50">
+    <div className="overflow-hidden border border-stroke-subtle bg-surface-1/50">
       <button
         type="button"
-        className="flex w-full items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-800/50"
+        className="flex w-full items-center gap-3 px-4 py-3 transition-colors duration-(--of-duration-instant) hover:bg-surface-2/50"
         onClick={() => setOpen(!open)}
       >
         <svg
-          className={`h-4 w-4 shrink-0 text-zinc-400 transition-transform ${open ? "rotate-90" : ""}`}
+          className={`h-4 w-4 shrink-0 text-text-tertiary transition-transform ${open ? "rotate-90" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -62,7 +62,7 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
-        <span className="text-sm font-medium text-zinc-100">
+        <span className="text-sm font-medium text-text-primary">
           Spec — Review before implementing
         </span>
         <Badge variant={complexityVariant} className="ml-auto">
@@ -71,25 +71,25 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
       </button>
 
       {open && (
-        <div className="space-y-4 border-t border-zinc-800 px-4 py-4">
+        <div className="space-y-4 border-t border-stroke-subtle px-4 py-4">
           <Section label="Goal">
-            <p className="text-sm text-zinc-300">{spec.goal}</p>
+            <p className="text-sm text-text-secondary">{spec.goal}</p>
           </Section>
 
           <Section label="Approach">
-            <p className="whitespace-pre-wrap text-sm text-zinc-300">{spec.approach}</p>
+            <p className="whitespace-pre-wrap text-sm text-text-secondary">{spec.approach}</p>
           </Section>
 
           {(spec.filesToModify.length > 0 || spec.filesToCreate.length > 0) && (
             <Section label="Files">
               <ul className="space-y-0.5">
                 {spec.filesToModify.map((f) => (
-                  <li key={f} className="flex items-center gap-2 font-mono text-xs text-zinc-300">
+                  <li key={f} className="flex items-center gap-2 font-mono text-xs text-text-secondary">
                     <span className="text-warning">M</span> {f}
                   </li>
                 ))}
                 {spec.filesToCreate.map((f) => (
-                  <li key={f} className="flex items-center gap-2 font-mono text-xs text-zinc-300">
+                  <li key={f} className="flex items-center gap-2 font-mono text-xs text-text-secondary">
                     <span className="text-accent-text">A</span> {f}
                   </li>
                 ))}
@@ -99,7 +99,7 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
 
           {spec.risks.length > 0 && (
             <Section label="Risks">
-              <ul className="list-inside list-disc space-y-0.5 text-sm text-zinc-300">
+              <ul className="list-inside list-disc space-y-0.5 text-sm text-text-secondary">
                 {spec.risks.map((r, i) => (
                   <li key={i}>{r}</li>
                 ))}
@@ -109,7 +109,7 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
 
           {spec.verificationPlan && (
             <Section label="Verification Plan">
-              <p className="text-sm text-zinc-300">{spec.verificationPlan}</p>
+              <p className="text-sm text-text-secondary">{spec.verificationPlan}</p>
             </Section>
           )}
 
@@ -120,7 +120,7 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
                 value={rejectionNote}
                 onChange={(e) => setRejectionNote(e.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-accent focus:ring-1 focus:ring-accent"
+                className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-(--of-duration-instant) focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </div>
           )}
@@ -199,7 +199,7 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
+      <p className="mb-1 text-xs font-medium uppercase tracking-wider text-text-tertiary">
         {label}
       </p>
       {children}

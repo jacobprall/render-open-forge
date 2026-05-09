@@ -50,10 +50,10 @@ export function RepoTabNav({ basePath, tabs }: { basePath: string; tabs: RepoTab
           <Link
             key={tab.id}
             href={tab.href}
-            className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+            className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors duration-(--of-duration-instant) ${
               active
                 ? "border-accent text-accent-text"
-                : "border-transparent text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+                : "border-transparent text-text-tertiary hover:border-stroke-subtle hover:text-text-primary"
             }`}
             aria-current={active ? "page" : undefined}
           >

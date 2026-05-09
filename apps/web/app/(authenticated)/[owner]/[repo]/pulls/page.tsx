@@ -46,22 +46,22 @@ function PrRow({
   return (
     <Link
       href={`${basePath}/pulls/${pr.number}`}
-      className="flex items-center gap-4 border-b border-zinc-800 px-5 py-4 transition hover:bg-zinc-800/50 last:border-b-0"
+      className="flex items-center gap-4 border-b border-stroke-subtle px-5 py-4 transition-colors duration-(--of-duration-instant) hover:bg-surface-2 last:border-b-0"
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-zinc-100 hover:text-accent-text">
+          <span className="font-semibold text-text-primary hover:text-accent-text">
             {pr.title}
           </span>
           <StatusBadge pr={pr} />
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
           <span>#{pr.number}</span>
           <span>opened by {pr.author}</span>
           <span>{relativeTime(pr.createdAt)}</span>
-          <span className="inline-flex items-center gap-1 rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[11px] text-zinc-400">
+          <span className="inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-text-tertiary">
             {pr.headRef}
-            <svg className="h-3 w-3 text-zinc-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <svg className="h-3 w-3 text-text-tertiary" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
             </svg>
             {pr.baseRef}
@@ -103,7 +103,7 @@ export default async function PullRequestsPage({
         <h2 className="text-xl font-bold tracking-tight">Pull Requests</h2>
         <Link
           href={`${basePath}/pulls/new`}
-          className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
+          className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -113,23 +113,23 @@ export default async function PullRequestsPage({
       </div>
 
       {/* Tab filter */}
-      <div className="mb-4 flex gap-1 rounded-lg bg-zinc-900 p-1">
+      <div className="mb-4 flex gap-1 bg-surface-1 p-1">
         <Link
           href={`${basePath}/pulls?state=open`}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+          className={`px-4 py-2 text-sm font-medium transition-colors duration-(--of-duration-instant) ${
             activeTab === "open"
-              ? "bg-zinc-800 text-zinc-100"
-              : "text-zinc-400 hover:text-zinc-200"
+              ? "bg-surface-2 text-text-primary"
+              : "text-text-tertiary hover:text-text-primary"
           }`}
         >
           Open
         </Link>
         <Link
           href={`${basePath}/pulls?state=closed`}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+          className={`px-4 py-2 text-sm font-medium transition-colors duration-(--of-duration-instant) ${
             activeTab === "closed"
-              ? "bg-zinc-800 text-zinc-100"
-              : "text-zinc-400 hover:text-zinc-200"
+              ? "bg-surface-2 text-text-primary"
+              : "text-text-tertiary hover:text-text-primary"
           }`}
         >
           Closed
@@ -138,23 +138,23 @@ export default async function PullRequestsPage({
 
       {/* PR list */}
       {pullRequests.length === 0 ? (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-6 py-16 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800">
-            <svg className="h-6 w-6 text-zinc-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <div className="border border-stroke-subtle bg-surface-1 px-6 py-16 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-surface-2">
+            <svg className="h-6 w-6 text-text-tertiary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-zinc-300">
+          <h3 className="text-lg font-medium text-text-secondary">
             No {activeTab} pull requests
           </h3>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-text-tertiary">
             {activeTab === "open"
               ? "Create a pull request to propose changes to this repository."
               : "No closed pull requests found."}
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50">
+        <div className="overflow-hidden border border-stroke-subtle bg-surface-1">
           {pullRequests.map((pr) => (
             <PrRow key={pr.id} pr={pr} basePath={basePath} />
           ))}

@@ -11,7 +11,7 @@ const ChatPanel = dynamic(
   () => import("./chat-panel").then((m) => ({ default: m.ChatPanel })),
   {
     loading: () => (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-500">Loading chat…</div>
+      <div className="flex h-full items-center justify-center text-sm text-text-tertiary">Loading chat…</div>
     ),
   },
 );
@@ -20,7 +20,7 @@ const FilesView = dynamic(
   () => import("./files-view").then((m) => ({ default: m.FilesView })),
   {
     loading: () => (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-500">Loading files…</div>
+      <div className="flex h-full items-center justify-center text-sm text-text-tertiary">Loading files…</div>
     ),
   },
 );
@@ -60,7 +60,7 @@ const statusDot: Record<string, string> = {
   running: "bg-accent",
   completed: "bg-blue-500",
   failed: "bg-red-500",
-  archived: "bg-zinc-500",
+  archived: "bg-text-tertiary",
 };
 
 export function SessionWorkspace({
@@ -87,19 +87,19 @@ export function SessionWorkspace({
 
   return (
     <div className="flex h-full flex-col">
-      <header className="shrink-0 border-b border-zinc-800">
+      <header className="shrink-0 border-b border-stroke-subtle">
         <div className="flex items-center justify-between px-4 pt-2 pb-1">
           <div className="flex items-center gap-2 min-w-0 text-[11px]">
             {session.repoPath ? (
-              <span className="font-mono text-zinc-500 truncate">
+              <span className="font-mono text-text-tertiary truncate">
                 {session.repoPath}
                 {session.branch ? (
-                  <span className="text-zinc-600"> : {session.branch}</span>
+                  <span className="text-text-tertiary"> : {session.branch}</span>
                 ) : null}
               </span>
             ) : null}
-            <span className="flex items-center gap-1.5 text-zinc-500">
-              <span className={`h-1.5 w-1.5 rounded-full ${statusDot[session.status] ?? "bg-zinc-600"}`} />
+            <span className="flex items-center gap-1.5 text-text-tertiary">
+              <span className={`h-1.5 w-1.5 rounded-full ${statusDot[session.status] ?? "bg-text-tertiary"}`} />
               {session.status}
             </span>
             {session.prNumber != null ? (
@@ -113,7 +113,7 @@ export function SessionWorkspace({
             {hasLineStats ? (
               <span className="inline-flex items-center font-mono tabular-nums leading-none">
                 <span className="text-accent-text/70">+{session.linesAdded ?? 0}</span>
-                <span className="text-zinc-700 mx-0.5">/</span>
+                <span className="text-text-tertiary mx-0.5">/</span>
                 <span className="text-danger/70">&minus;{session.linesRemoved ?? 0}</span>
               </span>
             ) : null}
@@ -141,7 +141,7 @@ export function SessionWorkspace({
       </header>
 
       {session.prNumber != null && session.repoPath && (
-        <div className="shrink-0 border-b border-zinc-800 px-4 py-2">
+        <div className="shrink-0 border-b border-stroke-subtle px-4 py-2">
           <PrSummaryPanel
             sessionId={session.id}
             repoPath={session.repoPath}
@@ -190,15 +190,15 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
+      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors duration-(--of-duration-instant) ${
         active
-          ? "border-b-2 border-accent text-zinc-100"
-          : "border-b-2 border-transparent text-zinc-500 hover:text-zinc-300"
+          ? "border-b-2 border-accent text-text-primary"
+          : "border-b-2 border-transparent text-text-tertiary hover:text-text-secondary"
       }`}
     >
       {children}
       {badge !== undefined ? (
-        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-zinc-700 px-1 text-[10px] tabular-nums text-zinc-300">
+        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-surface-3 px-1 text-[10px] tabular-nums text-text-secondary">
           {badge}
         </span>
       ) : null}

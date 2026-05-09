@@ -68,7 +68,7 @@ export default async function BlobPage({
         </Link>
         {breadcrumbs.map((crumb, i) => (
           <span key={i} className="flex items-center gap-1">
-            <span className="text-zinc-600">/</span>
+            <span className="text-text-tertiary">/</span>
             {crumb.href ? (
               <Link
                 href={crumb.href}
@@ -77,19 +77,19 @@ export default async function BlobPage({
                 {crumb.label}
               </Link>
             ) : (
-              <span className="font-medium text-zinc-200">{crumb.label}</span>
+              <span className="font-medium text-text-primary">{crumb.label}</span>
             )}
           </span>
         ))}
       </nav>
 
       {/* File viewer */}
-      <div className="overflow-hidden rounded-lg border border-zinc-800">
+      <div className="overflow-hidden border border-stroke-subtle">
         {/* File header */}
-        <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4 py-2.5">
+        <div className="flex items-center justify-between border-b border-stroke-subtle bg-surface-1 px-4 py-2.5">
           <div className="flex items-center gap-3">
             <svg
-              className="h-4 w-4 text-zinc-500"
+              className="h-4 w-4 text-text-tertiary"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -101,13 +101,13 @@ export default async function BlobPage({
                 d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
               />
             </svg>
-            <span className="text-sm font-medium text-zinc-200">
+            <span className="text-sm font-medium text-text-primary">
               {fileName}
             </span>
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-text-tertiary">
               {formatBytes(fileData.size)}
             </span>
-            <span className="text-xs text-zinc-600">
+            <span className="text-xs text-text-tertiary">
               {lines.length} lines
             </span>
           </div>
@@ -115,7 +115,7 @@ export default async function BlobPage({
             <CopyButton content={content} />
             <a
               href={`/${owner}/${repo}/raw/${encodeURIComponent(branch)}/${filePath}`}
-              className="rounded-md border border-zinc-700 px-2.5 py-1 text-xs font-medium text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
+              className="border border-stroke-default px-2.5 py-1 text-xs font-medium text-text-tertiary transition-colors duration-(--of-duration-instant) hover:border-stroke-default hover:text-text-primary"
             >
               Raw
             </a>
@@ -127,12 +127,12 @@ export default async function BlobPage({
           <table className="w-full border-collapse">
             <tbody>
               {lines.map((line, i) => (
-                <tr key={i} className="hover:bg-zinc-900/30">
-                  <td className="w-1 select-none border-r border-zinc-800/50 px-3 py-0 text-right align-top font-mono text-xs leading-5 text-zinc-600">
+                <tr key={i} className="hover:bg-surface-1">
+                  <td className="w-1 select-none border-r border-stroke-subtle px-3 py-0 text-right align-top font-mono text-xs leading-5 text-text-tertiary">
                     {i + 1}
                   </td>
                   <td className="px-4 py-0 align-top">
-                    <pre className="font-mono text-sm leading-5 text-zinc-300">
+                    <pre className="font-mono text-sm leading-5 text-text-secondary">
                       {line || " "}
                     </pre>
                   </td>

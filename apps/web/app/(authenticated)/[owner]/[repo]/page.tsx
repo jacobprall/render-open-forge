@@ -82,12 +82,12 @@ export default async function RepoDetailPage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           {repoData.description && (
-            <p className="text-sm text-zinc-400">{repoData.description}</p>
+            <p className="text-sm text-text-tertiary">{repoData.description}</p>
           )}
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-1.5">
+            <div className="flex items-center gap-2 border border-stroke-subtle bg-surface-1 px-3 py-1.5">
               <svg
-                className="h-4 w-4 text-zinc-500"
+                className="h-4 w-4 text-text-tertiary"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
@@ -99,7 +99,7 @@ export default async function RepoDetailPage({
                   d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
                 />
               </svg>
-              <code className="select-all text-xs text-zinc-400">
+              <code className="select-all text-xs text-text-tertiary">
                 {repoData.cloneUrl}
               </code>
             </div>
@@ -107,7 +107,7 @@ export default async function RepoDetailPage({
         </div>
         <Link
           href={`/sessions/new?repo=${owner}/${repoName}`}
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
+          className="inline-flex shrink-0 items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover"
         >
           <svg
             className="h-4 w-4"
@@ -135,7 +135,7 @@ export default async function RepoDetailPage({
           repo={repoName}
         />
         {latestCommit && (
-          <div className="flex items-center gap-2 text-sm text-zinc-400">
+          <div className="flex items-center gap-2 text-sm text-text-tertiary">
             <Link
               href={`/${owner}/${repoName}/commit/${latestCommit.sha}`}
               className="font-mono text-xs text-accent-text hover:underline"
@@ -145,8 +145,8 @@ export default async function RepoDetailPage({
             <span className="truncate max-w-xs">
               {latestCommit.message.split("\n")[0]}
             </span>
-            <span className="text-zinc-500">·</span>
-            <span className="whitespace-nowrap text-zinc-500">
+            <span className="text-text-tertiary">·</span>
+            <span className="whitespace-nowrap text-text-tertiary">
               {relativeTime(latestCommit.authorDate)}
             </span>
           </div>
@@ -154,21 +154,21 @@ export default async function RepoDetailPage({
       </div>
 
       {/* File listing */}
-      <div className="overflow-hidden rounded-lg border border-zinc-800">
+      <div className="overflow-hidden border border-stroke-subtle">
         {latestCommit && (
-          <div className="flex items-center gap-3 border-b border-zinc-800 bg-zinc-900/50 px-4 py-2.5 text-sm">
-            <span className="font-medium text-zinc-200">
+          <div className="flex items-center gap-3 border-b border-stroke-subtle bg-surface-1 px-4 py-2.5 text-sm">
+            <span className="font-medium text-text-primary">
               {latestCommit.authorName}
             </span>
-            <span className="truncate text-zinc-400">
+            <span className="truncate text-text-tertiary">
               {latestCommit.message.split("\n")[0]}
             </span>
-            <span className="ml-auto whitespace-nowrap text-xs text-zinc-500">
+            <span className="ml-auto whitespace-nowrap text-xs text-text-tertiary">
               {relativeTime(latestCommit.authorDate)}
             </span>
           </div>
         )}
-        <div className="divide-y divide-zinc-800/50">
+        <div className="divide-y divide-stroke-subtle">
           {files.map((file) => (
             <Link
               key={file.path}
@@ -177,7 +177,7 @@ export default async function RepoDetailPage({
                   ? `/${owner}/${repoName}/tree/${repoData.defaultBranch}/${file.path}`
                   : `/${owner}/${repoName}/blob/${repoData.defaultBranch}/${file.path}`
               }
-              className="flex items-center gap-3 px-4 py-2 transition hover:bg-zinc-900/50"
+              className="flex items-center gap-3 px-4 py-2 transition-colors duration-(--of-duration-instant) hover:bg-surface-1"
             >
               {file.type === "dir" ? (
                 <svg
@@ -195,7 +195,7 @@ export default async function RepoDetailPage({
                 </svg>
               ) : (
                 <svg
-                  className="h-4 w-4 shrink-0 text-zinc-500"
+                  className="h-4 w-4 shrink-0 text-text-tertiary"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
@@ -208,16 +208,16 @@ export default async function RepoDetailPage({
                   />
                 </svg>
               )}
-              <span className="text-sm text-zinc-200">{file.name}</span>
+              <span className="text-sm text-text-primary">{file.name}</span>
               {file.type === "file" && (
-                <span className="ml-auto text-xs text-zinc-600">
+                <span className="ml-auto text-xs text-text-tertiary">
                   {formatBytes(file.size)}
                 </span>
               )}
             </Link>
           ))}
           {files.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-zinc-500">
+            <div className="px-4 py-8 text-center text-sm text-text-tertiary">
               This repository is empty
             </div>
           )}
@@ -226,12 +226,12 @@ export default async function RepoDetailPage({
 
       {/* README */}
       {readmeContent && (
-        <div className="overflow-hidden rounded-lg border border-zinc-800">
-          <div className="border-b border-zinc-800 bg-zinc-900/50 px-4 py-2.5 text-sm font-medium text-zinc-300">
+        <div className="overflow-hidden border border-stroke-subtle">
+          <div className="border-b border-stroke-subtle bg-surface-1 px-4 py-2.5 text-sm font-medium text-text-secondary">
             README.md
           </div>
           <div className="p-6">
-            <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-zinc-300">
+            <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-text-secondary">
               {readmeContent}
             </pre>
           </div>

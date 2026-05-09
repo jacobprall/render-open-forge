@@ -223,22 +223,22 @@ export function NewSessionForm() {
     <div className="mx-auto max-w-2xl p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold">New Session</h1>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-text-tertiary">
           Start an agent session — choose which skills apply for this run.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {error ? (
-          <div className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
+          <div className="border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
             {error}
           </div>
         ) : null}
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">Repository</label>
+          <label className="mb-2 block text-sm font-medium text-text-secondary">Repository</label>
           {loadingRepos ? (
-            <div className="h-10 animate-pulse rounded-lg bg-zinc-800" />
+            <div className="h-10 animate-pulse bg-surface-2" />
           ) : (
             <select
               value={selectedRepo}
@@ -246,14 +246,14 @@ export function NewSessionForm() {
                 setSelectedRepo(e.target.value);
                 setInitialParamsApplied(false);
               }}
-              className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-accent focus:ring-1 focus:ring-accent"
+              className="w-full appearance-none border border-stroke-default bg-surface-1 px-3 py-2 text-sm text-text-primary outline-none transition-colors duration-(--of-duration-instant) focus:border-accent focus:ring-1 focus:ring-accent"
               required
             >
-              <option value="" className="bg-zinc-900 text-zinc-400">
+              <option value="" className="bg-surface-1 text-text-tertiary">
                 Select a repository…
               </option>
               {repos.map((repo) => (
-                <option key={repo.id} value={repo.fullName} className="bg-zinc-900 text-zinc-100">
+                <option key={repo.id} value={repo.fullName} className="bg-surface-1 text-text-primary">
                   {repo.fullName}
                 </option>
               ))}
@@ -263,14 +263,14 @@ export function NewSessionForm() {
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <label className="text-sm font-medium text-zinc-300">Branch</label>
+            <label className="text-sm font-medium text-text-secondary">Branch</label>
             <button
               type="button"
               onClick={() => {
                 setIsNewBranch((v) => !v);
                 setNewBranchName("");
               }}
-              className="text-xs text-accent-text transition hover:text-accent"
+              className="text-xs text-accent-text transition-colors duration-(--of-duration-instant) hover:text-accent"
             >
               {isNewBranch ? "Use existing branch" : "+ New branch"}
             </button>
@@ -285,66 +285,66 @@ export function NewSessionForm() {
                 onFocus={(e) => e.target.select()}
                 placeholder="e.g. feature/my-branch"
                 autoFocus
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50"
+                className="w-full border border-stroke-default bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder-text-tertiary outline-none transition-colors duration-(--of-duration-instant) focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50"
                 disabled={!selectedRepo}
                 required
               />
               {!selectedRepo ? (
-                <p className="mt-1.5 text-xs text-zinc-500">Select a repository first</p>
+                <p className="mt-1.5 text-xs text-text-tertiary">Select a repository first</p>
               ) : null}
             </>
           ) : loadingBranches && selectedRepo ? (
-            <div className="h-10 animate-pulse rounded-lg bg-zinc-800" />
+            <div className="h-10 animate-pulse bg-surface-2" />
           ) : (
             <>
               <select
                 value={selectedBranch}
                 onChange={(e) => setSelectedBranch(e.target.value)}
-                className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-accent focus:ring-1 focus:ring-accent"
+                className="w-full appearance-none border border-stroke-default bg-surface-1 px-3 py-2 text-sm text-text-primary outline-none transition-colors duration-(--of-duration-instant) focus:border-accent focus:ring-1 focus:ring-accent"
                 disabled={!selectedRepo}
                 required
               >
-                <option value="" className="bg-zinc-900 text-zinc-400">
+                <option value="" className="bg-surface-1 text-text-tertiary">
                   Select a branch…
                 </option>
                 {branches.map((b) => (
-                  <option key={b.name} value={b.name} className="bg-zinc-900 text-zinc-100">
+                  <option key={b.name} value={b.name} className="bg-surface-1 text-text-primary">
                     {b.name}
                   </option>
                 ))}
               </select>
               {!selectedRepo && !loadingBranches && (
-                <p className="mt-1.5 text-xs text-zinc-500">Select a repository first</p>
+                <p className="mt-1.5 text-xs text-text-tertiary">Select a repository first</p>
               )}
             </>
           )}
           {isNewBranch && selectedBranch ? (
-            <p className="mt-1.5 text-xs text-zinc-500">
-              Will be created from <span className="text-zinc-400">{selectedBranch}</span>
+            <p className="mt-1.5 text-xs text-text-tertiary">
+              Will be created from <span className="text-text-tertiary">{selectedBranch}</span>
             </p>
           ) : null}
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Title <span className="font-normal text-zinc-500">(optional)</span>
+          <label className="mb-2 block text-sm font-medium text-text-secondary">
+            Title <span className="font-normal text-text-tertiary">(optional)</span>
           </label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Leave blank — named automatically after your first message (Claude Haiku)"
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-accent focus:ring-1 focus:ring-accent"
+            className="w-full border border-stroke-default bg-surface-1 px-3 py-2 text-sm text-text-primary outline-none transition-colors duration-(--of-duration-instant) focus:border-accent focus:ring-1 focus:ring-accent"
           />
-          <p className="mt-1.5 text-xs text-zinc-500">
+          <p className="mt-1.5 text-xs text-text-tertiary">
             Sessions start as &quot;New session&quot; until you send a message; then we generate a short title with
             Haiku.
           </p>
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">Skills for this session</label>
-          <p className="mb-3 text-xs text-zinc-500">
+          <label className="mb-2 block text-sm font-medium text-text-secondary">Skills for this session</label>
+          <p className="mb-3 text-xs text-text-tertiary">
             Toggle instructions merged into the agent system prompt. Manage personal skills in{" "}
             <a href="/settings/skills" className="text-accent-text hover:text-accent">
               Settings → Skills
@@ -352,13 +352,13 @@ export function NewSessionForm() {
             .
           </p>
           {!selectedRepo ? (
-            <p className="text-sm text-zinc-500">Select a repository to load skills.</p>
+            <p className="text-sm text-text-tertiary">Select a repository to load skills.</p>
           ) : loadingSkills ? (
-            <div className="h-24 animate-pulse rounded-lg bg-zinc-800" />
+            <div className="h-24 animate-pulse bg-surface-2" />
           ) : skillsPayload == null ? (
-            <p className="text-sm text-zinc-500">Could not load skills.</p>
+            <p className="text-sm text-text-tertiary">Could not load skills.</p>
           ) : allSkills.length === 0 ? (
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-text-tertiary">
               No skills found. Your openforge-skills repo will seed built-ins automatically.
             </p>
           ) : (
@@ -366,7 +366,7 @@ export function NewSessionForm() {
               <button
                 type="button"
                 onClick={() => setSkillsExpanded((v) => !v)}
-                className="mb-2 flex w-full items-center gap-2 text-left text-sm text-zinc-300 transition hover:text-zinc-100"
+                className="mb-2 flex w-full items-center gap-2 text-left text-sm text-text-secondary transition-colors duration-(--of-duration-instant) hover:text-text-primary"
               >
                 <svg
                   className={`h-3.5 w-3.5 shrink-0 transition-transform ${skillsExpanded ? "rotate-90" : ""}`}
@@ -391,19 +391,19 @@ export function NewSessionForm() {
                         key={k}
                         type="button"
                         onClick={() => toggleSkill({ source: s.source, slug: s.slug })}
-                        className={`rounded-lg border px-3 py-2 text-left transition ${
+                        className={`border px-3 py-2 text-left transition-colors duration-(--of-duration-instant) ${
                           on
                             ? "border-accent/60 bg-accent-bg"
-                            : "border-zinc-700 bg-zinc-900 hover:border-zinc-600"
+                            : "border-stroke-default bg-surface-1 hover:border-stroke-subtle"
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <div className="text-sm font-medium text-zinc-100">{s.name}</div>
-                          <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                          <div className="text-sm font-medium text-text-primary">{s.name}</div>
+                          <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-text-tertiary">
                             {s.source}
                           </span>
                         </div>
-                        <div className="mt-0.5 text-xs text-zinc-500">{s.description}</div>
+                        <div className="mt-0.5 text-xs text-text-tertiary">{s.description}</div>
                       </button>
                     );
                   })}
@@ -417,14 +417,14 @@ export function NewSessionForm() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-zinc-800"
+            className="border border-stroke-default px-4 py-2 text-sm font-medium text-text-secondary transition-colors duration-(--of-duration-instant) hover:bg-surface-2"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isPending || !selectedRepo || !effectiveBranch}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-accent px-4 py-2 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? "Creating…" : "Create Session"}
           </button>

@@ -14,9 +14,9 @@ const variantStyles = {
 } as const;
 
 const sizeStyles = {
-  sm: "h-7 px-2.5 text-xs gap-1.5 rounded-md",
-  md: "h-9 px-4 text-sm gap-2 rounded-md",
-  lg: "h-11 px-6 text-base gap-2.5 rounded-lg",
+  sm: "h-7 px-2.5 text-xs gap-1.5",
+  md: "h-9 px-4 text-sm gap-2",
+  lg: "h-11 px-6 text-base gap-2.5",
 } as const;
 
 type ButtonVariant = keyof typeof variantStyles;
@@ -65,7 +65,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const isDisabled = disabled || loading;
     const baseStyles =
-      "inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:opacity-50 disabled:pointer-events-none cursor-pointer";
+      "inline-flex items-center justify-center font-medium transition-colors duration-(--of-duration-instant) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 disabled:opacity-50 disabled:pointer-events-none cursor-pointer";
 
     const combinedClassName = cn(
       baseStyles,

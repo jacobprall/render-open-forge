@@ -30,8 +30,8 @@ export default async function SettingsPage() {
     <div className="space-y-8">
       {/* Profile section */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-zinc-100">Profile</h2>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+        <h2 className="mb-4 text-lg font-semibold text-text-primary">Profile</h2>
+        <div className="border border-stroke-subtle bg-surface-1 p-6">
           <div className="flex items-center gap-4">
             {session.avatarUrl ? (
               <Image
@@ -39,19 +39,19 @@ export default async function SettingsPage() {
                 alt={session.username}
                 width={64}
                 height={64}
-                className="h-16 w-16 rounded-full border-2 border-zinc-700"
+                className="h-16 w-16 rounded-full border-2 border-stroke-default"
               />
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800 text-xl font-bold text-zinc-400">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-2 text-xl font-bold text-text-tertiary">
                 {session.username.charAt(0).toUpperCase()}
               </div>
             )}
             <div>
-              <h3 className="text-lg font-semibold text-zinc-100">{session.username}</h3>
-              <p className="text-sm text-zinc-400">{session.email}</p>
+              <h3 className="text-lg font-semibold text-text-primary">{session.username}</h3>
+              <p className="text-sm text-text-tertiary">{session.email}</p>
             </div>
           </div>
-          <p className="mt-3 text-xs text-zinc-500">
+          <p className="mt-3 text-xs text-text-tertiary">
             Profile information is synced from your connected forge account.
           </p>
         </div>
@@ -59,7 +59,7 @@ export default async function SettingsPage() {
 
       {/* Preferences section */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-zinc-100">Preferences</h2>
+        <h2 className="mb-4 text-lg font-semibold text-text-primary">Preferences</h2>
         <PreferencesForm prefs={prefs} />
       </section>
     </div>

@@ -37,7 +37,7 @@ export const AgentJobSchema = z.object({
   modelId: z.string().optional(),
   fixContext: z.string().optional(),
   trigger: z
-    .enum(["user_message", "ci_failure", "review_comment", "pr_opened", "pr_merged", "workflow_run"])
+    .enum(["user_message", "ci_failure", "review_comment", "pr_opened", "pr_merged", "workflow_run", "deploy_failure"])
     .optional(),
   requestId: z.string().optional(),
   retryCount: z.number().int().min(0).optional(),
