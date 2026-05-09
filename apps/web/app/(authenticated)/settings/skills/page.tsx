@@ -118,7 +118,7 @@ export default async function SkillsSettingsPage() {
           Repository-specific skills: add markdown files under{" "}
           <span className="font-mono text-text-secondary">.forge/skills/*.md</span> in the target repository.
         </p>
-        <Link href="/sessions/new" className="mt-2 inline-block text-accent-text hover:text-accent">
+        <Link href="/sessions" className="mt-2 inline-block text-accent-text hover:text-accent">
           New session
         </Link>
       </section>

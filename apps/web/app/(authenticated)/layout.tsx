@@ -33,20 +33,10 @@ async function AuthenticatedBody({
   session: NonNullable<Awaited<ReturnType<typeof getSession>>>;
   children: React.ReactNode;
 }) {
-  let colors = {
-    accentColor: null as string | null,
-    secondaryColor: null as string | null,
-    tertiaryColor: null as string | null,
-  };
   let theme: ThemePreset = "default";
   try {
     const row = await getUserPreferences(String(session.userId));
     if (row?.data) {
-      colors = {
-        accentColor: row.data.accentColor ?? null,
-        secondaryColor: row.data.secondaryColor ?? null,
-        tertiaryColor: row.data.tertiaryColor ?? null,
-      };
       const raw = row.data.theme as string | null | undefined;
       if (raw && VALID_THEMES.has(raw as ThemePreset)) {
         theme = raw as ThemePreset;
@@ -57,7 +47,7 @@ async function AuthenticatedBody({
   }
 
   return (
-    <ThemeProvider colors={colors} theme={theme}>
+    <ThemeProvider theme={theme}>
       <DynamicShell
         user={{
           username: session.username,

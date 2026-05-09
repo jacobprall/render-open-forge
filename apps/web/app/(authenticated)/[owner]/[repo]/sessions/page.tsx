@@ -52,7 +52,7 @@ export default async function RepoSessionsPage({
           {rows.length} session{rows.length !== 1 ? "s" : ""}
         </h2>
         <Link
-          href={`/sessions/new?repo=${repoPath}`}
+          href="/sessions"
           className="inline-flex items-center gap-1.5 bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover"
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -66,7 +66,7 @@ export default async function RepoSessionsPage({
         <div className="border border-stroke-subtle px-6 py-12 text-center">
           <p className="text-sm text-text-tertiary">No sessions yet for this repository.</p>
           <Link
-            href={`/sessions/new?repo=${repoPath}`}
+            href="/sessions"
             className="mt-3 inline-flex items-center gap-1.5 text-sm text-accent-text hover:text-accent"
           >
             Create one

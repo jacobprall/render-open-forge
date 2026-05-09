@@ -2,7 +2,10 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { Send } from "lucide-react";
 import { RepoBranchPicker } from "./repo-branch-picker";
+import { ModelSelector } from "@/components/model-selector";
+import { DEFAULT_MODEL_ID } from "@/lib/model-defaults";
 
 interface NewSessionInputProps {
   defaultModelId?: string;
@@ -11,6 +14,7 @@ interface NewSessionInputProps {
 export function NewSessionInput({ defaultModelId }: NewSessionInputProps) {
   const [message, setMessage] = useState("");
   const [repoBranch, setRepoBranch] = useState<{ repo: string; branch: string } | null>(null);
+  const [modelId, setModelId] = useState(defaultModelId || DEFAULT_MODEL_ID);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -34,7 +38,7 @@ export function NewSessionInput({ defaultModelId }: NewSessionInputProps) {
             repoPath: repoBranch.repo,
             baseBranch: repoBranch.branch,
             firstMessage: message.trim(),
-            modelId: defaultModelId,
+            modelId,
           }),
         });
 
@@ -50,7 +54,7 @@ export function NewSessionInput({ defaultModelId }: NewSessionInputProps) {
         setLoading(false);
       }
     },
-    [canSubmit, repoBranch, message, defaultModelId, router],
+    [canSubmit, repoBranch, message, modelId, router],
   );
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -61,29 +65,25 @@ export function NewSessionInput({ defaultModelId }: NewSessionInputProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full">
-      <div className="border border-stroke-default bg-surface-1 transition-colors duration-(--of-duration-instant) focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/25">
-        <div className="px-(--of-space-md) pt-(--of-space-sm)">
-          <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />
-        </div>
+    <form onSubmit={handleSubmit} className="flex h-full flex-col">
+      <div className="flex min-h-0 flex-1 flex-col border border-stroke-default bg-surface-1 transition-colors duration-(--of-duration-instant) focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/25">
+        {/* Main text area -- takes up most of the space */}
         <textarea
           ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="What do you want to build?"
-          rows={3}
-          className="w-full resize-none bg-transparent px-(--of-space-md) py-(--of-space-sm) text-[15px] text-text-primary placeholder-text-tertiary outline-none"
+          className="min-h-0 flex-1 resize-none bg-transparent px-(--of-space-md) py-(--of-space-md) text-[15px] leading-relaxed text-text-primary placeholder-text-tertiary outline-none"
           disabled={loading}
         />
-        <div className="flex items-center justify-between px-(--of-space-md) pb-(--of-space-sm)">
-          {error ? (
-            <p className="text-[13px] text-danger">{error}</p>
-          ) : (
-            <span className="text-[11px] text-text-tertiary">
-              {repoBranch ? "" : "Select a repository to get started"}
-            </span>
-          )}
+
+        {/* Bottom bar -- repo/branch, model, send */}
+        <div className="flex items-center justify-between gap-3 border-t border-stroke-subtle px-(--of-space-md) py-(--of-space-sm)">
+          <div className="flex items-center gap-2">
+            <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />
+            <ModelSelector value={modelId} onChange={setModelId} compact />
+          </div>
           <button
             type="submit"
             disabled={!canSubmit}
@@ -97,19 +97,21 @@ export function NewSessionInput({ defaultModelId }: NewSessionInputProps) {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                 </span>
-                Creating…
+                Starting…
               </>
             ) : (
               <>
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                </svg>
-                Start session
+                <Send className="h-3.5 w-3.5" />
+                Start
               </>
             )}
           </button>
         </div>
       </div>
+
+      {error && (
+        <p className="mt-2 text-[13px] text-danger">{error}</p>
+      )}
     </form>
   );
 }
