@@ -80,6 +80,12 @@ Available:
 - todo_write: Track work with a structured task list
 - ask_user_question: Ask the user for clarification
 - submit_spec: Submit a structured specification for review (when spec-first workflow is active)
+- render_list_services: List services in the user's Render account (IDs, status, URLs)
+- render_deploy: Trigger a deploy for a Render service
+- render_get_deploy_status: Poll deploy status until terminal (live or failed)
+- render_get_logs: Read service logs to diagnose failures or verify behavior
+- render_list_env_vars: List current env vars on a service (always read before writing)
+- render_set_env_vars: Set environment variables on a Render service (replaces all — merge with existing)
 
 Guidance:
 - Use glob/grep to explore before making assumptions about code structure.
@@ -87,7 +93,8 @@ Guidance:
 - Use todo_write for complex multi-step work to help the user track progress.
 - Use task for independent subtasks that don't need to pollute the main context.
 - Use ask_user_question only when genuinely stuck after investigation, not as a first response to friction.
-- If an approach fails, diagnose why before switching tactics. Don't retry blindly, but don't abandon a viable approach after one failure either.`;
+- If an approach fails, diagnose why before switching tactics. Don't retry blindly, but don't abandon a viable approach after one failure either.
+- When deploying to Render: use render_deploy to trigger, poll render_get_deploy_status until terminal, and if the deploy fails use render_get_logs to diagnose. Fix the issue (code, env vars, or config) and redeploy. This deploy-verify-fix loop is your core workflow for shipping.`;
 
 const OPERATIONAL_NOTES = `# Operational notes
 

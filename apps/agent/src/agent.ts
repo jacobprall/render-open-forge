@@ -39,6 +39,12 @@ import {
   resolveCommentTool,
   submitSpecTool,
   type SubmitSpecInput,
+  renderListServicesTool,
+  renderDeployTool,
+  renderGetDeployStatusTool,
+  renderGetLogsTool,
+  renderListEnvVarsTool,
+  renderSetEnvVarsTool,
 } from "./tools";
 import { getModel, getModelDef } from "./models";
 import type { AgentJob, StreamEvent } from "./types";
@@ -247,6 +253,16 @@ function buildSubagentToolSet(): ToolSet {
     git: gitTool(),
     create_pull_request: createPullRequestTool(),
     web_fetch: webFetchTool(),
+    ...(process.env.RENDER_API_KEY
+      ? {
+          render_list_services: renderListServicesTool(),
+          render_deploy: renderDeployTool(),
+          render_get_deploy_status: renderGetDeployStatusTool(),
+          render_get_logs: renderGetLogsTool(),
+          render_list_env_vars: renderListEnvVarsTool(),
+          render_set_env_vars: renderSetEnvVarsTool(),
+        }
+      : {}),
   };
 }
 

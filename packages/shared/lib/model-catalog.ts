@@ -1,11 +1,6 @@
 /**
- * Static catalog of OpenAI models we surface in the UI / use in the worker.
- *
- * Anthropic models are NOT listed here — the worker queries Anthropic's
- * `/v1/models` API at startup so the catalog (including thinking-mode
- * capability) stays in sync with whatever the upstream provider currently
- * exposes. See `apps/agent/src/models.ts` and
- * `apps/web/lib/models/anthropic-models.ts`.
+ * Static catalog of OpenAI models. Anthropic models are fetched dynamically
+ * from their `/v1/models` API by the gateway's ModelService.
  */
 export interface ModelDef {
   id: string;

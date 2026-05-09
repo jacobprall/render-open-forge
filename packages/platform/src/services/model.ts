@@ -21,7 +21,7 @@ export interface ListModelsResult {
 }
 
 // ---------------------------------------------------------------------------
-// Module-level cache for Anthropic model listings (5 min TTL)
+// Anthropic model cache (5 min TTL)
 // ---------------------------------------------------------------------------
 
 const anthropicCache = new Map<string, { at: number; models: ModelSummary[] }>();
@@ -39,10 +39,6 @@ function anthropicCacheKey(apiKey: string | undefined): string {
 export class ModelService {
   constructor(private db: PlatformDb) {}
 
-  // -------------------------------------------------------------------------
-  // listModels — GET /api/models
-  // -------------------------------------------------------------------------
-
   async listModels(auth: AuthContext): Promise<ListModelsResult> {
     const keys = await resolveLlmApiKeys(this.db, auth.userId);
     const models = await fetchModelsForKeys(keys);
@@ -51,7 +47,7 @@ export class ModelService {
 }
 
 // ---------------------------------------------------------------------------
-// Private helpers (inlined from apps/web/lib/models/anthropic-models.ts)
+// Private helpers
 // ---------------------------------------------------------------------------
 
 async function fetchAnthropicModels(apiKey: string | undefined): Promise<ModelSummary[]> {
@@ -109,9 +105,11 @@ async function fetchAnthropicModels(apiKey: string | undefined): Promise<ModelSu
             supportsThinking,
           });
         }
+      } else {
+        console.warn(`[models] Anthropic API returned ${res.status}`);
       }
-    } catch {
-      // Catalog fetch failed — return empty; caller can still proceed
+    } catch (err) {
+      console.warn("[models] Failed to fetch Anthropic models:", err instanceof Error ? err.message : err);
     }
   }
 

@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
-import { getPlatform, requireAuth } from "@/lib/platform";
+import { requireAuth } from "@/lib/platform";
+import { gatewayFetch } from "@/lib/gateway";
 
 export async function GET() {
-  const auth = await requireAuth();
-  const result = await getPlatform().models.listModels(auth);
-  return NextResponse.json(result);
+  await requireAuth();
+
+  const res = await gatewayFetch("/models");
+  if (!res.ok) {
+    const body = await res.text().catch(() => "Gateway error");
+    return NextResponse.json({ models: [], error: body }, { status: res.status });
+  }
+
+  const data = await res.json();
+  return NextResponse.json(data);
 }

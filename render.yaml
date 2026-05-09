@@ -42,6 +42,13 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: GATEWAY_INTERNAL_URL
+        value: http://openforge-gateway:4100
+      - key: GATEWAY_API_SECRET
+        fromService:
+          name: openforge-gateway
+          type: web
+          envVarKey: GATEWAY_API_SECRET
       - key: ENCRYPTION_KEY
         generateValue: true
       - key: RENDER_API_KEY
@@ -80,6 +87,8 @@ services:
       - key: FORGEJO_AGENT_TOKEN
         sync: false
       - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: RENDER_API_KEY
         sync: false
       - key: ENCRYPTION_KEY
         fromService:
@@ -244,6 +253,8 @@ services:
           name: openforge-web
           type: web
           envVarKey: ENCRYPTION_KEY
+      - key: ANTHROPIC_API_KEY
+        sync: false
       - key: GATEWAY_PORT
         value: "4100"
       - key: NODE_ENV

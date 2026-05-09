@@ -16,6 +16,7 @@
         "@ai-sdk/openai": "catalog:",
         "@openforge/db": "workspace:*",
         "@openforge/platform": "workspace:*",
+        "@openforge/render-client": "workspace:*",
         "@openforge/sandbox": "workspace:*",
         "@openforge/shared": "workspace:*",
         "@openforge/skills": "workspace:*",
@@ -138,6 +139,14 @@
       "devDependencies": {
         "@types/bcryptjs": "^3.0.0",
         "@types/bun": "1.3.12",
+        "@types/node": "^22",
+        "typescript": "^5",
+      },
+    },
+    "packages/render-client": {
+      "name": "@openforge/render-client",
+      "version": "0.0.0",
+      "devDependencies": {
         "@types/node": "^22",
         "typescript": "^5",
       },
@@ -463,6 +472,8 @@
     "@openforge/gateway": ["@openforge/gateway@workspace:apps/gateway"],
 
     "@openforge/platform": ["@openforge/platform@workspace:packages/platform"],
+
+    "@openforge/render-client": ["@openforge/render-client@workspace:packages/render-client"],
 
     "@openforge/sandbox": ["@openforge/sandbox@workspace:packages/sandbox"],
 

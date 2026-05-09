@@ -15,6 +15,7 @@
     "@openforge/db": "workspace:*",
     "@openforge/sandbox": "workspace:*",
     "@openforge/platform": "workspace:*",
+    "@openforge/render-client": "workspace:*",
     "@openforge/shared": "workspace:*",
     "@openforge/skills": "workspace:*",
     "ai": "catalog:",

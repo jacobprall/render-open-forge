@@ -24,3 +24,11 @@ export {
 export { submitSpecTool, submitSpecInputSchema } from "./submit-spec";
 export type { SubmitSpecInput } from "./submit-spec";
 export { resolveCommentTool } from "./resolve-comment";
+export {
+  renderListServicesTool,
+  renderDeployTool,
+  renderGetDeployStatusTool,
+  renderGetLogsTool,
+  renderListEnvVarsTool,
+  renderSetEnvVarsTool,
+} from "./render";
