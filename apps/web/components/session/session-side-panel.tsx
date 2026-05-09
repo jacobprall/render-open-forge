@@ -181,7 +181,7 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
               {ciStatus === "idle" && (
                 <>
                   <div className="h-2.5 w-2.5 rounded-full bg-zinc-600" />
-                  <span className="text-sm text-zinc-500">No Forgejo webhook activity yet.</span>
+                  <span className="text-sm text-zinc-500">No webhook activity yet.</span>
                 </>
               )}
               {ciStatus === "running" && (
@@ -206,7 +206,7 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
 
             {ciEvents.length === 0 ? (
               <p className="text-xs text-zinc-500">
-                Connect Forgejo → <span className="font-mono">/api/webhooks/forgejo</span>
+                Configure a webhook to <span className="font-mono">/api/webhooks</span>
                 {' '}with a shared secret to populate CI signals.
               </p>
             ) : (

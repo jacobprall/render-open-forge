@@ -142,7 +142,7 @@ export default function MirrorsPage() {
         <div>
           <h2 className="text-lg font-semibold text-zinc-100">Mirrors</h2>
           <p className="mt-1 text-sm text-zinc-400">
-            Repository mirrors syncing between Forgejo and external providers.
+            Repository mirrors syncing between local and external forge providers.
           </p>
         </div>
         <Link

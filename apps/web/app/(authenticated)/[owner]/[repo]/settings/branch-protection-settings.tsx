@@ -12,7 +12,7 @@ function ruleMatchesBranch(rule: Record<string, unknown>, branch: string) {
   return rule.rule_name === branch || rule.branch_name === branch;
 }
 
-/** Minimal Forgejo/Gitea-compatible rule for POST `/branch_protections`. */
+/** Minimal branch protection rule for POST `/branch_protections`. */
 export function defaultProtectedBranchRule(branch: string): Record<string, unknown> {
   return {
     rule_name: branch,
@@ -105,8 +105,8 @@ export function BranchProtectionSettings(props: Props) {
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
       <h3 className="text-base font-semibold text-zinc-100">Branch protection</h3>
       <p className="mt-2 text-sm text-zinc-400">
-        Applies a basic rule on the Forgejo repo: disallow force-push and require one approval before merge for the
-        default branch ({defaultBranch}). Fine-tune policies in Forgejo if needed.
+        Applies a basic rule: disallow force-push and require one approval before merge for the
+        default branch ({defaultBranch}).
       </p>
 
       {loading ? (

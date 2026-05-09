@@ -52,7 +52,7 @@ export default async function SettingsPage() {
             </div>
           </div>
           <p className="mt-3 text-xs text-zinc-500">
-            Profile information is managed through your Forgejo account.
+            Profile information is synced from your connected forge account.
           </p>
         </div>
       </section>

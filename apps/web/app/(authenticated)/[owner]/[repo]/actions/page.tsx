@@ -55,7 +55,7 @@ export default async function ActionsPage({
       <div className="mb-6">
         <h2 className="text-xl font-semibold">CI / Actions</h2>
         <p className="mt-1 text-sm text-zinc-400">
-          Workflow runs triggered by Forgejo Actions
+          Workflow runs triggered by CI actions
         </p>
       </div>
 

@@ -59,7 +59,7 @@ export function CiEventsPanel({ events }: Props) {
                     {ev.status}
                   </Badge>
                   <span className="text-sm font-medium text-zinc-200">
-                    {ev.workflowName ?? "Forgejo Action"}
+                    {ev.workflowName ?? "CI Action"}
                   </span>
                   {ev.runId && (
                     <span className="ml-auto font-mono text-xs text-zinc-500">

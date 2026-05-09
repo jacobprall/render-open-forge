@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-/** Polls Forgejo job logs via the web API (same auth cookies as the app). */
+/** Polls CI job logs via the web API (same auth cookies as the app). */
 export function JobLogsPoller(props: {
   owner: string;
   repo: string;

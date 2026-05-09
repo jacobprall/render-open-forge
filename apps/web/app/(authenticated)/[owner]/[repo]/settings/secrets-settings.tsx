@@ -94,7 +94,7 @@ export function SecretsSettings({ owner, repo }: Props) {
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
       <h3 className="text-base font-semibold text-zinc-100">Repository Secrets</h3>
       <p className="mt-2 text-sm text-zinc-400">
-        Secrets are encrypted and available to Forgejo Actions workflows as environment variables.
+        Secrets are encrypted and available to CI workflows as environment variables.
         Values are write-only — they cannot be viewed after creation.
       </p>
 

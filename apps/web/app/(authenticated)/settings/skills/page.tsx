@@ -57,13 +57,13 @@ export default async function SkillsSettingsPage() {
               rel="noreferrer"
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent-text hover:text-accent"
             >
-              Open skills repo in Forgejo
+              Open skills repo
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
               </svg>
             </a>
             <p className="mt-1 text-xs text-zinc-600">
-              If this link returns a 404, ensure Forgejo is running and revisit this page to trigger repo creation.
+              If this link returns a 404, revisit this page to trigger repo creation.
             </p>
           </>
         ) : null}
@@ -77,7 +77,7 @@ export default async function SkillsSettingsPage() {
         {userSkills.length === 0 ? (
           <p className="text-sm text-zinc-500">
             No custom skills yet. Install one from a URL above, or add markdown
-            files in your Forgejo skills repo.
+            files in your skills repo.
           </p>
         ) : (
           <ul className="space-y-2">

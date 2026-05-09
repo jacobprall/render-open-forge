@@ -96,8 +96,7 @@ export default async function InviteAcceptPage({ searchParams }: PageProps) {
       <div className="w-full max-w-md text-center">
         <h1 className="text-2xl font-semibold tracking-tight">Welcome</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          Set a password for your Open Forge account. You won&apos;t need to use Forgejo
-          directly.
+          Set a password for your OpenForge account.
         </p>
         <InvitePasswordForm token={raw} />
         <p className="mt-8 text-xs text-zinc-500">

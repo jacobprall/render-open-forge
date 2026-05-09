@@ -139,7 +139,7 @@ function RunDetail({
                 rel="noopener noreferrer"
                 className="text-accent-text hover:text-accent"
               >
-                View in Forgejo ↗
+                View run details ↗
               </a>
             </p>
           </div>
