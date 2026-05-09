@@ -21,6 +21,7 @@
     "@openforge/skills": "workspace:*",
     "@openforge/ui": "workspace:*",
     "@renderinc/sdk": "^0.5.0",
+    "@tanstack/react-table": "^8.21.3",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.1",
     "ioredis": "^5.9.2",

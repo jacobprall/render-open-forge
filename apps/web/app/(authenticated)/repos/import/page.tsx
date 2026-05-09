@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
+import {
+  createColumnHelper,
+  type RowSelectionState,
+} from "@tanstack/react-table";
+import { DataTable } from "@/components/primitives/data-table";
 
 interface ExternalRepo {
   full_name: string;
@@ -25,71 +30,116 @@ const providers: { id: Provider; label: string }[] = [
   { id: "gitlab", label: "GitLab" },
 ];
 
+const columnHelper = createColumnHelper<ExternalRepo>();
+
+const columns = [
+  columnHelper.display({
+    id: "select",
+    header: ({ table }) => (
+      <input
+        type="checkbox"
+        checked={table.getIsAllPageRowsSelected()}
+        ref={(el) => {
+          if (el) el.indeterminate = table.getIsSomePageRowsSelected();
+        }}
+        onChange={table.getToggleAllPageRowsSelectedHandler()}
+        className="h-4 w-4 rounded border-stroke-default bg-surface-2 text-accent focus:ring-accent/25"
+      />
+    ),
+    cell: ({ row }) => (
+      <input
+        type="checkbox"
+        checked={row.getIsSelected()}
+        onChange={row.getToggleSelectedHandler()}
+        className="h-4 w-4 rounded border-stroke-default bg-surface-2 text-accent focus:ring-accent/25"
+      />
+    ),
+    enableSorting: false,
+    size: 40,
+  }),
+  columnHelper.accessor("full_name", {
+    header: "Repository",
+    cell: (info) => (
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="truncate font-medium text-text-primary">
+            {info.getValue()}
+          </span>
+          {info.row.original.private && (
+            <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-xs text-text-tertiary">
+              Private
+            </span>
+          )}
+        </div>
+        {info.row.original.description && (
+          <p className="mt-0.5 truncate text-xs text-text-tertiary">
+            {info.row.original.description}
+          </p>
+        )}
+      </div>
+    ),
+  }),
+  columnHelper.accessor("default_branch", {
+    header: "Branch",
+    cell: (info) => (
+      <span className="text-text-tertiary">{info.getValue()}</span>
+    ),
+    size: 120,
+  }),
+];
+
 export default function ImportPage() {
   const [activeProvider, setActiveProvider] = useState<Provider>("github");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<Record<string, ConnectionInfo>>({});
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [search, setSearch] = useState("");
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState<
     Array<{ name: string; ok: boolean; error?: string }>
   >([]);
 
-  const fetchRepos = useCallback(async (provider: Provider) => {
-    if (data[provider]) return;
-    setLoading(true);
-    setError(null);
+  const fetchRepos = useCallback(
+    async (provider: Provider) => {
+      if (data[provider]) return;
+      setLoading(true);
+      setError(null);
 
-    try {
-      const res = await fetch(`/api/sync/${provider}/repos`);
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json.error ?? "Failed to fetch repos");
-        return;
+      try {
+        const res = await fetch(`/api/sync/${provider}/repos`);
+        const json = await res.json();
+        if (!res.ok) {
+          setError(json.error ?? "Failed to fetch repos");
+          return;
+        }
+        setData((prev) => ({
+          ...prev,
+          [provider]: { connectionId: json.connectionId, repos: json.repos },
+        }));
+      } catch {
+        setError("Network error fetching repos");
+      } finally {
+        setLoading(false);
       }
-      setData((prev) => ({
-        ...prev,
-        [provider]: { connectionId: json.connectionId, repos: json.repos },
-      }));
-    } catch {
-      setError("Network error fetching repos");
-    } finally {
-      setLoading(false);
-    }
-  }, [data]);
+    },
+    [data]
+  );
 
   useEffect(() => {
     fetchRepos(activeProvider);
   }, [activeProvider, fetchRepos]);
 
-  const repos = data[activeProvider]?.repos ?? [];
-  const filtered = repos.filter(
-    (r) =>
-      r.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      (r.description ?? "").toLowerCase().includes(search.toLowerCase()),
+  const repos = useMemo(
+    () => data[activeProvider]?.repos ?? [],
+    [data, activeProvider]
   );
 
-  const toggleSelect = (fullName: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(fullName)) next.delete(fullName);
-      else next.add(fullName);
-      return next;
-    });
-  };
-
-  const toggleAll = () => {
-    if (selected.size === filtered.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(filtered.map((r) => r.full_name)));
-    }
-  };
+  const selectedCount = Object.keys(rowSelection).length;
 
   const handleImport = async () => {
-    const toImport = repos.filter((r) => selected.has(r.full_name));
+    const selectedNames = new Set(Object.keys(rowSelection));
+    const toImport = repos.filter((r) => selectedNames.has(r.full_name));
     if (toImport.length === 0) return;
 
     setImporting(true);
@@ -121,13 +171,17 @@ export default function ImportPage() {
           });
         }
       } catch {
-        results.push({ name: repo.full_name, ok: false, error: "Network error" });
+        results.push({
+          name: repo.full_name,
+          ok: false,
+          error: "Network error",
+        });
       }
     }
 
     setImportResults(results);
     setImporting(false);
-    setSelected(new Set());
+    setRowSelection({});
   };
 
   return (
@@ -135,16 +189,28 @@ export default function ImportPage() {
       <div className="mb-8">
         <Link
           href="/repos"
-          className="mb-4 inline-flex items-center gap-1 text-sm text-zinc-400 transition hover:text-zinc-200"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-text-tertiary transition hover:text-text-primary"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
+            />
           </svg>
           Back to repositories
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Import repositories</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Import repositories from your connected GitHub or GitLab accounts into Forgejo.
+        <h1 className="text-2xl font-bold tracking-tight text-text-primary">
+          Import repositories
+        </h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          Import repositories from your connected GitHub or GitLab accounts.
         </p>
       </div>
 
@@ -155,13 +221,13 @@ export default function ImportPage() {
             key={p.id}
             onClick={() => {
               setActiveProvider(p.id);
-              setSelected(new Set());
+              setRowSelection({});
               setSearch("");
             }}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeProvider === p.id
                 ? "bg-accent text-white"
-                : "border border-zinc-700 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100"
+                : "border border-stroke-default text-text-secondary hover:border-stroke-hover hover:text-text-primary"
             }`}
           >
             {p.label}
@@ -177,8 +243,8 @@ export default function ImportPage() {
               key={r.name}
               className={`flex items-center justify-between rounded-lg border px-4 py-2 text-sm ${
                 r.ok
-                  ? "border-accent/20 bg-accent-bg text-accent"
-                  : "border-danger/20 bg-danger/10 text-red-300"
+                  ? "border-accent/20 bg-accent/5 text-accent"
+                  : "border-danger/20 bg-danger/5 text-danger"
               }`}
             >
               <span>{r.name}</span>
@@ -189,10 +255,13 @@ export default function ImportPage() {
       )}
 
       {error && (
-        <div className="mb-6 rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-red-300">
+        <div className="mb-6 rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
           {error}
           {error.includes("Connect") && (
-            <Link href="/settings/connections" className="ml-2 underline hover:text-red-200">
+            <Link
+              href="/settings/connections"
+              className="ml-2 underline hover:opacity-80"
+            >
               Go to Settings
             </Link>
           )}
@@ -201,108 +270,73 @@ export default function ImportPage() {
 
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-accent" />
-          <span className="ml-3 text-sm text-zinc-400">Loading repositories...</span>
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-stroke-default border-t-accent" />
+          <span className="ml-3 text-sm text-text-tertiary">
+            Loading repositories...
+          </span>
         </div>
       )}
 
       {!loading && !error && repos.length > 0 && (
         <>
-          {/* Search + select all */}
-          <div className="mb-4 flex items-center gap-3">
-            <input
-              type="text"
-              placeholder="Search repositories..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-accent/50 focus:ring-1 focus:ring-accent/25"
-            />
-            <button
-              onClick={toggleAll}
-              className="whitespace-nowrap rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-300 transition hover:border-zinc-600 hover:text-zinc-100"
-            >
-              {selected.size === filtered.length && filtered.length > 0
-                ? "Deselect all"
-                : "Select all"}
-            </button>
-          </div>
-
-          {/* Repo list */}
-          <div className="space-y-2">
-            {filtered.map((repo) => (
-              <label
-                key={repo.full_name}
-                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition ${
-                  selected.has(repo.full_name)
-                    ? "border-accent/40 bg-accent-bg"
-                    : "border-zinc-800 hover:border-zinc-700"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.has(repo.full_name)}
-                  onChange={() => toggleSelect(repo.full_name)}
-                  className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-accent-text focus:ring-accent/25"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium text-zinc-100">
-                      {repo.full_name}
-                    </span>
-                    {repo.private && (
-                      <span className="shrink-0 rounded bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-400">
-                        Private
-                      </span>
-                    )}
-                  </div>
-                  {repo.description && (
-                    <p className="mt-0.5 truncate text-xs text-zinc-500">
-                      {repo.description}
-                    </p>
+          <DataTable
+            columns={columns}
+            data={repos}
+            pageSize={20}
+            searchPlaceholder="Search repositories..."
+            globalFilter={search}
+            onGlobalFilterChange={setSearch}
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
+            enableRowSelection
+            getRowId={(row) => row.full_name}
+            emptyMessage="No repositories match your search."
+            toolbar={() =>
+              selectedCount > 0 ? (
+                <button
+                  onClick={handleImport}
+                  disabled={importing}
+                  className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {importing ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+                        />
+                      </svg>
+                      Import {selectedCount}{" "}
+                      {selectedCount === 1 ? "repo" : "repos"}
+                    </>
                   )}
-                </div>
-                <span className="shrink-0 text-xs text-zinc-600">{repo.default_branch}</span>
-              </label>
-            ))}
-          </div>
-
-          {filtered.length === 0 && (
-            <p className="py-8 text-center text-sm text-zinc-500">
-              No repositories match your search.
-            </p>
-          )}
-
-          {/* Import button */}
-          {selected.size > 0 && (
-            <div className="mt-6 flex items-center justify-end">
-              <button
-                onClick={handleImport}
-                disabled={importing}
-                className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-50"
-              >
-                {importing ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Importing...
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                    </svg>
-                    Import {selected.size} {selected.size === 1 ? "repository" : "repositories"}
-                  </>
-                )}
-              </button>
-            </div>
-          )}
+                </button>
+              ) : null
+            }
+          />
         </>
       )}
 
       {!loading && !error && repos.length === 0 && !data[activeProvider] && (
-        <p className="py-12 text-center text-sm text-zinc-500">
-          Connect your {activeProvider === "github" ? "GitHub" : "GitLab"} account in{" "}
-          <Link href="/settings/connections" className="text-accent-text hover:underline">
+        <p className="py-12 text-center text-sm text-text-tertiary">
+          Connect your{" "}
+          {activeProvider === "github" ? "GitHub" : "GitLab"} account in{" "}
+          <Link
+            href="/settings/connections"
+            className="text-accent hover:underline"
+          >
             Settings
           </Link>{" "}
           to import repositories.
