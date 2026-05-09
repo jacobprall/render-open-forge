@@ -118,11 +118,11 @@ export function MergeControls({
             className="border-l border-accent bg-accent px-2.5 py-2 text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
             </svg>
           </button>
           {open && (
-            <div className="absolute right-0 top-full z-10 mt-1 w-56 border border-stroke-default bg-surface-2 py-1 shadow-xl">
+            <div className="absolute right-0 bottom-full z-10 mb-1 w-56 border border-stroke-default bg-surface-2 py-1 shadow-xl">
               {(["merge", "squash", "rebase"] as const).map((m) => (
                 <button
                   key={m}

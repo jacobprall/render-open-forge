@@ -44,7 +44,7 @@ export function ReviewButton({ sessionId }: { sessionId: string }) {
         {isPending ? "Starting..." : "Agent Review"}
       </button>
       {error && (
-        <div className="absolute right-0 top-full mt-1 z-10 whitespace-nowrap rounded border border-danger/20 bg-surface-1 px-2 py-1 text-xs text-danger">
+        <div className="absolute right-0 bottom-full mb-1 z-10 whitespace-nowrap rounded border border-danger/20 bg-surface-1 px-2 py-1 text-xs text-danger">
           {error}
         </div>
       )}

@@ -69,7 +69,7 @@ export function NotificationBell() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 border border-stroke-subtle bg-surface-1 shadow-xl">
+        <div className="absolute right-0 bottom-full z-50 mb-2 w-80 border border-stroke-subtle bg-surface-1 shadow-xl">
           <div className="border-b border-stroke-subtle px-4 py-2">
             <span className="text-sm font-medium text-text-primary">Notifications</span>
           </div>
