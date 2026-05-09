@@ -1,8 +1,19 @@
+import { Suspense } from "react";
 import { getSession } from "@/lib/auth/session";
 import { getForgeRepoCached } from "@/lib/forge/cached-repo";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { RepoTabNav } from "@/components/repo/repo-tab-nav";
+
+function RepoPageSkeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="h-36 animate-pulse rounded border border-stroke-subtle bg-surface-1" />
+      <div className="h-8 max-w-xs animate-pulse bg-surface-2" />
+      <div className="h-24 animate-pulse rounded border border-stroke-subtle bg-surface-1" />
+    </div>
+  );
+}
 
 export default async function RepoLayout({
   children,
@@ -87,7 +98,9 @@ export default async function RepoLayout({
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 py-6">{children}</div>
+      <div className="mx-auto max-w-6xl px-6 py-6">
+        <Suspense fallback={<RepoPageSkeleton />}>{children}</Suspense>
+      </div>
     </div>
   );
 }

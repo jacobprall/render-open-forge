@@ -9,10 +9,10 @@ export default async function CommitDetailPage({
 }: {
   params: Promise<{ owner: string; repo: string; sha: string }>;
 }) {
-  const session = await getSession();
+  const [session, resolvedParams] = await Promise.all([getSession(), params]);
   if (!session) redirect("/");
 
-  const { owner, repo, sha } = await params;
+  const { owner, repo, sha } = resolvedParams;
   const forge = createForgeProvider(session.forgeToken, session.forgeType);
 
   let commits;

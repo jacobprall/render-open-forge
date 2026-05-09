@@ -9,10 +9,10 @@ export default async function NewPullRequestPage({
 }: {
   params: Promise<{ owner: string; repo: string }>;
 }) {
-  const session = await getSession();
+  const [session, resolvedParams] = await Promise.all([getSession(), params]);
   if (!session) redirect("/");
 
-  const { owner, repo } = await params;
+  const { owner, repo } = resolvedParams;
 
   const forge = createForgeProvider(session.forgeToken, session.forgeType);
   let branches;

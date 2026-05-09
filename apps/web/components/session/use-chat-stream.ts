@@ -9,6 +9,7 @@ import {
   startTransition,
 } from "react";
 import { useEventSource } from "@/hooks/use-event-source";
+import { STREAM_EVENT } from "@/lib/stream-events";
 import type { StreamEvent } from "@openforge/shared";
 import type { AssistantPart } from "@openforge/ui";
 import { appendStreamEvent } from "@openforge/ui";
@@ -87,13 +88,15 @@ export function useChatStream({
 
   const streamMessageRef = useRef<(event: MessageEvent) => void>(() => {});
   streamMessageRef.current = (event: MessageEvent) => {
+    const rawData =
+      typeof event.data === "string" ? event.data : String(event.data ?? "");
     try {
-      const raw = JSON.parse(event.data) as Record<string, unknown>;
+      const raw = JSON.parse(rawData) as Record<string, unknown>;
       const type = raw.type as string;
 
-      if (type === "connected" || type === "no_active_run") return;
+      if (type === STREAM_EVENT.CONNECTED || type === STREAM_EVENT.NO_ACTIVE_RUN) return;
 
-      if (type === "ask_user") {
+      if (type === STREAM_EVENT.ASK_USER) {
         setAskUserPrompt({
           question: (raw.question as string) ?? "",
           options: (raw.options as string[]) ?? [],
@@ -102,7 +105,7 @@ export function useChatStream({
         return;
       }
 
-      if (type === "file_changed") {
+      if (type === STREAM_EVENT.FILE_CHANGED) {
         startTransition(() => {
           setStreamingParts((prev) => appendStreamEvent(prev, raw as unknown as StreamEvent));
         });
@@ -111,12 +114,12 @@ export function useChatStream({
         return;
       }
 
-      if (type === "done" || type === "aborted") {
+      if (type === STREAM_EVENT.DONE || type === STREAM_EVENT.ABORTED) {
         finishStreaming();
         return;
       }
 
-      if (type === "error") {
+      if (type === STREAM_EVENT.ERROR) {
         setError((raw.message as string) ?? "An error occurred");
         finishStreaming();
         return;
@@ -125,8 +128,10 @@ export function useChatStream({
       startTransition(() => {
         setStreamingParts((prev) => appendStreamEvent(prev, raw as unknown as StreamEvent));
       });
-    } catch {
-      // ignore parse errors
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[SSE parse error]", e, rawData.slice(0, 200));
+      }
     }
   };
 

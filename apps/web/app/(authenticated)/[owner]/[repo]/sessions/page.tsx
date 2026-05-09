@@ -27,10 +27,10 @@ export default async function RepoSessionsPage({
 }: {
   params: Promise<{ owner: string; repo: string }>;
 }) {
-  const userSession = await getSession();
+  const [userSession, resolvedParams] = await Promise.all([getSession(), params]);
   if (!userSession) redirect("/");
 
-  const { owner, repo } = await params;
+  const { owner, repo } = resolvedParams;
   const repoPath = `${owner}/${repo}`;
 
   const db = getDb();

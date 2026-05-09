@@ -22,11 +22,15 @@ export default async function CIRunDetailPage({
   params: Promise<{ owner: string; repo: string; runId: string }>;
   searchParams: Promise<{ job?: string }>;
 }) {
-  const session = await getSession();
+  const [session, resolvedParams, resolvedSearch] = await Promise.all([
+    getSession(),
+    params,
+    searchParams,
+  ]);
   if (!session) redirect("/");
 
-  const { owner, repo, runId } = await params;
-  const { job: jobLogsJobId } = await searchParams;
+  const { owner, repo, runId } = resolvedParams;
+  const { job: jobLogsJobId } = resolvedSearch;
   const db = getDb();
 
   const event = await db

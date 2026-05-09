@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { codeToHtml } from "shiki";
 import { Copy, Check, FileCode } from "lucide-react";
 
 interface CodeBlockProps {
@@ -63,16 +62,18 @@ export function CodeBlock({
 
   useEffect(() => {
     let cancelled = false;
-    codeToHtml(code, {
-      lang: lang === "text" ? "text" : lang,
-      theme: "github-dark-default",
-    })
-      .then((result) => {
+    void (async () => {
+      try {
+        const { codeToHtml } = await import("shiki");
+        const result = await codeToHtml(code, {
+          lang: lang === "text" ? "text" : lang,
+          theme: "github-dark-default",
+        });
         if (!cancelled) setHtml(result);
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setHtml(null);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };

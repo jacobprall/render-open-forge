@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import type { AssistantPart } from "@openforge/ui";
 import { ModelSelector } from "@/components/model-selector";
+import { DEFAULT_MODEL_ID } from "@/lib/model-defaults";
 import { PrSummaryPanel } from "./pr-summary-panel";
 import type { Message, LiveFileChange } from "./chat-panel";
 
@@ -40,13 +41,10 @@ interface SessionInfo {
   linesRemoved: number | null;
 }
 
-const DEFAULT_CHAT_MODEL_ID = "anthropic/claude-sonnet-4-5";
-
 interface SessionWorkspaceProps {
   session: SessionInfo;
   /** Chat row / user default model — keeps the header selector aligned with what messages use */
   initialModelId?: string | null;
-  chatId: string | null;
   activeRunId: string | null;
   initialMessages: {
     id: string;
@@ -66,14 +64,13 @@ const statusDot: Record<string, string> = {
 export function SessionWorkspace({
   session,
   initialModelId,
-  chatId,
   activeRunId,
   initialMessages,
 }: SessionWorkspaceProps) {
   const [activeView, setActiveView] = useState<ViewTab>("chat");
   const [modelId, setModelId] = useState(() => {
     const id = initialModelId?.trim();
-    return id && id.length > 0 ? id : DEFAULT_CHAT_MODEL_ID;
+    return id && id.length > 0 ? id : DEFAULT_MODEL_ID;
   });
   const [liveFileChanges, setLiveFileChanges] = useState<LiveFileChange[]>([]);
 
@@ -156,11 +153,9 @@ export function SessionWorkspace({
         <div className={activeView === "chat" ? "h-full" : "hidden"}>
           <ChatPanel
             sessionId={session.id}
-            chatId={chatId}
             activeRunId={activeRunId}
             initialMessages={initialMessages as Message[]}
             modelId={modelId}
-            onModelChange={setModelId}
             onFileChanges={handleFileChanges}
           />
         </div>

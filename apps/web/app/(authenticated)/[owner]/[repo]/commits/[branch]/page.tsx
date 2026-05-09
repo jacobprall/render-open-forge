@@ -10,10 +10,10 @@ export default async function CommitsPage({
 }: {
   params: Promise<{ owner: string; repo: string; branch: string }>;
 }) {
-  const session = await getSession();
+  const [session, resolvedParams] = await Promise.all([getSession(), params]);
   if (!session) redirect("/");
 
-  const { owner, repo, branch: rawBranch } = await params;
+  const { owner, repo, branch: rawBranch } = resolvedParams;
   const branch = decodeURIComponent(rawBranch);
   const forge = createForgeProvider(session.forgeToken, session.forgeType);
 

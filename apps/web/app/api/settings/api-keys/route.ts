@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { safeJson } from "@/lib/api-utils";
 import { getPlatform, requireAuth } from "@/lib/platform";
 import { handlePlatformError } from "@/lib/api/errors";
 
@@ -19,8 +20,11 @@ export async function GET() {
 export async function POST(req: Request) {
   const auth = await requireAuth();
 
-  const body = await req.json().catch(() => null);
-  const parsed = postSchema.safeParse(body);
+  const parsedBody = await safeJson(req);
+  if ("error" in parsedBody) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const parsed = postSchema.safeParse(parsedBody.data);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid input", details: parsed.error.flatten() },

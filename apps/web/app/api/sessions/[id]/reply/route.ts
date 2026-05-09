@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { safeJson } from "@/lib/api-utils";
 import { getPlatform, requireAuth } from "@/lib/platform";
 import { handlePlatformError } from "@/lib/api/errors";
 
@@ -19,8 +20,11 @@ export async function POST(
 ) {
   const [{ id: sessionId }, auth] = await Promise.all([params, requireAuth()]);
 
-  const body = await req.json();
-  const parsed = replyBodySchema.safeParse(body);
+  const parsedBody = await safeJson(req);
+  if ("error" in parsedBody) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const parsed = replyBodySchema.safeParse(parsedBody.data);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "toolCallId and message required" },

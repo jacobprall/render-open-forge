@@ -100,10 +100,12 @@ export function MergeControls({
             className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover disabled:opacity-50"
           >
             {isPending ? (
-              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
+              <span className="inline-flex animate-spin">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </span>
             ) : (
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218Z" />
@@ -112,7 +114,7 @@ export function MergeControls({
             {methodLabels[method]}
           </button>
           <button
-            onClick={() => setOpen(!open)}
+            onClick={() => setOpen((prev) => !prev)}
             className="border-l border-accent bg-accent px-2.5 py-2 text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">

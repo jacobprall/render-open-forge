@@ -1,7 +1,15 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import type { TestCase, TestResultSummary, TestSuite } from "@openforge/shared/lib/ci/test-results";
+import { useState } from "react"
+import useSWR from "swr"
+import type { TestCase, TestResultSummary, TestSuite } from "@openforge/shared/lib/ci/test-results"
+
+const fetcher = (url: string) =>
+  fetch(url, { cache: "no-store" }).then(async (res) => {
+    const json = (await res.json()) as { testResults: TestResultSummary | null; error?: string }
+    if (!res.ok) throw new Error(json.error ?? "Failed to load test results")
+    return json.testResults
+  })
 
 type Props = {
   owner: string
@@ -10,36 +18,16 @@ type Props = {
 }
 
 export function TestResultsPanel({ owner, repo, runId }: Props) {
-  const [results, setResults] = useState<TestResultSummary | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const url = `/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs/${encodeURIComponent(runId)}/test-results`
+  const { data: results, error, isLoading } = useSWR(url, fetcher)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const url = `/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs/${encodeURIComponent(runId)}/test-results`
-      const res = await fetch(url, { cache: "no-store" })
-      const json = (await res.json()) as { testResults: TestResultSummary | null; error?: string }
-      if (!res.ok) throw new Error(json.error ?? "Failed to load test results")
-      setResults(json.testResults)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
-  }, [owner, repo, runId])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  if (loading) {
+  if (isLoading) {
     return <p className="text-sm text-text-tertiary">Loading test results…</p>
   }
 
   if (error) {
-    return <p className="text-sm text-danger" role="alert">{error}</p>
+    const message = error instanceof Error ? error.message : String(error)
+    return <p className="text-sm text-danger" role="alert">{message}</p>
   }
 
   if (!results || results.testSuites.length === 0) {
@@ -92,7 +80,7 @@ function SuiteSection({ suite }: { suite: TestSuite }) {
     <div className="border border-stroke-subtle bg-surface-1/50">
       <button
         type="button"
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => setExpanded((prev) => !prev)}
         className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-medium text-text-primary hover:bg-surface-2/50"
       >
         <span className="flex items-center gap-2">
@@ -146,7 +134,7 @@ function TestCaseRow({ tc }: { tc: TestCase }) {
       <button
         type="button"
         disabled={!hasDetails}
-        onClick={() => hasDetails && setExpanded(!expanded)}
+        onClick={() => hasDetails && setExpanded((prev) => !prev)}
         className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-surface-2/30 disabled:cursor-default"
       >
         <span className={`font-mono font-bold ${color}`}>{icon}</span>

@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { getDb } from "@/lib/db";
-import { userPreferences } from "@openforge/db/schema";
-import { eq } from "drizzle-orm";
+import { getUserPreferences } from "@/lib/db/loaders";
 import { PreferencesForm } from "./preferences-form";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -15,12 +13,7 @@ export default async function SettingsPage() {
 
   let prefs = null;
   try {
-    const db = getDb();
-    const [row] = await db
-      .select({ data: userPreferences.data })
-      .from(userPreferences)
-      .where(eq(userPreferences.userId, String(session.userId)))
-      .limit(1);
+    const row = await getUserPreferences(String(session.userId));
     prefs = row?.data ?? null;
   } catch {
     // DB might not be ready

@@ -45,7 +45,7 @@ export function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen((prev) => !prev)}
         className="relative p-2 text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-2 hover:text-text-primary"
         aria-label="Notifications"
       >

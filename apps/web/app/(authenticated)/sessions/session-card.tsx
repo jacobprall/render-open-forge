@@ -7,6 +7,22 @@ import { archiveSessionAction } from "./actions";
 import { StatusBadge } from "@/components/primitives";
 import type { Session } from "@openforge/db/schema";
 
+export type SessionCardSession = Pick<
+  Session,
+  | "id"
+  | "title"
+  | "status"
+  | "prNumber"
+  | "prStatus"
+  | "repoPath"
+  | "activeSkills"
+  | "branch"
+  | "lastActivityAt"
+  | "createdAt"
+  | "linesAdded"
+  | "linesRemoved"
+>;
+
 const prStatusStyles: Record<string, { bg: string; icon: string; label: string }> = {
   open: { bg: "bg-success/10 text-success border-success/25", icon: "M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z", label: "Open" },
   merged: { bg: "bg-purple-500/10 text-purple-400 border-purple-500/20", icon: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218Z", label: "Merged" },
@@ -29,7 +45,7 @@ function PrBadge({ prNumber, prStatus, repoPath }: { prNumber: number; prStatus:
   );
 }
 
-function skillChips(session: Session) {
+function skillChips(session: SessionCardSession) {
   const skills = session.activeSkills ?? [];
   if (skills.length === 0) return null;
   return (
@@ -61,7 +77,7 @@ function formatRelativeTime(date: Date | null): string {
   return `${days}d ago`;
 }
 
-export function SessionCard({ session }: { session: Session }) {
+export function SessionCard({ session }: { session: SessionCardSession }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -96,7 +112,7 @@ export function SessionCard({ session }: { session: Session }) {
   return (
     <Link
       href={`/sessions/${session.id}`}
-      className="block border border-stroke-default p-(--of-space-md) transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle hover:bg-surface-1"
+      className="block border border-stroke-default p-(--of-space-md) transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle hover:bg-surface-1 [content-visibility:auto] [contain-intrinsic-size:auto_80px]"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">

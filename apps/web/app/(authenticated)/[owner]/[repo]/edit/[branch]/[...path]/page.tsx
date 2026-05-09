@@ -8,10 +8,10 @@ interface PageProps {
 }
 
 export default async function EditFilePage({ params }: PageProps) {
-  const session = await getSession();
+  const [session, resolvedParams] = await Promise.all([getSession(), params]);
   if (!session) redirect("/");
 
-  const { owner, repo, branch, path } = await params;
+  const { owner, repo, branch, path } = resolvedParams;
   const filePath = path.join("/");
   const forge = createForgeProvider(session.forgeToken, session.forgeType);
 

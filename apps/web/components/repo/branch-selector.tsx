@@ -72,7 +72,7 @@ export function BranchSelector({
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen((prev) => !prev)}
         className="flex items-center gap-2 border border-stroke-default bg-surface-1 px-3 py-1.5 text-sm font-medium text-text-primary transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle hover:bg-surface-2"
       >
         <svg

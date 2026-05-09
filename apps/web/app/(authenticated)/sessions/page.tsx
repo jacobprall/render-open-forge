@@ -17,7 +17,20 @@ export default async function SessionsPage() {
 
   const [userSessions, prefsRow] = await Promise.all([
     db
-      .select()
+      .select({
+        id: sessions.id,
+        title: sessions.title,
+        status: sessions.status,
+        prNumber: sessions.prNumber,
+        prStatus: sessions.prStatus,
+        repoPath: sessions.repoPath,
+        activeSkills: sessions.activeSkills,
+        branch: sessions.branch,
+        lastActivityAt: sessions.lastActivityAt,
+        createdAt: sessions.createdAt,
+        linesAdded: sessions.linesAdded,
+        linesRemoved: sessions.linesRemoved,
+      })
       .from(sessions)
       .where(eq(sessions.userId, String(session.userId)))
       .orderBy(desc(sessions.createdAt)),

@@ -13,26 +13,19 @@ export type { LiveFileChange } from "./use-chat-stream";
 
 interface ChatPanelProps {
   sessionId: string;
-  chatId: string | null;
   activeRunId: string | null;
   initialMessages: Message[];
   modelId: string;
-  onModelChange: (id: string) => void;
   onFileChanges?: (files: LiveFileChange[]) => void;
 }
 
 export function ChatPanel({
   sessionId,
-  chatId: _chatId,
   activeRunId,
   initialMessages,
   modelId,
-  onModelChange,
   onFileChanges,
 }: ChatPanelProps) {
-  void _chatId;
-  void onModelChange;
-
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [error, setError] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);

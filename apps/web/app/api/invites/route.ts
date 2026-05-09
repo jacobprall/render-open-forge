@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { safeJson } from "@/lib/api-utils";
 import { getPlatform, requireAuth } from "@/lib/platform";
 
 const createInviteSchema = z.object({
@@ -14,8 +15,11 @@ const createInviteSchema = z.object({
 export async function POST(request: NextRequest) {
   const auth = await requireAuth();
 
-  const body = await request.json();
-  const parsed = createInviteSchema.safeParse(body);
+  const parsedBody = await safeJson(request);
+  if ("error" in parsedBody) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const parsed = createInviteSchema.safeParse(parsedBody.data);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid input", details: parsed.error.flatten() },

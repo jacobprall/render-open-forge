@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { safeJson } from "@/lib/api-utils";
 import { requireAuth, getPlatform } from "@/lib/platform";
 import { handlePlatformError } from "@/lib/api/errors";
 
@@ -23,7 +24,11 @@ export async function PUT(
 ) {
   const auth = await requireAuth();
   const { org } = await params;
-  const { username } = await request.json();
+  const parsedBody = await safeJson(request);
+  if ("error" in parsedBody) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const { username } = parsedBody.data as { username?: string };
   if (!username) {
     return NextResponse.json({ error: "username is required" }, { status: 400 });
   }
@@ -42,7 +47,11 @@ export async function DELETE(
 ) {
   const auth = await requireAuth();
   const { org } = await params;
-  const { username } = await request.json();
+  const parsedBody = await safeJson(request);
+  if ("error" in parsedBody) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const { username } = parsedBody.data as { username?: string };
   if (!username) {
     return NextResponse.json({ error: "username is required" }, { status: 400 });
   }

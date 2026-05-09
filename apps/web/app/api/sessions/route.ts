@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { safeJson } from "@/lib/api-utils";
 import { getPlatform, requireAuth } from "@/lib/platform";
 import { handlePlatformError } from "@/lib/api/errors";
 
@@ -21,8 +22,11 @@ const createSessionBodySchema = z.object({
 export async function POST(req: NextRequest) {
   const auth = await requireAuth();
 
-  const body = await req.json();
-  const parsed = createSessionBodySchema.safeParse(body);
+  const parsedBody = await safeJson(req);
+  if ("error" in parsedBody) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const parsed = createSessionBodySchema.safeParse(parsedBody.data);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid input", details: parsed.error.flatten() },

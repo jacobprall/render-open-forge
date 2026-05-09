@@ -1,8 +1,26 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./code-block";
+
+const markdownComponents: Components = {
+  pre({ children: preChildren }) {
+    return <>{preChildren}</>;
+  },
+  code({ className, children: codeChildren }) {
+    const match = /language-(\w+)/.exec(className || "");
+    const codeString = String(codeChildren).replace(/\n$/, "");
+    if (match) {
+      return <CodeBlock code={codeString} language={match[1]} showLineNumbers={false} />;
+    }
+    return (
+      <code className={className}>
+        {codeChildren}
+      </code>
+    );
+  },
+};
 
 interface MarkdownProps {
   children: string;
@@ -30,26 +48,7 @@ export function Markdown({ children }: MarkdownProps) {
         prose-hr:my-3 prose-hr:border-stroke-subtle
         prose-img:max-w-full prose-img:h-auto"
     >
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          pre({ children: preChildren }) {
-            return <>{preChildren}</>;
-          },
-          code({ className, children: codeChildren }) {
-            const match = /language-(\w+)/.exec(className || "");
-            const codeString = String(codeChildren).replace(/\n$/, "");
-            if (match) {
-              return <CodeBlock code={codeString} language={match[1]} showLineNumbers={false} />;
-            }
-            return (
-              <code className={className}>
-                {codeChildren}
-              </code>
-            );
-          },
-        }}
-      >
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
         {children}
       </ReactMarkdown>
     </div>

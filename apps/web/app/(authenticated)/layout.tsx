@@ -1,30 +1,46 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { DynamicShell } from "@/components/layout/dynamic-shell";
 import { ThemeProvider, type ThemePreset } from "@/components/providers/theme-provider";
-import { getDb } from "@/lib/db";
-import { userPreferences } from "@openforge/db/schema";
-import { eq } from "drizzle-orm";
+import { getUserPreferences } from "@/lib/db/loaders";
 
 const VALID_THEMES = new Set<ThemePreset>(["default", "terminal", "typewriter", "blueprint", "warm-analog"]);
 
-export default async function AuthenticatedLayout({
+function AuthenticatedAppSkeleton() {
+  return (
+    <div className="min-h-screen bg-surface-0">
+      <div className="flex h-12 animate-pulse border-b border-stroke-subtle bg-surface-1" />
+      <div className="mx-auto max-w-5xl px-6 py-8">
+        <div className="mb-8 h-8 w-48 animate-pulse bg-surface-2" />
+        <div className="space-y-3">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-20 animate-pulse border border-stroke-subtle bg-surface-1"
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function AuthenticatedBody({
+  session,
   children,
 }: {
+  session: NonNullable<Awaited<ReturnType<typeof getSession>>>;
   children: React.ReactNode;
 }) {
-  const session = await getSession();
-  if (!session) redirect("/");
-
-  let colors = { accentColor: null as string | null, secondaryColor: null as string | null, tertiaryColor: null as string | null };
+  let colors = {
+    accentColor: null as string | null,
+    secondaryColor: null as string | null,
+    tertiaryColor: null as string | null,
+  };
   let theme: ThemePreset = "default";
   try {
-    const db = getDb();
-    const [row] = await db
-      .select({ data: userPreferences.data })
-      .from(userPreferences)
-      .where(eq(userPreferences.userId, String(session.userId)))
-      .limit(1);
+    const row = await getUserPreferences(String(session.userId));
     if (row?.data) {
       colors = {
         accentColor: row.data.accentColor ?? null,
@@ -36,7 +52,9 @@ export default async function AuthenticatedLayout({
         theme = raw as ThemePreset;
       }
     }
-  } catch {}
+  } catch {
+    /* DB might not be ready */
+  }
 
   return (
     <ThemeProvider colors={colors} theme={theme}>
@@ -49,5 +67,20 @@ export default async function AuthenticatedLayout({
         {children}
       </DynamicShell>
     </ThemeProvider>
+  );
+}
+
+export default async function AuthenticatedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const session = await getSession();
+  if (!session) redirect("/");
+
+  return (
+    <Suspense fallback={<AuthenticatedAppSkeleton />}>
+      <AuthenticatedBody session={session}>{children}</AuthenticatedBody>
+    </Suspense>
   );
 }

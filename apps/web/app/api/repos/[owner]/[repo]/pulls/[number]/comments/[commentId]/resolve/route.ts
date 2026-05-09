@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeJson } from "@/lib/api-utils";
 import { requireAuth, getPlatform } from "@/lib/platform";
 import { handlePlatformError } from "@/lib/api/errors";
 
@@ -14,13 +15,13 @@ export async function POST(
   }
 
   let unresolve = false;
-  try {
-    const body = await req.json().catch(() => ({}));
-    if (typeof (body as Record<string, unknown>).unresolve === "boolean") {
-      unresolve = (body as Record<string, unknown>).unresolve as boolean;
-    }
-  } catch {
-    // default to resolve
+  const parsedBody = await safeJson(req);
+  if ("error" in parsedBody) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const body = parsedBody.data as Record<string, unknown>;
+  if (typeof body.unresolve === "boolean") {
+    unresolve = body.unresolve;
   }
 
   try {

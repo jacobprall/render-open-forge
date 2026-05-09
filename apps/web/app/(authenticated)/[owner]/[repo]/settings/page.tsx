@@ -15,31 +15,33 @@ export default async function RepoSettingsPage({
 }: {
   params: Promise<{ owner: string; repo: string }>;
 }) {
-  const session = await getSession();
+  const [session, resolvedParams] = await Promise.all([getSession(), params]);
   if (!session) redirect("/");
 
-  const { owner, repo } = await params;
+  const { owner, repo } = resolvedParams;
+  const repoPath = `${owner}/${repo}`;
 
   const forge = createForgeProvider(session.forgeToken, session.forgeType);
-  let repoData;
-  try {
-    repoData = await forge.repos.get(owner, repo);
-  } catch {
-    notFound();
-  }
-
-  const repoPath = `${owner}/${repo}`;
-  const [mirrorRow] = await getDb()
-    .select({
-      id: mirrors.id,
-      remoteRepoUrl: mirrors.remoteRepoUrl,
-      direction: mirrors.direction,
-      lastSyncAt: mirrors.lastSyncAt,
-      status: mirrors.status,
-    })
-    .from(mirrors)
-    .where(eq(mirrors.localRepoPath, repoPath))
-    .limit(1);
+  const [repoResult, mirrorRows] = await Promise.all([
+    forge.repos
+      .get(owner, repo)
+      .then((r) => ({ ok: true as const, data: r }))
+      .catch(() => ({ ok: false as const })),
+    getDb()
+      .select({
+        id: mirrors.id,
+        remoteRepoUrl: mirrors.remoteRepoUrl,
+        direction: mirrors.direction,
+        lastSyncAt: mirrors.lastSyncAt,
+        status: mirrors.status,
+      })
+      .from(mirrors)
+      .where(eq(mirrors.localRepoPath, repoPath))
+      .limit(1),
+  ]);
+  if (!repoResult.ok) notFound();
+  const repoData = repoResult.data;
+  const [mirrorRow] = mirrorRows;
 
   return (
     <div className="space-y-8">

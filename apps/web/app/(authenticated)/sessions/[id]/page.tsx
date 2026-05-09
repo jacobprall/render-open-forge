@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db";
 import { sessions, chats, chatMessages, userPreferences } from "@openforge/db";
 import { eq, and, desc } from "drizzle-orm";
 import { SessionWorkspace } from "@/components/session/session-workspace";
+import { DEFAULT_MODEL_ID } from "@/lib/model-defaults";
 import type { AssistantPart } from "@openforge/ui";
 
 export async function generateMetadata({
@@ -78,7 +79,7 @@ export default async function SessionDetailPage({
   const initialModelId =
     chatRow?.modelId?.trim() ||
     prefsRow?.data?.defaultModelId?.trim() ||
-    "anthropic/claude-sonnet-4-5";
+    DEFAULT_MODEL_ID;
 
   const messages = chatRow
     ? await db
@@ -108,7 +109,6 @@ export default async function SessionDetailPage({
         linesAdded: sessionRow.linesAdded,
         linesRemoved: sessionRow.linesRemoved,
       }}
-      chatId={chatRow?.id ?? null}
       activeRunId={chatRow?.activeRunId ?? null}
       initialMessages={messages.map((m) => ({
         id: m.id,

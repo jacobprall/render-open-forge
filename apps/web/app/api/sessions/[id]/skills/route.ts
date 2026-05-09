@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeJson } from "@/lib/api-utils";
 import { getPlatform, requireAuth } from "@/lib/platform";
 import { handlePlatformError } from "@/lib/api/errors";
 
@@ -22,7 +23,11 @@ export async function PATCH(
 ) {
   const [{ id }, auth] = await Promise.all([params, requireAuth()]);
 
-  const body = await req.json();
+  const parsedBody = await safeJson(req);
+  if ("error" in parsedBody) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const body = parsedBody.data as { activeSkills?: unknown };
   const activeSkills = body.activeSkills;
   if (!Array.isArray(activeSkills)) {
     return NextResponse.json({ error: "activeSkills array required" }, { status: 400 });

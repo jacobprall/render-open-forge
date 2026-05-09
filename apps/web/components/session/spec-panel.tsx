@@ -51,7 +51,7 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
       <button
         type="button"
         className="flex w-full items-center gap-3 px-4 py-3 transition-colors duration-(--of-duration-instant) hover:bg-surface-2/50"
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen((prev) => !prev)}
       >
         <svg
           className={`h-4 w-4 shrink-0 text-text-tertiary transition-transform ${open ? "rotate-90" : ""}`}

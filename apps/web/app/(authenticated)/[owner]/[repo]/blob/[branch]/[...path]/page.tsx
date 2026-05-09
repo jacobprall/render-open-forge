@@ -11,10 +11,10 @@ export default async function BlobPage({
 }: {
   params: Promise<{ owner: string; repo: string; branch: string; path: string[] }>;
 }) {
-  const session = await getSession();
+  const [session, resolvedParams] = await Promise.all([getSession(), params]);
   if (!session) redirect("/");
 
-  const { owner, repo, branch: rawBranch, path: pathSegments } = await params;
+  const { owner, repo, branch: rawBranch, path: pathSegments } = resolvedParams;
   const branch = decodeURIComponent(rawBranch);
   const filePath = pathSegments.join("/");
   const fileName = pathSegments[pathSegments.length - 1];

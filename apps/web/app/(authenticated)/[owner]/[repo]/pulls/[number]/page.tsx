@@ -12,27 +12,23 @@ export default async function PullRequestDetailPage({
 }: {
   params: Promise<{ owner: string; repo: string; number: string }>;
 }) {
-  const session = await getSession();
+  const [session, resolvedParams] = await Promise.all([getSession(), params]);
   if (!session) redirect("/");
 
-  const { owner, repo, number: prNumber } = await params;
+  const { owner, repo, number: prNumber } = resolvedParams;
   const num = parseInt(prNumber, 10);
   if (isNaN(num)) notFound();
 
   const forge = createForgeProvider(session.forgeToken, session.forgeType);
-  let pr;
-  try {
-    pr = await forge.pulls.get(owner, repo, num);
-  } catch {
-    notFound();
-  }
-
-  let rawDiff = "";
-  try {
-    rawDiff = await forge.pulls.diff(owner, repo, num);
-  } catch {
-    rawDiff = "";
-  }
+  const [prResult, rawDiff] = await Promise.all([
+    forge.pulls
+      .get(owner, repo, num)
+      .then((p) => ({ ok: true as const, pr: p }))
+      .catch(() => ({ ok: false as const })),
+    forge.pulls.diff(owner, repo, num).catch(() => ""),
+  ]);
+  if (!prResult.ok) notFound();
+  const pr = prResult.pr;
 
   const basePath = `/${owner}/${repo}`;
 

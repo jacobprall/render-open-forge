@@ -79,7 +79,7 @@ export function NewSessionForm() {
   const [activeSkillKeys, setActiveSkillKeys] = useState<Set<string>>(new Set());
   const [skillsExpanded, setSkillsExpanded] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [initialParamsApplied, setInitialParamsApplied] = useState(false);
 
   const {
@@ -118,15 +118,12 @@ export function NewSessionForm() {
     swrOptions,
   );
 
-  useEffect(() => {
-    if (reposErr) setError("Failed to load repositories");
-  }, [reposErr]);
-  useEffect(() => {
-    if (branchesErr) setError("Failed to load branches");
-  }, [branchesErr]);
-  useEffect(() => {
-    if (skillsErr) setError("Failed to load skills");
-  }, [skillsErr]);
+  const fetchError =
+    (reposErr instanceof Error ? reposErr.message : null) ??
+    (branchesErr instanceof Error ? branchesErr.message : null) ??
+    (skillsErr instanceof Error ? skillsErr.message : null) ??
+    null;
+  const error = submitError ?? fetchError;
 
   useEffect(() => {
     if (initialRepo && repos.some((r) => r.fullName === initialRepo)) {
@@ -189,7 +186,7 @@ export function NewSessionForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedRepo || !effectiveBranch) return;
-    setError(null);
+    setSubmitError(null);
 
     const activeSkills = activeSkillRefs();
 
@@ -214,7 +211,7 @@ export function NewSessionForm() {
         const { sessionId } = await res.json();
         router.push(`/sessions/${sessionId}`);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setSubmitError(err instanceof Error ? err.message : "Unknown error");
       }
     });
   }

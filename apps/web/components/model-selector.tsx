@@ -44,7 +44,7 @@ export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) 
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen((prev) => !prev)}
         className="flex items-center gap-2 border border-stroke-default bg-surface-1 px-3 py-1.5 text-sm text-text-secondary transition-colors duration-(--of-duration-instant) hover:border-stroke-subtle"
       >
         <span className="truncate">{selected?.label ?? value}</span>

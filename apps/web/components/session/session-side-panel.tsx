@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
+import useSWR from "swr";
 import { useEventSource } from "@/hooks/use-event-source";
+import { STREAM_EVENT } from "@/lib/stream-events";
 
 interface FileChange {
   path: string;
@@ -17,15 +19,16 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<"files" | "ci">("files");
   const [filesChanged, setFilesChanged] = useState<FileChange[]>([]);
-  const [ciStatus, setCiStatus] = useState<"idle" | "running" | "success" | "failure">("idle");
-  const [ciEvents, setCiEvents] = useState<Array<{ type: string; status: string | null }>>([]);
+  const [sseCiStatus, setSseCiStatus] = useState<"idle" | "running" | "success" | "failure">("idle");
 
   const streamUrl = `/api/sessions/${sessionId}/stream`;
   const streamMessageRef = useRef<(event: MessageEvent) => void>(() => {});
   streamMessageRef.current = (event: MessageEvent) => {
+    const rawData =
+      typeof event.data === "string" ? event.data : String(event.data ?? "");
     try {
-      const data = JSON.parse(event.data);
-      if (data.type === "file_changed" && data.path) {
+      const data = JSON.parse(rawData);
+      if (data.type === STREAM_EVENT.FILE_CHANGED && data.path) {
         setFilesChanged((prev) => {
           const existing = prev.find((f) => f.path === data.path);
           if (existing) {
@@ -38,11 +41,13 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
           return [...prev, { path: data.path, additions: data.additions ?? 0, deletions: data.deletions ?? 0 }];
         });
       }
-      if (data.type === "task_start") setCiStatus("running");
-      if (data.type === "task_done") setCiStatus("success");
-      if (data.type === "task_error") setCiStatus("failure");
-    } catch {
-      // ignore
+      if (data.type === STREAM_EVENT.TASK_START) setSseCiStatus("running");
+      if (data.type === STREAM_EVENT.TASK_DONE) setSseCiStatus("success");
+      if (data.type === STREAM_EVENT.TASK_ERROR) setSseCiStatus("failure");
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[SSE parse error]", e, rawData.slice(0, 200));
+      }
     }
   };
 
@@ -56,29 +61,35 @@ export function SessionSidePanel({ sessionId }: SessionSidePanelProps) {
     onMessage: onStreamMessage,
   });
 
-  useEffect(() => {
-    if (activeTab !== "ci") return;
-    async function poll() {
+  const ciEventsUrl = `/api/sessions/${sessionId}/ci-events`;
+
+  const { data: ciEventsPayload } = useSWR(
+    activeTab === "ci" ? ciEventsUrl : null,
+    async (u) => {
       try {
-        const res = await fetch(`/api/sessions/${sessionId}/ci-events`);
-        if (!res.ok) return;
-        const data = (await res.json()) as {
+        const res = await fetch(u);
+        if (!res.ok) return null;
+        return (await res.json()) as {
           events: Array<{ type: string; status: string | null }>;
         };
-        setCiEvents(data.events ?? []);
-        const last = data.events?.[0];
-        if (!last?.status) return;
-        if (last.status === "success") setCiStatus("success");
-        else if (last.status === "running" || last.status === "pending") setCiStatus("running");
-        else setCiStatus("failure");
       } catch {
-        // ignore
+        return null;
       }
-    }
-    void poll();
-    const t = setInterval(poll, 5000);
-    return () => clearInterval(t);
-  }, [activeTab, sessionId]);
+    },
+    { refreshInterval: 5000 },
+  );
+
+  const ciEvents = activeTab === "ci" ? (ciEventsPayload?.events ?? []) : [];
+  const lastPoll = ciEvents[0];
+  const polledStatus: "running" | "success" | "failure" | null =
+    activeTab === "ci" && lastPoll?.status
+      ? lastPoll.status === "success"
+        ? "success"
+        : lastPoll.status === "running" || lastPoll.status === "pending"
+          ? "running"
+          : "failure"
+      : null;
+  const ciStatus = polledStatus ?? sseCiStatus;
 
   if (!isOpen) {
     return (

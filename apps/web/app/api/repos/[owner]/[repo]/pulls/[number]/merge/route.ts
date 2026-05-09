@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeJson } from "@/lib/api-utils";
 import { requireAuth, getPlatform } from "@/lib/platform";
 import { handlePlatformError } from "@/lib/api/errors";
 import type { MergeMethod } from "@openforge/platform";
@@ -17,17 +18,18 @@ export async function POST(
   }
 
   let mode: MergeMethod | undefined;
-  try {
-    const ct = req.headers.get("content-type") ?? "";
-    if (ct.includes("application/json")) {
-      const body = await req.json().catch(() => ({}));
-      const m = typeof body.method === "string" ? body.method.toLowerCase() : undefined;
-      if (m && mergeModes.includes(m as (typeof mergeModes)[number])) {
-        mode = m as MergeMethod;
-      }
+  const ct = req.headers.get("content-type") ?? "";
+  if (ct.includes("application/json")) {
+    const parsedBody = await safeJson(req);
+    if ("error" in parsedBody) {
+      return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     }
-  } catch {
-    mode = undefined;
+    const body = parsedBody.data as { method?: unknown };
+    const m =
+      typeof body.method === "string" ? body.method.toLowerCase() : undefined;
+    if (m && mergeModes.includes(m as (typeof mergeModes)[number])) {
+      mode = m as MergeMethod;
+    }
   }
 
   try {
