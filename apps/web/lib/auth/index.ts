@@ -73,7 +73,7 @@ async function loadForgeAccessTokenForUser(
  */
 async function ensureSyncConnection(
   userId: string,
-  provider: string,
+  provider: "github" | "gitlab" | "bitbucket",
   accessToken: string,
   username: string,
 ): Promise<void> {
