@@ -65,20 +65,20 @@ export function NewSessionInput({ defaultModelId }: NewSessionInputProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex h-full flex-col">
-      <div className="flex min-h-0 flex-1 flex-col border border-stroke-default bg-surface-1 transition-colors duration-(--of-duration-instant) focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/25">
-        {/* Main text area -- takes up most of the space */}
+    <form onSubmit={handleSubmit}>
+      <div className="border border-stroke-default bg-surface-1 transition-colors duration-(--of-duration-instant) focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/25">
         <textarea
           ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="What do you want to build?"
-          className="min-h-0 flex-1 resize-none bg-transparent px-(--of-space-md) py-(--of-space-md) text-[15px] leading-relaxed text-text-primary placeholder-text-tertiary outline-none"
+          placeholder="Describe what you want to build…"
+          rows={3}
+          className="w-full resize-none bg-transparent px-(--of-space-md) py-(--of-space-sm) text-[15px] leading-relaxed text-text-primary placeholder-text-tertiary outline-none"
           disabled={loading}
         />
 
-        {/* Bottom bar -- repo/branch, model, send */}
+        {/* Toolbar -- repo/branch, model, send */}
         <div className="flex items-center justify-between gap-3 border-t border-stroke-subtle px-(--of-space-md) py-(--of-space-sm)">
           <div className="flex items-center gap-2">
             <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />

@@ -42,19 +42,24 @@ export default async function SessionsPage() {
 
   return (
     <div className="relative flex h-[calc(100vh-3.5rem)]">
-      {/* Chat -- fills available space */}
+      {/* Chat window -- fills available space */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col px-(--of-space-lg) py-(--of-space-lg)">
-          <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col">
-            <h1 className="mb-(--of-space-xs) text-[20px] font-semibold text-text-primary">
+        {/* Message area -- empty on new session, scrollable */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center px-(--of-space-lg)">
+            <h1 className="mb-(--of-space-xs) text-[20px] text-text-primary">
               What do you want to build?
             </h1>
-            <p className="mb-(--of-space-md) text-[14px] text-text-tertiary">
+            <p className="text-[14px] text-text-tertiary">
               Pick a repo, describe your task, and start a session.
             </p>
-            <div className="min-h-0 flex-1">
-              <NewSessionInput defaultModelId={defaultModelId ?? undefined} />
-            </div>
+          </div>
+        </div>
+
+        {/* Input bar -- pinned to bottom */}
+        <div className="shrink-0 border-t border-stroke-subtle px-(--of-space-lg) py-(--of-space-md)">
+          <div className="mx-auto max-w-2xl">
+            <NewSessionInput defaultModelId={defaultModelId ?? undefined} />
           </div>
         </div>
       </div>
