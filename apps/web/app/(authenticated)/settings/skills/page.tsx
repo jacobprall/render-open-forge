@@ -17,7 +17,7 @@ export default async function SkillsSettingsPage() {
   const auth = await getSession();
   if (!auth) redirect("/");
 
-  const forge = createForgeProvider(auth.forgejoToken);
+  const forge = createForgeProvider(auth.forgeToken, auth.forgeType);
 
   try {
     await ensureUserSkillsRepo(forge, auth.username);

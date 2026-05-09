@@ -40,7 +40,7 @@ export interface MirrorSummary {
   id: string;
   sessionId: string | null;
   syncConnectionId: string;
-  forgejoRepoPath: string;
+  localRepoPath: string;
   remoteRepoUrl: string;
   direction: "pull" | "push" | "bidirectional";
   lastSyncAt: string | null;

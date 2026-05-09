@@ -6,7 +6,7 @@ import Link from "next/link";
 
 interface Mirror {
   id: string;
-  forgejoRepoPath: string;
+  localRepoPath: string;
   remoteRepoUrl: string;
   direction: "pull" | "push" | "bidirectional";
   status: "active" | "paused" | "error";
@@ -231,10 +231,10 @@ export default function MirrorsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2.5">
                       <Link
-                        href={`/${mirror.forgejoRepoPath}`}
+                        href={`/${mirror.localRepoPath}`}
                         className="truncate text-sm font-semibold text-zinc-100 hover:text-accent-text"
                       >
-                        {mirror.forgejoRepoPath}
+                        {mirror.localRepoPath}
                       </Link>
                       <span className={`text-xs font-medium ${dir.color}`}>
                         {dir.label}

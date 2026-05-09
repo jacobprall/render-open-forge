@@ -18,7 +18,7 @@ export async function GET(
     return NextResponse.json({ error: "Invalid repo path" }, { status: 400 });
   }
 
-  const forge = createForgeProvider(userSession.forgejoToken);
+  const forge = createForgeProvider(userSession.forgeToken, userSession.forgeType);
   const branches = await forge.branches.list(owner, repo).catch(() => []);
 
   return NextResponse.json({ branches });

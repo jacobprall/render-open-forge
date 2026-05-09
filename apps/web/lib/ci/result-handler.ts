@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
-import { ciEvents, sessions } from "@openforge/db";
+import { and, eq } from "drizzle-orm";
+import { ciEvents, sessions, syncConnections } from "@openforge/db";
 import { logger } from "@openforge/shared";
+import type { ForgeProviderType } from "@openforge/platform/forge";
 import type { ForgeDb } from "@/lib/db";
-import { getAgentForgeProvider } from "@/lib/forgejo/client";
+import { createForgeProvider, getAgentForgeProvider } from "@/lib/forgejo/client";
 import { createRedisClient, isRedisConfigured } from "@/lib/redis";
 import { enqueueSessionTriggerJob } from "@/lib/agent/enqueue-session-job";
 import type { CIResultPayload } from "./ci-result-schema";
@@ -71,7 +72,7 @@ export async function handleCIResult(
 
   if (!session) return;
 
-  const [repoOwner, repoName] = session.forgejoRepoPath.split("/");
+  const [repoOwner, repoName] = session.repoPath.split("/");
   if (!repoOwner || !repoName) return;
 
   const commitSha =
@@ -80,7 +81,20 @@ export async function handleCIResult(
       : undefined;
 
   try {
-    const forge = getAgentForgeProvider();
+    const forgeType = (session.forgeType ?? "forgejo") as ForgeProviderType;
+    let forge;
+    if (forgeType === "forgejo") {
+      forge = getAgentForgeProvider();
+    } else {
+      const [conn] = await db
+        .select({ accessToken: syncConnections.accessToken })
+        .from(syncConnections)
+        .where(and(eq(syncConnections.userId, session.userId), eq(syncConnections.provider, forgeType)))
+        .limit(1);
+      forge = conn?.accessToken
+        ? createForgeProvider(conn.accessToken, forgeType)
+        : getAgentForgeProvider();
+    }
 
     let sha = commitSha;
     if (!sha) {
@@ -91,7 +105,7 @@ export async function handleCIResult(
     }
 
     if (sha) {
-      const logsUrl = buildLogsUrl(session.forgejoRepoPath, payload.ciEventId);
+      const logsUrl = buildLogsUrl(session.repoPath, payload.ciEventId);
 
       const state: "pending" | "success" | "failure" | "error" =
         payload.status === "success" ? "success" : payload.status === "error" ? "error" : "failure";

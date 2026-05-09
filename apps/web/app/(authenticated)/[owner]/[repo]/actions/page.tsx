@@ -29,7 +29,7 @@ export default async function ActionsPage({
   const repoSessions = await db
     .select({ id: sessions.id })
     .from(sessions)
-    .where(eq(sessions.forgejoRepoPath, repoPath));
+    .where(eq(sessions.repoPath, repoPath));
 
   const sessionIds = repoSessions.map((s) => s.id);
 

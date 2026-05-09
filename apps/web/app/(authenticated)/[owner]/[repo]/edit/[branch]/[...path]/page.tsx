@@ -13,7 +13,7 @@ export default async function EditFilePage({ params }: PageProps) {
 
   const { owner, repo, branch, path } = await params;
   const filePath = path.join("/");
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
 
   let content = "";
   let sha = "";

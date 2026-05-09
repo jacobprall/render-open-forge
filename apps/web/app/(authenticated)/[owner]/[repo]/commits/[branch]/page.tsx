@@ -15,7 +15,7 @@ export default async function CommitsPage({
 
   const { owner, repo, branch: rawBranch } = await params;
   const branch = decodeURIComponent(rawBranch);
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
 
   // Forgejo returns 404 for empty repos or refs with no commits; treat as [] like Code tab does.
   const [commits, branches] = await Promise.all([

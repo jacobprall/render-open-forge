@@ -18,7 +18,7 @@ export default async function BlobPage({
   const branch = decodeURIComponent(rawBranch);
   const filePath = pathSegments.join("/");
   const fileName = pathSegments[pathSegments.length - 1];
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
 
   let fileData: ForgeFileContent;
   try {

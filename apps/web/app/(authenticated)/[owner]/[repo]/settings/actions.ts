@@ -27,7 +27,7 @@ export async function deleteRepoAction(
     return { error: "Invalid input" };
   }
 
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
   try {
     await forge.repos.delete(parsed.data.owner, parsed.data.repo);
     return {};

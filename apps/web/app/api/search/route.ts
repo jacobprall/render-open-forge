@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const q = url.searchParams.get("q");
   if (!q) return NextResponse.json([]);
 
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
   const repos = await forge.repos.search(q, 20);
   return NextResponse.json(repos);
 }

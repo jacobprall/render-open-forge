@@ -38,7 +38,7 @@ export function getPlatform(): PlatformContainer {
  */
 export async function requireAuth(): Promise<AuthContext> {
   const session = await auth();
-  if (!session?.user?.id || !session.forgejoToken) {
+  if (!session?.user?.id || !session.forgeToken) {
     throw new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -46,8 +46,9 @@ export async function requireAuth(): Promise<AuthContext> {
   }
   return {
     userId: session.user.id,
-    username: session.forgejoUsername,
-    forgeToken: session.forgejoToken,
+    username: session.forgeUsername,
+    forgeToken: session.forgeToken,
+    forgeType: session.forgeType ?? "forgejo",
     isAdmin: session.isAdmin,
   };
 }

@@ -40,17 +40,13 @@ export const credentialsProvider = Credentials({
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return null;
 
-    if (user.forgejoUserId == null || !user.forgejoUsername) {
-      return null;
-    }
-
     return {
       id: user.id,
       email: user.email,
       name: user.name,
       image: user.image,
-      forgejoUserId: user.forgejoUserId,
-      forgejoUsername: user.forgejoUsername,
+      forgejoUserId: user.forgejoUserId ?? undefined,
+      forgejoUsername: user.forgejoUsername ?? undefined,
       isAdmin: user.isAdmin,
     };
   },

@@ -77,7 +77,7 @@ interface PushMirrorEntry {
 
 function splitRepoPath(repoPath: string): [string, string] {
   const [owner, repo] = repoPath.split("/");
-  if (!owner || !repo) throw new Error(`Invalid forgejoRepoPath: ${repoPath}`);
+  if (!owner || !repo) throw new Error(`Invalid repo path: ${repoPath}`);
   return [owner, repo];
 }
 
@@ -190,7 +190,7 @@ async function removePushMirrorsForUrl(
 export interface CreateMirrorParams {
   userId: string;
   syncConnectionId: string;
-  forgejoRepoPath: string;
+  localRepoPath: string;
   remoteRepoUrl: string;
   direction: "pull" | "push" | "bidirectional";
   /** If omitted, auto-resolved from the sync connection. */
@@ -203,7 +203,7 @@ export async function createMirror(
   params: CreateMirrorParams,
 ): Promise<typeof mirrors.$inferSelect> {
   const id = crypto.randomUUID();
-  const [owner, repo] = splitRepoPath(params.forgejoRepoPath);
+  const [owner, repo] = splitRepoPath(params.localRepoPath);
 
   const token =
     params.remoteToken ?? (await getConnectionToken(db, params.syncConnectionId));
@@ -214,7 +214,7 @@ export async function createMirror(
   if (params.direction === "push" || params.direction === "bidirectional") {
     await configurePushMirror(owner, repo, params.remoteRepoUrl, token).catch((err) => {
       logger.errorWithCause(err, "push mirror setup failed", {
-        repo: params.forgejoRepoPath,
+        repo: params.localRepoPath,
       });
     });
   }
@@ -222,7 +222,7 @@ export async function createMirror(
   if (params.direction === "pull" || params.direction === "bidirectional") {
     await configurePullMirror(owner, repo, params.remoteRepoUrl, token).catch((err) => {
       logger.errorWithCause(err, "pull mirror setup failed", {
-        repo: params.forgejoRepoPath,
+        repo: params.localRepoPath,
       });
     });
   }
@@ -233,7 +233,7 @@ export async function createMirror(
       id,
       sessionId: params.sessionId ?? null,
       syncConnectionId: params.syncConnectionId,
-      forgejoRepoPath: params.forgejoRepoPath,
+      localRepoPath: params.localRepoPath,
       remoteRepoUrl: params.remoteRepoUrl,
       direction: params.direction,
       status: "active",
@@ -252,7 +252,7 @@ export async function syncMirror(db: ForgeDb, mirrorId: string): Promise<void> {
 
   if (!mirror) throw new Error("Mirror not found");
 
-  const [owner, repo] = splitRepoPath(mirror.forgejoRepoPath);
+  const [owner, repo] = splitRepoPath(mirror.localRepoPath);
 
   await forgejoApi(`/repos/${owner}/${repo}/mirror-sync`, { method: "POST" });
 
@@ -271,7 +271,7 @@ export async function deleteMirror(db: ForgeDb, mirrorId: string): Promise<void>
 
   if (!mirror) return;
 
-  const [owner, repo] = splitRepoPath(mirror.forgejoRepoPath);
+  const [owner, repo] = splitRepoPath(mirror.localRepoPath);
 
   if (mirror.direction === "push" || mirror.direction === "bidirectional") {
     await removePushMirrorsForUrl(owner, repo, mirror.remoteRepoUrl);
@@ -354,7 +354,7 @@ export async function resolveMirrorConflict(
 
   if (!mirror) return { resolved: false, strategy, error: "Mirror not found" };
 
-  const [owner, repo] = splitRepoPath(mirror.forgejoRepoPath);
+  const [owner, repo] = splitRepoPath(mirror.localRepoPath);
 
   if (strategy === "manual") {
     await db

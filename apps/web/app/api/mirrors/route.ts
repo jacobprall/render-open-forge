@@ -44,7 +44,7 @@ export async function POST(req: Request) {
 
   let body: {
     syncConnectionId: string;
-    forgejoRepoPath: string;
+    localRepoPath: string;
     remoteRepoUrl: string;
     direction: "pull" | "push" | "bidirectional";
     remoteToken?: string;
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
   try {
     const mirror = await getPlatform().mirrors.create(auth, {
       syncConnectionId: body.syncConnectionId,
-      forgejoRepoPath: body.forgejoRepoPath,
+      localRepoPath: body.localRepoPath,
       remoteRepoUrl: body.remoteRepoUrl,
       direction: body.direction,
       remoteToken: body.remoteToken,

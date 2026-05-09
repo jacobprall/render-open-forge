@@ -87,7 +87,7 @@ export default async function PullRequestsPage({
   if (!session) redirect("/");
   const activeTab = state === "closed" ? "closed" : "open";
 
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
   let pullRequests: ForgePullRequest[] = [];
   try {
     pullRequests = await forge.pulls.list(owner, repo, activeTab);

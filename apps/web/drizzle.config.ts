@@ -27,5 +27,9 @@ export default defineConfig({
     "user_preferences",
     "usage_events",
     "api_keys",
+    "infra_specs",
+    "infra_resources",
+    "infra_actions",
+    "infra_observations",
   ],
 });

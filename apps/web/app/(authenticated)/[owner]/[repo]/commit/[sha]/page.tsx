@@ -13,7 +13,7 @@ export default async function CommitDetailPage({
   if (!session) redirect("/");
 
   const { owner, repo, sha } = await params;
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
 
   let commits;
   try {

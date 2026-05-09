@@ -1,14 +1,16 @@
 import type Redis from "ioredis";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import {
   agentRuns,
   chatMessages,
   chats,
   sessions,
+  syncConnections,
 } from "@openforge/db";
 import { enqueueJob, ensureConsumerGroup } from "@openforge/platform";
+import type { ForgeProviderType } from "@openforge/platform/forge";
 import type { ForgeDb } from "@/lib/db";
-import { getAgentForgeProvider } from "@/lib/forgejo/client";
+import { createForgeProvider, getAgentForgeProvider } from "@/lib/forgejo/client";
 import { resolveSkillsForSessionRow } from "@/lib/skills/resolve-for-session";
 
 type Db = ForgeDb;
@@ -119,7 +121,20 @@ export async function enqueueSessionTriggerJob(
 
   const runId = crypto.randomUUID();
 
-  const forge = getAgentForgeProvider();
+  const forgeType = (sessionRow.forgeType ?? "forgejo") as ForgeProviderType;
+  let forge;
+  if (forgeType === "forgejo") {
+    forge = getAgentForgeProvider();
+  } else {
+    const [conn] = await db
+      .select({ accessToken: syncConnections.accessToken })
+      .from(syncConnections)
+      .where(and(eq(syncConnections.userId, params.userId), eq(syncConnections.provider, forgeType)))
+      .limit(1);
+    forge = conn?.accessToken
+      ? createForgeProvider(conn.accessToken, forgeType)
+      : getAgentForgeProvider();
+  }
   const resolvedSkills = await resolveSkillsForSessionRow(
     sessionRow,
     forge,

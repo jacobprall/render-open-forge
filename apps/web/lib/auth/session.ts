@@ -9,7 +9,8 @@ import { auth } from "@/lib/auth";
  * session, isolating the rest of the codebase from auth internals.
  */
 export interface UserSession {
-  forgejoToken: string;
+  forgeToken: string;
+  forgeType: "forgejo" | "github" | "gitlab";
   userId: string;
   username: string;
   email: string;
@@ -22,9 +23,10 @@ async function readSession(): Promise<UserSession | null> {
   if (!session?.user) return null;
 
   return {
-    forgejoToken: session.forgejoToken,
+    forgeToken: session.forgeToken,
+    forgeType: session.forgeType ?? "forgejo",
     userId: session.user.id,
-    username: session.forgejoUsername,
+    username: session.forgeUsername,
     email: session.user.email ?? "",
     avatarUrl: session.user.image ?? "",
     isAdmin: session.isAdmin ?? false,

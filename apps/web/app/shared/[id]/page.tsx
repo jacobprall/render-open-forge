@@ -85,7 +85,7 @@ export default async function SharedSessionPage({
             </span>
           </div>
           <div className="mt-1 flex items-center gap-4 text-sm text-zinc-400">
-            <span>{session.forgejoRepoPath}</span>
+            <span>{session.repoPath}</span>
             <span className="text-zinc-600">·</span>
             <span>{session.branch}</span>
             <span className="text-zinc-600">·</span>

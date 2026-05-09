@@ -19,7 +19,7 @@ export default async function PullRequestDetailPage({
   const num = parseInt(prNumber, 10);
   if (isNaN(num)) notFound();
 
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
   let pr;
   try {
     pr = await forge.pulls.get(owner, repo, num);

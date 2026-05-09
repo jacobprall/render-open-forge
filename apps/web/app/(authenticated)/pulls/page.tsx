@@ -88,7 +88,7 @@ export default async function PullRequestsGlobalPage({
       .select({
         id: sessions.id,
         title: sessions.title,
-        forgejoRepoPath: sessions.forgejoRepoPath,
+        repoPath: sessions.repoPath,
         branch: sessions.branch,
         baseBranch: sessions.baseBranch,
         prNumber: sessions.prNumber,
@@ -161,7 +161,7 @@ function PrRow({
   row: {
     id: string;
     title: string;
-    forgejoRepoPath: string;
+    repoPath: string;
     branch: string;
     baseBranch: string;
     prNumber: number | null;
@@ -174,7 +174,7 @@ function PrRow({
   };
 }) {
   const prStatus = row.prStatus ?? "open";
-  const prUrl = `/${row.forgejoRepoPath}/pulls/${row.prNumber}`;
+  const prUrl = `/${row.repoPath}/pulls/${row.prNumber}`;
 
   return (
     <div className="flex items-center gap-4 border-b border-stroke-default px-5 py-4 last:border-b-0 transition hover:bg-surface-1/30">
@@ -189,8 +189,8 @@ function PrRow({
           <StatusBadge status={prStatus} className="shrink-0" />
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
-          <Link href={`/${row.forgejoRepoPath}`} className="hover:text-text-primary transition">
-            {row.forgejoRepoPath}
+          <Link href={`/${row.repoPath}`} className="hover:text-text-primary transition">
+            {row.repoPath}
           </Link>
           <span>#{row.prNumber}</span>
           <span className="inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-text-secondary">

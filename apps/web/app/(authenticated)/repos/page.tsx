@@ -56,7 +56,7 @@ export default async function ReposPage({
   const [session, { q }] = await Promise.all([getSession(), searchParams]);
   if (!session) redirect("/");
 
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
   const repos = await forge.repos.list().catch(() => [] as ForgeRepo[]);
 
   const query = q?.toLowerCase() ?? "";

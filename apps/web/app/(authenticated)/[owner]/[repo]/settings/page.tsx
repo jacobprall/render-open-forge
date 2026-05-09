@@ -20,7 +20,7 @@ export default async function RepoSettingsPage({
 
   const { owner, repo } = await params;
 
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
   let repoData;
   try {
     repoData = await forge.repos.get(owner, repo);
@@ -38,7 +38,7 @@ export default async function RepoSettingsPage({
       status: mirrors.status,
     })
     .from(mirrors)
-    .where(eq(mirrors.forgejoRepoPath, repoPath))
+    .where(eq(mirrors.localRepoPath, repoPath))
     .limit(1);
 
   return (

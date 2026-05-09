@@ -76,7 +76,7 @@ export class ApiClient {
 
   createMirror(body: {
     syncConnectionId: string;
-    forgejoRepoPath: string;
+    localRepoPath: string;
     remoteRepoUrl: string;
     direction: "pull" | "push" | "bidirectional";
     remoteToken?: string;

@@ -107,13 +107,13 @@ export function SessionCard({ session }: { session: Session }) {
               <PrBadge
                 prNumber={session.prNumber}
                 prStatus={session.prStatus}
-                repoPath={session.forgejoRepoPath}
+                repoPath={session.repoPath}
               />
             )}
             {skillChips(session)}
           </div>
           <p className="mt-1 truncate font-mono text-xs text-zinc-500">
-            {session.forgejoRepoPath}
+            {session.repoPath}
             <span className="text-zinc-600"> · </span>
             {session.branch}
           </p>

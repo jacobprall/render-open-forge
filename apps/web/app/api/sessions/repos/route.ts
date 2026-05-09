@@ -8,7 +8,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const forge = createForgeProvider(userSession.forgejoToken);
+  const forge = createForgeProvider(userSession.forgeToken, userSession.forgeType);
   const repos = await forge.repos.list().catch(() => []);
 
   return NextResponse.json({ repos });

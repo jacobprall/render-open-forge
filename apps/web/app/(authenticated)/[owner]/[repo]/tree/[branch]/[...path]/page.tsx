@@ -17,7 +17,7 @@ export default async function TreePage({
   const { owner, repo, branch: rawBranch, path: pathSegments } = await params;
   const branch = decodeURIComponent(rawBranch);
   const currentPath = pathSegments.join("/");
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
 
   let contents: ForgeFileContent[];
   let branches;

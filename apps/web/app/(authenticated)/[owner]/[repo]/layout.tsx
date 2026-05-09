@@ -16,9 +16,13 @@ export default async function RepoLayout({
 
   let repoData;
   try {
-    repoData = await getForgeRepoCached(session.forgejoToken, owner, repo);
-  } catch {
-    notFound();
+    repoData = await getForgeRepoCached(session.forgeToken, owner, repo, session.forgeType);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("404") || msg.includes("Not Found")) {
+      notFound();
+    }
+    throw new Error(`Failed to load repository ${owner}/${repo}: ${msg}`);
   }
 
   const basePath = `/${owner}/${repo}`;

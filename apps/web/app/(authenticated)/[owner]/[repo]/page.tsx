@@ -15,11 +15,11 @@ export default async function RepoDetailPage({
   const [session, { owner, repo: repoName }] = await Promise.all([getSession(), params]);
   if (!session) redirect("/");
 
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
 
   let repoData;
   try {
-    repoData = await getForgeRepoCached(session.forgejoToken, owner, repoName);
+    repoData = await getForgeRepoCached(session.forgeToken, owner, repoName, session.forgeType);
   } catch {
     notFound();
   }

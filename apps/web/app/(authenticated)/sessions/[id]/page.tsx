@@ -41,7 +41,7 @@ export default async function SessionDetailPage({
       .select({
         id: sessions.id,
         title: sessions.title,
-        forgejoRepoPath: sessions.forgejoRepoPath,
+        repoPath: sessions.repoPath,
         branch: sessions.branch,
         activeSkills: sessions.activeSkills,
         status: sessions.status,
@@ -99,7 +99,7 @@ export default async function SessionDetailPage({
       session={{
         id: sessionRow.id,
         title: sessionRow.title,
-        repoPath: sessionRow.forgejoRepoPath,
+        repoPath: sessionRow.repoPath,
         branch: sessionRow.branch,
         activeSkills: (sessionRow.activeSkills ?? []) as Array<{ source: string; slug: string }>,
         status: sessionRow.status,

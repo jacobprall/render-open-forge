@@ -17,7 +17,7 @@ export async function GET(
     return NextResponse.json({ error: "Missing jobId query parameter" }, { status: 400 })
   }
 
-  const forge = createForgeProvider(session.forgejoToken)
+  const forge = createForgeProvider(session.forgeToken, session.forgeType)
   const resolvedJobId = jobId
 
   let sentLength = 0

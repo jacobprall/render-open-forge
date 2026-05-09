@@ -13,7 +13,7 @@ import {
 
 type SessionSkillsInput = Pick<
   typeof sessions.$inferSelect,
-  "forgejoRepoPath" | "branch" | "activeSkills"
+  "repoPath" | "branch" | "activeSkills"
 >;
 
 /**
@@ -28,7 +28,7 @@ export async function resolveSkillsForSessionRow(
     await ensureUserSkillsRepo(forge, forgeUsername);
   }
 
-  const [owner, repo] = sessionRow.forgejoRepoPath.split("/");
+  const [owner, repo] = sessionRow.repoPath.split("/");
   const repoSlugs =
     owner && repo
       ? await listMdSlugsInRepoPath(forge, owner, repo, REPO_SKILLS_PATH, sessionRow.branch)
@@ -38,7 +38,7 @@ export async function resolveSkillsForSessionRow(
   const resolved = await resolveActiveSkills(forge, {
     activeSkills: active,
     forgeUsername,
-    projectRepoPath: sessionRow.forgejoRepoPath,
+    projectRepoPath: sessionRow.repoPath,
     ref: sessionRow.branch,
   });
 

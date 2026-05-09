@@ -40,7 +40,7 @@ export default async function RepoSessionsPage({
     .where(
       and(
         eq(sessions.userId, String(userSession.userId)),
-        eq(sessions.forgejoRepoPath, repoPath),
+        eq(sessions.repoPath, repoPath),
       ),
     )
     .orderBy(desc(sessions.createdAt));
@@ -99,7 +99,7 @@ export default async function RepoSessionsPage({
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-500">
                       <span className="truncate font-mono text-[11px] text-zinc-500">
-                        {s.forgejoRepoPath}
+                        {s.repoPath}
                         <span className="text-zinc-600"> · </span>
                         {s.branch}
                       </span>

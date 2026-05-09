@@ -23,7 +23,7 @@ async function createRepository(formData: FormData) {
     redirect("/repos/new?error=invalid_name");
   }
 
-  const forge = createForgeProvider(session.forgejoToken);
+  const forge = createForgeProvider(session.forgeToken, session.forgeType);
 
   let repoFullName: string;
   try {
