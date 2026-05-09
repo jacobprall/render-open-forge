@@ -117,141 +117,152 @@
 }
 
 /* ── Theme: Terminal ── */
+/* Dark black base. Green only in accents. */
 [data-theme="terminal"] {
   --of-font-body: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
   --of-font-heading: var(--of-font-body);
   --of-font-mono: var(--of-font-body);
   --of-letter-spacing: 0.05em;
 
-  --of-surface-0: #0a0a0a;
-  --of-surface-1: #0f1a0f;
-  --of-surface-2: #152015;
-  --of-surface-3: #1e2e1e;
+  --of-surface-0: #060606;
+  --of-surface-1: #0c0c0c;
+  --of-surface-2: #151515;
+  --of-surface-3: #1e1e1e;
 
-  --of-text-primary: #b8ffb8;
-  --of-text-secondary: #7acc7a;
-  --of-text-tertiary: #4d8a4d;
+  --of-text-primary: #e0e0e0;
+  --of-text-secondary: #909090;
+  --of-text-tertiary: #585858;
 
-  --of-stroke-subtle: #2a5c2a;
-  --of-stroke-default: #3d7a3d;
+  --of-stroke-subtle: #2a2a2a;
+  --of-stroke-default: #3a3a3a;
 
   --of-accent: #00ff41;
-  --of-accent-hover: #33ff66;
-  --of-accent-bg: #003d0f;
-  --of-accent-text: #7aff99;
+  --of-accent-hover: #00dd38;
+  --of-accent-bg: #00ff4112;
+  --of-accent-text: #00ff41;
 
   --of-secondary: #00cc33;
-  --of-secondary-hover: #33ff66;
-  --of-secondary-bg: #002a0a;
-  --of-secondary-text: #99ffb3;
+  --of-secondary-hover: #00b02c;
+  --of-secondary-bg: #00cc3310;
+  --of-secondary-text: #33ff66;
 
-  --of-tertiary: #99ffb3;
-  --of-tertiary-hover: #ccffdd;
-  --of-tertiary-bg: #003d0f1a;
-  --of-tertiary-text: #e6fff0;
+  --of-tertiary: #33ff66;
+  --of-tertiary-hover: #66ff88;
+  --of-tertiary-bg: #00ff410a;
+  --of-tertiary-text: #66ff88;
 }
 
 /* ── Theme: Typewriter ── */
+/* Near-black with very subtle warmth. Gold accents. */
 [data-theme="typewriter"] {
   --of-font-body: Georgia, "Libre Baskerville", "Times New Roman", serif;
   --of-font-heading: var(--of-font-body);
   --of-letter-spacing: 0.01em;
   --of-border-width: 2px;
 
-  --of-surface-0: #1a1612;
-  --of-surface-1: #211d18;
-  --of-surface-2: #2a2520;
-  --of-surface-3: #363028;
+  --of-surface-0: #100f0d;
+  --of-surface-1: #171614;
+  --of-surface-2: #1f1d1a;
+  --of-surface-3: #282522;
 
-  --of-text-primary: #ede5d8;
-  --of-text-secondary: #b8a990;
-  --of-text-tertiary: #8a7d6c;
+  --of-text-primary: #e8e2da;
+  --of-text-secondary: #a09488;
+  --of-text-tertiary: #6b6058;
 
-  --of-stroke-subtle: #4a4237;
-  --of-stroke-default: #635847;
+  --of-stroke-subtle: #302c26;
+  --of-stroke-default: #443e36;
 
-  --of-accent: #d4a04a;
-  --of-accent-hover: #e0b36a;
-  --of-accent-bg: #3d2e10;
-  --of-accent-text: #f0d090;
+  --of-accent: #c89030;
+  --of-accent-hover: #b88028;
+  --of-accent-bg: #c890301a;
+  --of-accent-text: #e0b060;
 
-  --of-secondary: #c49040;
-  --of-secondary-hover: #d4a04a;
-  --of-secondary-bg: #2a1e08;
-  --of-secondary-text: #f0d8a0;
+  --of-secondary: #a87828;
+  --of-secondary-hover: #c89030;
+  --of-secondary-bg: #a8782812;
+  --of-secondary-text: #d0a050;
 
-  --of-tertiary: #f0d8a0;
-  --of-tertiary-hover: #f5e8c8;
-  --of-tertiary-bg: #3d2e101a;
-  --of-tertiary-text: #faf0e0;
+  --of-tertiary: #d0a050;
+  --of-tertiary-hover: #e0b060;
+  --of-tertiary-bg: #c890300a;
+  --of-tertiary-text: #e8c070;
 }
 
 /* ── Theme: Blueprint ── */
+/* Near-black with faint blue cast. Cyan accents. */
 [data-theme="blueprint"] {
   --of-font-body: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --of-font-heading: var(--of-font-body);
   --of-letter-spacing: 0;
 
-  --of-surface-0: #0a0e1a;
-  --of-surface-1: #0f1426;
-  --of-surface-2: #151c33;
-  --of-surface-3: #1e2844;
+  --of-surface-0: #08090e;
+  --of-surface-1: #0d0f16;
+  --of-surface-2: #13161f;
+  --of-surface-3: #1a1e2c;
 
-  --of-text-primary: #d8e8ff;
-  --of-text-secondary: #8aa8d4;
-  --of-text-tertiary: #5a7aaa;
+  --of-text-primary: #dce2f0;
+  --of-text-secondary: #8898b8;
+  --of-text-tertiary: #566888;
 
-  --of-stroke-subtle: #2a4070;
-  --of-stroke-default: #3a5590;
+  --of-stroke-subtle: #252d40;
+  --of-stroke-default: #344058;
 
-  --of-accent: #00bfff;
-  --of-accent-hover: #33ccff;
-  --of-accent-bg: #002e42;
-  --of-accent-text: #80dfff;
+  --of-accent: #00b8ff;
+  --of-accent-hover: #00a0e0;
+  --of-accent-bg: #00b8ff14;
+  --of-accent-text: #60d0ff;
 
-  --of-secondary: #0099cc;
-  --of-secondary-hover: #00bfff;
-  --of-secondary-bg: #00202e;
-  --of-secondary-text: #b3e8ff;
+  --of-secondary: #0090cc;
+  --of-secondary-hover: #00b8ff;
+  --of-secondary-bg: #00b8ff10;
+  --of-secondary-text: #80daff;
 
-  --of-tertiary: #b3e8ff;
-  --of-tertiary-hover: #d9f3ff;
-  --of-tertiary-bg: #002e421a;
-  --of-tertiary-text: #e6f5ff;
+  --of-tertiary: #80daff;
+  --of-tertiary-hover: #a0e4ff;
+  --of-tertiary-bg: #00b8ff0a;
+  --of-tertiary-text: #a0e4ff;
 }
 
 /* ── Theme: Warm Analog ── */
+/* Light warm cream. Dark text. Burnt orange accents. */
 [data-theme="warm-analog"] {
+  color-scheme: light;
+
   --of-font-body: ui-sans-serif, system-ui, sans-serif;
   --of-font-heading: var(--of-font-body);
   --of-letter-spacing: 0;
 
-  --of-surface-0: #141010;
-  --of-surface-1: #1c1614;
-  --of-surface-2: #261e1a;
-  --of-surface-3: #332824;
+  --of-surface-0: #f6f2ec;
+  --of-surface-1: #eee8e0;
+  --of-surface-2: #e2dbd0;
+  --of-surface-3: #d6cec2;
 
-  --of-text-primary: #f0e0d0;
-  --of-text-secondary: #c0a890;
-  --of-text-tertiary: #907868;
+  --of-text-primary: #1c1610;
+  --of-text-secondary: #5a5044;
+  --of-text-tertiary: #8a8074;
 
-  --of-stroke-subtle: #4a3a30;
-  --of-stroke-default: #6b5545;
+  --of-stroke-subtle: #ccc4b8;
+  --of-stroke-default: #b8b0a4;
 
-  --of-accent: #e06020;
-  --of-accent-hover: #f07838;
-  --of-accent-bg: #3d1808;
-  --of-accent-text: #ffa060;
+  --of-accent: #c85020;
+  --of-accent-hover: #b04418;
+  --of-accent-bg: #c8502018;
+  --of-accent-text: #a03810;
 
-  --of-secondary: #d05018;
-  --of-secondary-hover: #e06020;
-  --of-secondary-bg: #2a1005;
-  --of-secondary-text: #ffb880;
+  --of-secondary: #a84418;
+  --of-secondary-hover: #c85020;
+  --of-secondary-bg: #a8441812;
+  --of-secondary-text: #903810;
 
-  --of-tertiary: #ffb880;
-  --of-tertiary-hover: #ffd0a8;
-  --of-tertiary-bg: #3d18081a;
-  --of-tertiary-text: #ffe8d0;
+  --of-tertiary: #903810;
+  --of-tertiary-hover: #a84418;
+  --of-tertiary-bg: #c850200a;
+  --of-tertiary-text: #782c08;
+
+  --of-success: #2a7a50;
+  --of-warning: #a07020;
+  --of-danger: #c03030;
+  --of-info: #2870a0;
 }
 
 html {

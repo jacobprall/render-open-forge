@@ -19,26 +19,26 @@ export const THEME_PRESETS: {
   {
     id: "terminal",
     label: "Terminal",
-    description: "Phosphor green, monospaced",
-    swatch: { bg: "#0a0a0a", fg: "#b8ffb8", accent: "#00ff41" },
+    description: "Black, monospaced, cyber green",
+    swatch: { bg: "#060606", fg: "#e0e0e0", accent: "#00ff41" },
   },
   {
     id: "typewriter",
     label: "Typewriter",
-    description: "Warm sepia, serif type",
-    swatch: { bg: "#1a1612", fg: "#ede5d8", accent: "#d4a04a" },
+    description: "Dark, serif type, warm gold",
+    swatch: { bg: "#100f0d", fg: "#e8e2da", accent: "#c89030" },
   },
   {
     id: "blueprint",
     label: "Blueprint",
-    description: "Deep navy, cyan lines",
-    swatch: { bg: "#0a0e1a", fg: "#d8e8ff", accent: "#00bfff" },
+    description: "Dark navy, cyan accents",
+    swatch: { bg: "#08090e", fg: "#dce2f0", accent: "#00b8ff" },
   },
   {
     id: "warm-analog",
     label: "Analog",
-    description: "Dark clay, burnt orange",
-    swatch: { bg: "#141010", fg: "#f0e0d0", accent: "#e06020" },
+    description: "Warm cream, burnt orange",
+    swatch: { bg: "#f6f2ec", fg: "#1c1610", accent: "#c85020" },
   },
 ];
 
