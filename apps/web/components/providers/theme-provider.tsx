@@ -25,14 +25,14 @@ export const THEME_PRESETS: {
   {
     id: "typewriter",
     label: "Typewriter",
-    description: "Dark, serif type, warm gold",
-    swatch: { bg: "#100f0d", fg: "#e8e2da", accent: "#c89030" },
+    description: "Warm paper, monospaced, gold ink",
+    swatch: { bg: "#faf8f4", fg: "#1c1810", accent: "#a07020" },
   },
   {
     id: "blueprint",
     label: "Blueprint",
-    description: "Dark navy, cyan accents",
-    swatch: { bg: "#08090e", fg: "#dce2f0", accent: "#00b8ff" },
+    description: "Blueprint paper, white lines, cyan",
+    swatch: { bg: "#1a3050", fg: "#e8f0ff", accent: "#40d0ff" },
   },
   {
     id: "warm-analog",

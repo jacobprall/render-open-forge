@@ -139,7 +139,7 @@ export class ForgejoWebhookHandler {
         sessionWantsAutoMerge(s.projectConfig) &&
         process.env.FORGEJO_AGENT_TOKEN
       ) {
-        const parts = parseRepoPath(s.repoPath);
+        const parts = s.repoPath ? parseRepoPath(s.repoPath) : null;
         if (parts) {
           try {
             await forge.pulls.merge(parts.owner, parts.repo, s.prNumber, "merge");

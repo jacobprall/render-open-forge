@@ -29,6 +29,7 @@ import {
   resolveCommentTool,
   submitSpecTool,
   type SubmitSpecInput,
+  attachRepoTool,
   renderListServicesTool,
   renderDeployTool,
   renderGetDeployStatusTool,
@@ -51,7 +52,7 @@ import { applyTrustTiers } from "./trust-tiers";
 
 // ─── Tool registry ───────────────────────────────────────────────────────────
 
-export function buildSubagentToolSet(db?: PlatformDb): ToolSet {
+function coreTools(): ToolSet {
   return {
     bash: bashTool(),
     read_file: readFileTool(),
@@ -59,9 +60,14 @@ export function buildSubagentToolSet(db?: PlatformDb): ToolSet {
     edit: editFileTool(),
     glob: globTool(),
     grep: grepTool(),
+    web_fetch: webFetchTool(),
+  };
+}
+
+function repoTools(db?: PlatformDb): ToolSet {
+  return {
     git: gitTool(),
     create_pull_request: createPullRequestTool(),
-    web_fetch: webFetchTool(),
     ...(process.env.RENDER_API_KEY
       ? {
           render_list_services: renderListServicesTool(),
@@ -84,6 +90,12 @@ export function buildSubagentToolSet(db?: PlatformDb): ToolSet {
   };
 }
 
+export function buildSubagentToolSet(db?: PlatformDb, hasRepo = true): ToolSet {
+  return hasRepo
+    ? { ...coreTools(), ...repoTools(db) }
+    : coreTools();
+}
+
 export function buildToolSet(
   events: EventBus,
   redis: Redis,
@@ -91,9 +103,10 @@ export function buildToolSet(
   job: AgentJob,
   model: LanguageModel,
   skillsPromptSuffix: string,
+  hasRepo = true,
 ): ToolSet {
   const reqId = job.requestId;
-  const makeSubTools = () => buildSubagentToolSet(db);
+  const makeSubTools = () => buildSubagentToolSet(db, hasRepo);
   const publishFn = async (event: Record<string, unknown>) => {
     await publishEvent(events, job.runId, event as unknown as StreamEvent, reqId);
   };
@@ -103,7 +116,8 @@ export function buildToolSet(
     () => redis.duplicate(),
     publishFn,
   );
-  return {
+
+  const tools: ToolSet = {
     ...baseTools,
     task: taskTool(
       publishFn,
@@ -113,25 +127,34 @@ export function buildToolSet(
     ),
     todo_write: todoWriteTool(),
     ask_user_question: askUserQuestionTool(job.runId, () => redis.duplicate(), publishFn),
-    merge_pr: mergePrTool(),
-    close_pr: closePrTool(),
-    add_pr_comment: addPrCommentTool(),
-    request_review: requestReviewTool(),
-    approve_pr: approvePrTool(),
-    create_repo: createRepoTool(),
-    read_build_log: readBuildLogTool(),
-    pull_request_diff: pullRequestDiffTool(),
-    review_pr: reviewPrTool(),
-    resolve_comment: resolveCommentTool(),
-    submit_spec: submitSpecTool(
+  };
+
+  if (!hasRepo) {
+    tools.attach_repo = attachRepoTool(db, job.sessionId);
+  }
+
+  if (hasRepo) {
+    tools.merge_pr = mergePrTool();
+    tools.close_pr = closePrTool();
+    tools.add_pr_comment = addPrCommentTool();
+    tools.request_review = requestReviewTool();
+    tools.approve_pr = approvePrTool();
+    tools.create_repo = createRepoTool();
+    tools.read_build_log = readBuildLogTool();
+    tools.pull_request_diff = pullRequestDiffTool();
+    tools.review_pr = reviewPrTool();
+    tools.resolve_comment = resolveCommentTool();
+    tools.submit_spec = submitSpecTool(
       async (event) => {
         await publishEvent(events, job.runId, event, reqId);
       },
       async (spec) => {
         await persistSubmittedSpec(db, job.sessionId, spec);
       },
-    ),
-  };
+    );
+  }
+
+  return tools;
 }
 
 async function persistSubmittedSpec(db: PlatformDb, sessionId: string, spec: SubmitSpecInput): Promise<void> {

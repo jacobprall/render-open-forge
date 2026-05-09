@@ -46,14 +46,19 @@ export type { AgentTrigger } from "./session-agent-jobs";
 // ---------------------------------------------------------------------------
 
 export interface CreateSessionParams {
-  repoPath: string;
-  branch: string;
+  repoPath?: string;
+  branch?: string;
   baseBranch?: string;
   title?: string;
   forgeType?: "forgejo" | "github" | "gitlab";
   activeSkills?: Array<{ source: "builtin" | "user" | "repo"; slug: string }>;
   firstMessage?: string;
   modelId?: string;
+}
+
+export interface AttachRepoParams {
+  repoPath: string;
+  branch?: string;
 }
 
 export interface SendMessageParams {
@@ -112,7 +117,8 @@ export class SessionService {
 
   async create(auth: AuthContext, params: CreateSessionParams): Promise<{ sessionId: string }> {
     const { repoPath, branch, activeSkills, forgeType, baseBranch } = params;
-    const title = (params.title && String(params.title).trim()) || "New session";
+    const isScratch = !repoPath;
+    const title = (params.title && String(params.title).trim()) || (isScratch ? "Scratch session" : "New session");
 
     const sessionId = crypto.randomUUID();
     const chatId = crypto.randomUUID();
@@ -124,20 +130,27 @@ export class SessionService {
       .limit(1);
     const preferredModel = prefsRow?.data?.defaultModelId ?? undefined;
 
-    // Auto-detect baseBranch: use explicit value, fall back to repo default, then "main"
-    let resolvedBaseBranch = baseBranch || "main";
-    if (!baseBranch) {
-      try {
-        const forge = getForgeProviderForAuth(auth);
-        const slashIdx = repoPath.indexOf("/");
-        const owner = slashIdx > 0 ? repoPath.slice(0, slashIdx) : "";
-        const name = slashIdx > 0 ? repoPath.slice(slashIdx + 1) : "";
-        if (owner && name) {
-          const repo = await forge.repos.get(owner, name);
-          resolvedBaseBranch = repo.defaultBranch || "main";
+    let resolvedBaseBranch: string | null = null;
+    let resolvedBranch: string | null = null;
+    let resolvedForgeType: "forgejo" | "github" | "gitlab" | null = null;
+
+    if (!isScratch) {
+      resolvedBranch = branch || "main";
+      resolvedForgeType = forgeType ?? auth.forgeType ?? "github";
+      resolvedBaseBranch = baseBranch || "main";
+      if (!baseBranch) {
+        try {
+          const forge = getForgeProviderForAuth(auth);
+          const slashIdx = repoPath!.indexOf("/");
+          const owner = slashIdx > 0 ? repoPath!.slice(0, slashIdx) : "";
+          const name = slashIdx > 0 ? repoPath!.slice(slashIdx + 1) : "";
+          if (owner && name) {
+            const repo = await forge.repos.get(owner, name);
+            resolvedBaseBranch = repo.defaultBranch || "main";
+          }
+        } catch {
+          // Fall back to "main"
         }
-      } catch {
-        // Fall back to "main" -- forge may be unreachable or repos.get not implemented (e.g. GitLab)
       }
     }
 
@@ -147,9 +160,9 @@ export class SessionService {
       forgeUsername: auth.username,
       title,
       status: "running",
-      repoPath,
-      forgeType: forgeType ?? auth.forgeType ?? "github",
-      branch,
+      repoPath: repoPath ?? null,
+      forgeType: resolvedForgeType,
+      branch: resolvedBranch,
       baseBranch: resolvedBaseBranch,
       phase: "execute",
       workflowMode: "standard",
@@ -193,12 +206,18 @@ export class SessionService {
         .set({ activeRunId: runId, updatedAt: new Date() })
         .where(eq(chats.id, chatId));
 
-      const forge = getForgeProviderForAuth(auth);
-      const sessionRow = await this.db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1).then((r) => r[0]);
-
-      const resolvedSkills = sessionRow
-        ? await resolveSkillsForSession(sessionRow, forge, auth.username)
-        : [];
+      let resolvedSkills: import("@openforge/skills").ResolvedSkill[] = [];
+      if (!isScratch) {
+        try {
+          const forge = getForgeProviderForAuth(auth);
+          const sessionRow = await this.db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1).then((r) => r[0]);
+          if (sessionRow) {
+            resolvedSkills = await resolveSkillsForSession(sessionRow as Parameters<typeof resolveSkillsForSession>[0], forge, auth.username);
+          }
+        } catch {
+          // Skills resolution failed -- proceed without skills
+        }
+      }
 
       await this.queue.ensureGroup();
       await this.queue.enqueue({
@@ -240,6 +259,52 @@ export class SessionService {
       .update(sessions)
       .set({ status: "archived", updatedAt: new Date() })
       .where(and(eq(sessions.id, sessionId), eq(sessions.userId, auth.userId)));
+  }
+
+  // -------------------------------------------------------------------------
+  // attachRepo — bind a repo to a scratch session
+  // -------------------------------------------------------------------------
+
+  async attachRepo(
+    auth: AuthContext,
+    sessionId: string,
+    params: AttachRepoParams,
+  ): Promise<void> {
+    const [row] = await this.db
+      .select({ id: sessions.id, repoPath: sessions.repoPath })
+      .from(sessions)
+      .where(and(eq(sessions.id, sessionId), eq(sessions.userId, auth.userId)))
+      .limit(1);
+
+    if (!row) throw new SessionNotFoundError();
+
+    const { repoPath, branch } = params;
+    const forgeType = auth.forgeType ?? "github";
+
+    let resolvedBaseBranch = "main";
+    try {
+      const forge = getForgeProviderForAuth(auth);
+      const slashIdx = repoPath.indexOf("/");
+      const owner = slashIdx > 0 ? repoPath.slice(0, slashIdx) : "";
+      const name = slashIdx > 0 ? repoPath.slice(slashIdx + 1) : "";
+      if (owner && name) {
+        const repo = await forge.repos.get(owner, name);
+        resolvedBaseBranch = repo.defaultBranch || "main";
+      }
+    } catch {
+      // Fall back to "main"
+    }
+
+    await this.db
+      .update(sessions)
+      .set({
+        repoPath,
+        forgeType,
+        branch: branch || resolvedBaseBranch,
+        baseBranch: resolvedBaseBranch,
+        updatedAt: new Date(),
+      })
+      .where(eq(sessions.id, sessionId));
   }
 
   // -------------------------------------------------------------------------
@@ -377,12 +442,19 @@ export class SessionService {
       content: m.parts,
     }));
 
-    const forge = getForgeProviderForAuth(auth);
-    const resolvedSkills = await resolveSkillsForSession(
-      sessionRow,
-      forge,
-      sessionRow.forgeUsername ?? auth.username,
-    );
+    let resolvedSkills: import("@openforge/skills").ResolvedSkill[] = [];
+    if (sessionRow.repoPath) {
+      try {
+        const forge = getForgeProviderForAuth(auth);
+        resolvedSkills = await resolveSkillsForSession(
+          sessionRow as Parameters<typeof resolveSkillsForSession>[0],
+          forge,
+          sessionRow.forgeUsername ?? auth.username,
+        );
+      } catch {
+        // Skills resolution failed -- proceed without
+      }
+    }
 
     await this.queue.ensureGroup();
     await this.queue.enqueue({
@@ -861,7 +933,7 @@ export class SessionService {
       id: crypto.randomUUID(),
       userId: latestSession.userId,
       sessionId,
-      repoPath: latestSession.repoPath,
+      repoPath: latestSession.repoPath ?? "",
       prNumber: latestSession.prNumber ?? 0,
       action: "ci_failed",
       title,
@@ -919,7 +991,7 @@ export class SessionService {
       id: crypto.randomUUID(),
       userId: auth.userId,
       sessionId,
-      repoPath: sessionRow.repoPath,
+      repoPath: sessionRow.repoPath ?? "",
       prNumber: sessionRow.prNumber,
       action: "review_requested",
       title: sessionRow.title,

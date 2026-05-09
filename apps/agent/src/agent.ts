@@ -67,22 +67,34 @@ function buildProviderOptions(job: AgentJob, llmKeys: ResolvedLlmKeys) {
       };
 }
 
-function buildSystemPromptForJob(job: AgentJob, forgeType?: string): string {
+function buildSystemPromptForJob(job: AgentJob, forgeType?: string, isScratch = false): string {
   const appended = [job.fixContext].filter(Boolean).join("\n\n");
   const base = buildAgentSystemPrompt({
     skills: job.resolvedSkills,
     projectContext: job.projectContext,
     projectConfig: job.projectConfig,
     forgeLabel: FORGE_LABELS[forgeType ?? "github"],
+    isScratch,
   });
   return appended ? `${base}\n\n${appended}` : base;
 }
 
 function buildWorkspaceContext(
-  sessionRow: { repoPath: string; branch: string; baseBranch: string } | undefined,
+  sessionRow: { repoPath: string | null; branch: string | null; baseBranch: string | null; userId?: string } | undefined,
   ctx: ForgeAgentContext,
 ): string | null {
-  if (!sessionRow?.repoPath) return null;
+  if (!sessionRow) return null;
+
+  if (!sessionRow.repoPath) {
+    const scratchDir = `/workspace/scratch/${sessionRow.userId ?? ctx.sessionId}`;
+    return [
+      "# Workspace",
+      "",
+      "- **Mode:** Scratch workbench (no repository attached)",
+      `- **Working directory:** \`${scratchDir}\` — a persistent personal workspace. You can create files, run commands, and prototype freely here.`,
+      "- To connect this work to a repository later, the user can select one and you can use git init, push, etc.",
+    ].join("\n");
+  }
 
   const workdir = `/workspace/${ctx.sessionId}`;
 
@@ -138,13 +150,22 @@ async function buildLiveStateBlock(redis: Redis): Promise<string | null> {
 
 // ─── Forge context construction ──────────────────────────────────────────────
 
+interface SessionRowContext {
+  repoPath: string | null;
+  branch: string | null;
+  baseBranch: string | null;
+  title: string;
+  forgeType: string | null;
+  userId: string;
+}
+
 async function buildForgeContext(params: {
   job: AgentJob;
   db: PlatformDb;
   events: EventBus;
   adapter: SandboxAdapter;
   assistantParts: AssistantPart[];
-}): Promise<{ forgeContext: ForgeAgentContext; sessionRow: { repoPath: string; branch: string; baseBranch: string; title: string; forgeType: string | null } | undefined }> {
+}): Promise<{ forgeContext: ForgeAgentContext; sessionRow: SessionRowContext | undefined }> {
   const { job, db, events, adapter, assistantParts } = params;
   const reqId = job.requestId;
 
@@ -161,14 +182,22 @@ async function buildForgeContext(params: {
     .where(eq(sessions.id, job.sessionId))
     .limit(1);
 
+  const isScratch = !sessionRow?.repoPath;
   const forgeType = sessionRow?.forgeType ?? "github";
-  const forge = forgeType === "forgejo"
-    ? getForgeProvider()
-    : await getForgeProviderForSession(db, { forgeType, userId: sessionRow?.userId ?? job.userId });
+
+  let forge;
+  try {
+    forge = forgeType === "forgejo"
+      ? getForgeProvider()
+      : await getForgeProviderForSession(db, { forgeType, userId: sessionRow?.userId ?? job.userId });
+  } catch {
+    forge = getForgeProvider();
+  }
+
   const repoPath = sessionRow?.repoPath ?? "";
   const [repoOwner, repoName] = repoPath.split("/");
 
-  const upstream = forgeType === "forgejo"
+  const upstream = !isScratch && forgeType === "forgejo"
     ? await resolveUpstreamMirror(db, repoPath)
     : undefined;
   if (upstream) {
@@ -177,7 +206,7 @@ async function buildForgeContext(params: {
 
   const forgeContext: ForgeAgentContext = {
     __brand: "ForgeAgentContext",
-    sessionId: job.sessionId,
+    sessionId: isScratch ? `scratch/${job.userId}` : job.sessionId,
     adapter,
     forge,
     repoOwner: repoOwner ?? "",
@@ -191,6 +220,7 @@ async function buildForgeContext(params: {
       assistantParts.push({ type: "file_changed", ...p });
     },
     onPrCreated: async ({ prNumber }) => {
+      if (isScratch) return;
       await db
         .update(sessions)
         .set({ prNumber, prStatus: "open", updatedAt: new Date() })
@@ -244,21 +274,24 @@ async function runTurn(params: {
 
   const { forgeContext, sessionRow } = await buildForgeContext({ job, db, events, adapter, assistantParts });
 
+  const isScratch = !sessionRow?.repoPath;
   const sessionForgeType = sessionRow?.forgeType ?? "github";
-  const basePrompt = buildSystemPromptForJob(job, sessionForgeType);
+  const basePrompt = isScratch
+    ? buildSystemPromptForJob(job, sessionForgeType, true)
+    : buildSystemPromptForJob(job, sessionForgeType);
   const workspaceBlock = buildWorkspaceContext(sessionRow, forgeContext);
   let systemPrompt = workspaceBlock ? `${basePrompt}\n\n${workspaceBlock}` : basePrompt;
 
-  const liveState = await buildLiveStateBlock(redis);
+  const liveState = isScratch ? null : await buildLiveStateBlock(redis);
   if (liveState) {
     systemPrompt = `${systemPrompt}\n\n${liveState}`;
   }
 
-  const skillsSuffix = job.resolvedSkills.length > 0
+  const skillsSuffix = !isScratch && job.resolvedSkills.length > 0
     ? `## Important notes\n- All git operations target the forge. Authentication is automatic.\n- When creating a PR, push your branch first with the git tool, then use create_pull_request.\n- The repository is already cloned in your workspace. Use glob/grep to explore it.`
     : "";
 
-  const tools = buildToolSet(events, redis, db, job, model, skillsSuffix);
+  const tools = buildToolSet(events, redis, db, job, model, skillsSuffix, !isScratch);
   const inputMessages = buildModelMessages(job);
 
   console.log(
@@ -322,9 +355,18 @@ async function runTurn(params: {
 
 // ─── Repo cloning ────────────────────────────────────────────────────────────
 
+async function ensureScratchWorkspace(adapter: SandboxAdapter, userId: string): Promise<void> {
+  const scratchId = `scratch/${userId}`;
+  await adapter.exec(scratchId, "mkdir -p .").catch(() => {});
+  console.log(`[scratch] ensured workspace for user ${userId}`);
+}
+
 async function ensureRepoCloned(db: PlatformDb, job: AgentJob, adapter: SandboxAdapter): Promise<void> {
   const [session] = await db.select().from(sessions).where(eq(sessions.id, job.sessionId)).limit(1);
-  if (!session?.repoPath) return;
+  if (!session?.repoPath) {
+    await ensureScratchWorkspace(adapter, job.userId);
+    return;
+  }
 
   const globResult = await adapter.glob(job.sessionId, "*").catch(() => ({ files: [] as string[] }));
   if (globResult.files.length > 0) return;

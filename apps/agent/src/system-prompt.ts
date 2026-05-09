@@ -7,12 +7,17 @@ interface SystemPromptOpts {
   projectContext?: string | null;
   projectConfig?: unknown;
   forgeLabel?: string;
+  isScratch?: boolean;
 }
 
 // ─── Base Prompt Sections ────────────────────────────────────────────────────
 
 function identityBlock(forgeLabel: string): string {
   return `You are an AI software engineer in OpenForge — an open-source coding agent that deploys to Render. You have a dedicated workspace with the repository already cloned into your current working directory. All tools operate in this directory automatically. The forge is ${forgeLabel}. Your goal is to help users build, test, and ship software end-to-end: from code changes to deployed preview environments.`;
+}
+
+function scratchIdentityBlock(): string {
+  return `You are an AI software engineer in OpenForge — an open-source coding agent. You are working in a personal scratch workspace — a persistent workbench where you can create files, run commands, prototype, and explore ideas freely. No repository is attached yet. Your goal is to help the user brainstorm, prototype, and build. When they're ready to commit work to a real repository, they can attach one and you'll gain full git/PR/deploy capabilities.`;
 }
 
 export const FORGE_LABELS: Record<string, string> = {
@@ -135,6 +140,33 @@ const OPERATIONAL_NOTES = `# Operational notes
 - Git push/pull commands must use the git tool, not bash (the git tool handles auth injection).
 - When reporting completion, be accurate and specific.`;
 
+const SCRATCH_TOOLS = `# Tools
+
+Available in scratch mode:
+- bash: Execute shell commands (builds, tests, system operations)
+- read_file / write_file / edit: File operations
+- glob / grep: Search and find files by pattern or content
+- web_fetch: HTTP requests to external URLs
+- task: Delegate subtasks to a focused subagent
+- todo_write: Track work with a structured task list
+- ask_user_question: Ask the user for clarification
+- attach_repo: Bind a repository to this session. After attaching, the repo is cloned on your next turn and you gain full git/PR/deploy capabilities.
+
+Not available until a repository is attached: git, create_pull_request, all forge/PR tools, all Render deploy tools.
+
+Guidance:
+- This is a scratch workbench. Create files, install packages, scaffold projects, write code, run tests — whatever helps.
+- Use todo_write for complex multi-step work to track your progress.
+- Use task for independent subtasks that don't need to pollute the main context.
+- When the user wants to push code to a repository, use attach_repo to bind one to this session.`;
+
+const SCRATCH_OPERATIONAL_NOTES = `# Operational notes
+
+- You are in a persistent scratch workspace. Files you create persist across sessions.
+- **CRITICAL: \`cd\` does not persist between commands.** Each bash command starts in the scratch workspace. Use relative paths.
+- Git, PR, and deploy tools are not available. If the user asks to push code, commit, or deploy, let them know they need to attach a repository first.
+- When reporting completion, be accurate and specific.`;
+
 // ─── Assembly ────────────────────────────────────────────────────────────────
 
 export function buildAgentSystemPrompt(opts: SystemPromptOpts): string {
@@ -142,14 +174,22 @@ export function buildAgentSystemPrompt(opts: SystemPromptOpts): string {
 
   const forgeLabel = opts.forgeLabel ?? FORGE_LABELS.github;
 
-  // Static base (cacheable across calls within a session)
-  parts.push(identityBlock(forgeLabel));
-  parts.push(INTERACTION_STYLE);
-  parts.push(SESSION_LIFECYCLE);
-  parts.push(CODE_QUALITY);
-  parts.push(ACTIONS_WITH_CARE);
-  parts.push(TOOLS_AND_PATTERNS);
-  parts.push(OPERATIONAL_NOTES);
+  if (opts.isScratch) {
+    parts.push(scratchIdentityBlock());
+    parts.push(INTERACTION_STYLE);
+    parts.push(CODE_QUALITY);
+    parts.push(ACTIONS_WITH_CARE);
+    parts.push(SCRATCH_TOOLS);
+    parts.push(SCRATCH_OPERATIONAL_NOTES);
+  } else {
+    parts.push(identityBlock(forgeLabel));
+    parts.push(INTERACTION_STYLE);
+    parts.push(SESSION_LIFECYCLE);
+    parts.push(CODE_QUALITY);
+    parts.push(ACTIONS_WITH_CARE);
+    parts.push(TOOLS_AND_PATTERNS);
+    parts.push(OPERATIONAL_NOTES);
+  }
 
   // Opt-in skills (dynamic per session)
   const skillBlocks = opts.skills.map((s) => s.content).filter(Boolean);

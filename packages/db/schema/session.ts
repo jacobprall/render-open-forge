@@ -39,13 +39,13 @@ export const sessions = pgTable(
       .notNull()
       .default("running"),
 
-    // Repo binding (forge-agnostic)
-    repoPath: text("repo_path").notNull(),
+    // Repo binding (forge-agnostic) — nullable for scratch/workbench sessions
+    repoPath: text("repo_path"),
     forgeType: text("forge_type", {
       enum: ["forgejo", "github", "gitlab"],
-    }).notNull().default("forgejo"),
-    branch: text("branch").notNull(),
-    baseBranch: text("base_branch").notNull().default("main"),
+    }),
+    branch: text("branch"),
+    baseBranch: text("base_branch").default("main"),
 
     // PR state
     prNumber: integer("pr_number"),

@@ -19,26 +19,30 @@ export function NewSessionInput({ defaultModelId, onSessionCreated }: NewSession
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const canSubmit = message.trim() && repoBranch && !loading;
+  const canSubmit = message.trim() && !loading;
 
   const handleSubmit = useCallback(
     async (e?: React.FormEvent) => {
       e?.preventDefault();
-      if (!canSubmit || !repoBranch) return;
+      if (!canSubmit) return;
 
       setLoading(true);
       setError(null);
 
       try {
+        const body: Record<string, string> = {
+          firstMessage: message.trim(),
+          modelId,
+        };
+        if (repoBranch) {
+          body.repoPath = repoBranch.repo;
+          body.baseBranch = repoBranch.branch;
+        }
+
         const res = await fetch("/api/sessions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            repoPath: repoBranch.repo,
-            baseBranch: repoBranch.branch,
-            firstMessage: message.trim(),
-            modelId,
-          }),
+          body: JSON.stringify(body),
         });
 
         if (!res.ok) {

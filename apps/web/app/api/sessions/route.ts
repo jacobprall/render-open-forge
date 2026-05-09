@@ -10,7 +10,7 @@ const activeSkillRefSchema = z.object({
 });
 
 const createSessionBodySchema = z.object({
-  repoPath: z.string().min(1),
+  repoPath: z.string().min(1).optional(),
   branch: z.string().min(1).optional(),
   baseBranch: z.string().min(1).optional(),
   title: z.string().max(200).optional(),
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const data = parsed.data;
-    const branch = data.branch || data.baseBranch || "main";
+    const branch = data.repoPath ? (data.branch || data.baseBranch || "main") : undefined;
     const result = await getPlatform().sessions.create(auth, {
       ...data,
       branch,

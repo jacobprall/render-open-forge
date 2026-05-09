@@ -28,18 +28,19 @@ export async function resolveSkillsForSessionRow(
     await ensureUserSkillsRepo(forge, forgeUsername);
   }
 
-  const [owner, repo] = sessionRow.repoPath.split("/");
+  const [owner, repo] = (sessionRow.repoPath ?? "").split("/");
+  const branch = sessionRow.branch ?? "main";
   const repoSlugs =
     owner && repo
-      ? await listMdSlugsInRepoPath(forge, owner, repo, REPO_SKILLS_PATH, sessionRow.branch)
+      ? await listMdSlugsInRepoPath(forge, owner, repo, REPO_SKILLS_PATH, branch)
       : [];
 
   const active = normalizeActiveSkills(sessionRow.activeSkills, repoSlugs);
   const resolved = await resolveActiveSkills(forge, {
     activeSkills: active,
     forgeUsername,
-    projectRepoPath: sessionRow.repoPath,
-    ref: sessionRow.branch,
+    projectRepoPath: sessionRow.repoPath ?? "",
+    ref: branch,
   });
 
   if (resolved.length === 0) {

@@ -159,79 +159,90 @@
 }
 
 /* ── Theme: Typewriter ── */
-/* Near-black with very subtle warmth. Gold accents. Serif headings, clean body. */
+/* Warm paper. Monospaced body like a typed manuscript. Serif headings. Gold ink accents. */
 [data-theme="typewriter"] {
-  --of-font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+
+  --of-font-body: var(--font-ibm-plex-mono), var(--font-jetbrains), ui-monospace, monospace;
+  --of-font-mono: var(--of-font-body);
   --of-font-heading: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
-  --of-letter-spacing: 0;
+  --of-font-size-base: 14px;
+  --of-letter-spacing: 0.01em;
   --of-heading-weight: 400;
   --of-heading-tracking: -0.01em;
   --of-border-width: 2px;
 
-  --of-surface-0: #100f0d;
-  --of-surface-1: #171614;
-  --of-surface-2: #1f1d1a;
-  --of-surface-3: #282522;
+  --of-surface-0: #faf8f4;
+  --of-surface-1: #f2efe8;
+  --of-surface-2: #e8e4db;
+  --of-surface-3: #ddd8cd;
 
-  --of-text-primary: #e8e2da;
-  --of-text-secondary: #a09488;
-  --of-text-tertiary: #6b6058;
+  --of-text-primary: #1c1810;
+  --of-text-secondary: #5c5448;
+  --of-text-tertiary: #8a8074;
 
-  --of-stroke-subtle: #302c26;
-  --of-stroke-default: #443e36;
+  --of-stroke-subtle: #d4cec4;
+  --of-stroke-default: #bfb8ac;
 
-  --of-accent: #c89030;
-  --of-accent-hover: #b88028;
-  --of-accent-bg: #c890301a;
-  --of-accent-text: #e0b060;
+  --of-accent: #a07020;
+  --of-accent-hover: #8a6018;
+  --of-accent-bg: #a0702018;
+  --of-accent-text: #7a5410;
 
-  --of-secondary: #a87828;
-  --of-secondary-hover: #c89030;
-  --of-secondary-bg: #a8782812;
-  --of-secondary-text: #d0a050;
+  --of-secondary: #8a6018;
+  --of-secondary-hover: #a07020;
+  --of-secondary-bg: #a0702012;
+  --of-secondary-text: #6a4810;
 
-  --of-tertiary: #d0a050;
-  --of-tertiary-hover: #e0b060;
-  --of-tertiary-bg: #c890300a;
-  --of-tertiary-text: #e8c070;
+  --of-tertiary: #6a4810;
+  --of-tertiary-hover: #8a6018;
+  --of-tertiary-bg: #a070200a;
+  --of-tertiary-text: #503808;
+
+  --of-success: #2a7a50;
+  --of-warning: #a07020;
+  --of-danger: #c03030;
+  --of-info: #2870a0;
 }
 
 /* ── Theme: Blueprint ── */
-/* Near-black with faint blue cast. Cyan accents. Tight, technical type. */
+/* Rich blueprint-paper blue. White line-drawing text. Cyan accents. All-mono, stenciled feel. */
 [data-theme="blueprint"] {
-  --of-font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --of-font-body: var(--font-ibm-plex-mono), var(--font-jetbrains), ui-monospace, monospace;
   --of-font-heading: var(--of-font-body);
-  --of-font-size-base: 14px;
-  --of-letter-spacing: 0;
-  --of-heading-weight: 700;
-  --of-heading-tracking: -0.03em;
+  --of-font-mono: var(--of-font-body);
+  --of-font-size-base: 13px;
+  --of-letter-spacing: 0.03em;
+  --of-heading-weight: 500;
+  --of-heading-tracking: 0.02em;
+  --of-border-width: 2px;
 
-  --of-surface-0: #08090e;
-  --of-surface-1: #0d0f16;
-  --of-surface-2: #13161f;
-  --of-surface-3: #1a1e2c;
+  --of-surface-0: #1a3050;
+  --of-surface-1: #243a58;
+  --of-surface-2: #2e4468;
+  --of-surface-3: #384e78;
 
-  --of-text-primary: #dce2f0;
-  --of-text-secondary: #8898b8;
-  --of-text-tertiary: #566888;
+  --of-text-primary: #e8f0ff;
+  --of-text-secondary: #a0b8d8;
+  --of-text-tertiary: #7090b8;
 
-  --of-stroke-subtle: #252d40;
-  --of-stroke-default: #344058;
+  --of-stroke-subtle: #4a6888;
+  --of-stroke-default: #5a7898;
 
-  --of-accent: #00b8ff;
-  --of-accent-hover: #00a0e0;
-  --of-accent-bg: #00b8ff14;
-  --of-accent-text: #60d0ff;
+  --of-accent: #40d0ff;
+  --of-accent-hover: #20c0f0;
+  --of-accent-bg: #40d0ff18;
+  --of-accent-text: #80e0ff;
 
-  --of-secondary: #0090cc;
-  --of-secondary-hover: #00b8ff;
-  --of-secondary-bg: #00b8ff10;
-  --of-secondary-text: #80daff;
+  --of-secondary: #20a8e0;
+  --of-secondary-hover: #40d0ff;
+  --of-secondary-bg: #40d0ff12;
+  --of-secondary-text: #60d0ff;
 
-  --of-tertiary: #80daff;
-  --of-tertiary-hover: #a0e4ff;
-  --of-tertiary-bg: #00b8ff0a;
-  --of-tertiary-text: #a0e4ff;
+  --of-tertiary: #60d0ff;
+  --of-tertiary-hover: #80e0ff;
+  --of-tertiary-bg: #40d0ff0a;
+  --of-tertiary-text: #a0e8ff;
 }
 
 /* ── Theme: Warm Analog ── */

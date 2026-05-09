@@ -191,6 +191,7 @@ export class CIService {
 
     if (!session) return;
 
+    if (!session.repoPath) return;
     const [repoOwner, repoName] = session.repoPath.split("/");
     if (!repoOwner || !repoName) return;
 
@@ -508,8 +509,8 @@ export class CIService {
 
   private async resolveSkillsForSession(
     sessionRow: {
-      repoPath: string;
-      branch: string;
+      repoPath: string | null;
+      branch: string | null;
       activeSkills: Array<{ source: "builtin" | "user" | "repo"; slug: string }> | null | undefined;
     },
     forge: ForgeProvider,
@@ -519,18 +520,19 @@ export class CIService {
       await ensureUserSkillsRepo(forge, forgeUsername);
     }
 
-    const [owner, repo] = sessionRow.repoPath.split("/");
+    const [owner, repo] = (sessionRow.repoPath ?? "").split("/");
+    const branch = sessionRow.branch ?? "main";
     const repoSlugs =
       owner && repo
-        ? await listMdSlugsInRepoPath(forge, owner, repo, REPO_SKILLS_PATH, sessionRow.branch)
+        ? await listMdSlugsInRepoPath(forge, owner, repo, REPO_SKILLS_PATH, branch)
         : [];
 
     const active = normalizeActiveSkills(sessionRow.activeSkills, repoSlugs);
     const resolved = await resolveActiveSkills(forge, {
       activeSkills: active,
       forgeUsername,
-      projectRepoPath: sessionRow.repoPath,
-      ref: sessionRow.branch,
+      projectRepoPath: sessionRow.repoPath ?? "",
+      ref: branch,
     });
 
     if (resolved.length === 0) {

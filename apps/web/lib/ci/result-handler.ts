@@ -72,7 +72,9 @@ export async function handleCIResult(
 
   if (!session) return;
 
-  const [repoOwner, repoName] = session.repoPath.split("/");
+  const repoPath = session.repoPath;
+  if (!repoPath) return;
+  const [repoOwner, repoName] = repoPath.split("/");
   if (!repoOwner || !repoName) return;
 
   const commitSha =
@@ -105,7 +107,7 @@ export async function handleCIResult(
     }
 
     if (sha) {
-      const logsUrl = buildLogsUrl(session.repoPath, payload.ciEventId);
+      const logsUrl = buildLogsUrl(repoPath, payload.ciEventId);
 
       const state: "pending" | "success" | "failure" | "error" =
         payload.status === "success" ? "success" : payload.status === "error" ? "error" : "failure";

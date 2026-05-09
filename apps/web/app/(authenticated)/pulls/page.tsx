@@ -161,9 +161,9 @@ function PrRow({
   row: {
     id: string;
     title: string;
-    repoPath: string;
-    branch: string;
-    baseBranch: string;
+    repoPath: string | null;
+    branch: string | null;
+    baseBranch: string | null;
     prNumber: number | null;
     prStatus: string | null;
     status: string;
@@ -174,7 +174,7 @@ function PrRow({
   };
 }) {
   const prStatus = row.prStatus ?? "open";
-  const prUrl = `/${row.repoPath}/pulls/${row.prNumber}`;
+  const prUrl = `/${row.repoPath ?? ""}/pulls/${row.prNumber}`;
 
   return (
     <div className="flex items-center gap-4 border-b border-stroke-default px-5 py-4 last:border-b-0 transition hover:bg-surface-1/30">
@@ -189,8 +189,8 @@ function PrRow({
           <StatusBadge status={prStatus} className="shrink-0" />
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
-          <Link href={`/${row.repoPath}`} className="hover:text-text-primary transition">
-            {row.repoPath}
+          <Link href={`/${row.repoPath ?? ""}`} className="hover:text-text-primary transition">
+            {row.repoPath ?? "scratch"}
           </Link>
           <span>#{row.prNumber}</span>
           <span className="inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-text-secondary">
