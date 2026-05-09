@@ -322,4 +322,4 @@ The `docs/` directory has the detailed material:
 
 ## License
 
-Open source. See [LICENSE](./LICENSE) for details.
+Open source. License file to be added.
