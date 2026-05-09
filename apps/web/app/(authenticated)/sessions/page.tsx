@@ -5,8 +5,7 @@ import { getDb } from "@/lib/db";
 import { sessions } from "@openforge/db";
 import { eq, desc } from "drizzle-orm";
 import { getUserPreferences } from "@/lib/db/loaders";
-import { NewSessionInput } from "@/components/session/new-session-input";
-import { SessionsDrawer } from "./sessions-drawer";
+import { SessionsView } from "./sessions-view";
 
 export const metadata: Metadata = { title: "Sessions" };
 
@@ -36,31 +35,9 @@ export default async function SessionsPage() {
   const defaultModelId = prefsRow?.data?.defaultModelId ?? undefined;
 
   return (
-    <div className="absolute inset-0 flex">
-      {/* Chat window -- fills available space */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Message area -- empty on new session, scrollable */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center px-(--of-space-lg)">
-            <h1 className="mb-(--of-space-xs) text-[20px] text-text-primary">
-              What do you want to build?
-            </h1>
-            <p className="text-[14px] text-text-tertiary">
-              Pick a repo, describe your task, and start a session.
-            </p>
-          </div>
-        </div>
-
-        {/* Input bar -- pinned to bottom */}
-        <div className="shrink-0 border-t border-stroke-subtle px-(--of-space-lg) py-(--of-space-md)">
-          <div className="mx-auto max-w-2xl">
-            <NewSessionInput defaultModelId={defaultModelId ?? undefined} />
-          </div>
-        </div>
-      </div>
-
-      {/* Right drawer for recent sessions */}
-      <SessionsDrawer sessions={userSessions} />
-    </div>
+    <SessionsView
+      defaultModelId={defaultModelId}
+      sessions={userSessions}
+    />
   );
 }

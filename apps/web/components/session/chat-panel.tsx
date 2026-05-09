@@ -17,6 +17,8 @@ interface ChatPanelProps {
   initialMessages: Message[];
   modelId: string;
   onFileChanges?: (files: LiveFileChange[]) => void;
+  /** Start streaming immediately on mount (used after inline session creation) */
+  autoStream?: boolean;
 }
 
 export function ChatPanel({
@@ -25,13 +27,22 @@ export function ChatPanel({
   initialMessages,
   modelId,
   onFileChanges,
+  autoStream,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [error, setError] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const autoStreamFired = useRef(false);
 
   const stream = useChatStream({ sessionId, onFileChanges, setMessages, setError });
+
+  useEffect(() => {
+    if (autoStream && !autoStreamFired.current) {
+      autoStreamFired.current = true;
+      stream.startStreaming();
+    }
+  }, [autoStream, stream.startStreaming]);
   const { sendMessage, submitAskUserReply, stopStreaming } = useChatMessages({
     sessionId,
     modelId,

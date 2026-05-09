@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Send } from "lucide-react";
 import { RepoBranchPicker } from "./repo-branch-picker";
 import { ModelSelector } from "@/components/model-selector";
@@ -9,16 +8,16 @@ import { DEFAULT_MODEL_ID } from "@/lib/model-defaults";
 
 interface NewSessionInputProps {
   defaultModelId?: string;
+  onSessionCreated?: (session: { id: string; firstMessage: string; modelId: string }) => void;
 }
 
-export function NewSessionInput({ defaultModelId }: NewSessionInputProps) {
+export function NewSessionInput({ defaultModelId, onSessionCreated }: NewSessionInputProps) {
   const [message, setMessage] = useState("");
   const [repoBranch, setRepoBranch] = useState<{ repo: string; branch: string } | null>(null);
   const [modelId, setModelId] = useState(defaultModelId || DEFAULT_MODEL_ID);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const router = useRouter();
 
   const canSubmit = message.trim() && repoBranch && !loading;
 
@@ -48,13 +47,13 @@ export function NewSessionInput({ defaultModelId }: NewSessionInputProps) {
         }
 
         const data = await res.json();
-        router.push(`/sessions/${data.id}`);
+        onSessionCreated?.({ id: data.id, firstMessage: message.trim(), modelId });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
         setLoading(false);
       }
     },
-    [canSubmit, repoBranch, message, modelId, router],
+    [canSubmit, repoBranch, message, modelId, onSessionCreated],
   );
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -67,7 +66,6 @@ export function NewSessionInput({ defaultModelId }: NewSessionInputProps) {
   return (
     <form onSubmit={handleSubmit}>
       <div className="border border-stroke-default bg-surface-1 transition-colors duration-(--of-duration-instant) focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/25">
-        {/* Selectors -- above the textarea so dropdowns open downward naturally */}
         <div className="flex items-center gap-2 border-b border-stroke-subtle px-(--of-space-md) py-(--of-space-sm)">
           <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />
           <ModelSelector value={modelId} onChange={setModelId} compact />
