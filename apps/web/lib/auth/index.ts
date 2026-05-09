@@ -106,6 +106,7 @@ const githubProvider = GitHub({
   clientId: process.env.GITHUB_OAUTH_CLIENT_ID,
   clientSecret: process.env.GITHUB_OAUTH_CLIENT_SECRET,
   authorization: { params: { scope: "read:user user:email repo" } },
+  allowDangerousEmailAccountLinking: true,
 });
 
 const providers: NextAuthConfig["providers"] = [credentialsProvider];
