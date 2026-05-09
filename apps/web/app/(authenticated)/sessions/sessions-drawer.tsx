@@ -67,7 +67,7 @@ export function SessionsDrawer({ sessions, projectNames, projectFilter }: Sessio
               <PanelRightClose className="h-4 w-4" />
             </button>
             <h2 className="flex-1 text-[12px] font-semibold uppercase tracking-wider text-text-tertiary">
-              Recent sessions
+              Recent
             </h2>
             {projectIds.length > 1 && (
               <div className="relative">
