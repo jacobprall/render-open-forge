@@ -6,7 +6,7 @@ import { sessions } from "@openforge/db";
 import { eq, desc } from "drizzle-orm";
 import { getUserPreferences } from "@/lib/db/loaders";
 import { NewSessionInput } from "@/components/session/new-session-input";
-import { SessionCard } from "./session-card";
+import { SessionsDrawer } from "./sessions-drawer";
 
 export const metadata: Metadata = { title: "Sessions" };
 
@@ -41,37 +41,26 @@ export default async function SessionsPage() {
   const defaultModelId = prefsRow?.data?.defaultModelId ?? undefined;
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-      {/* Chat area -- takes most of the screen */}
-      <div className="flex min-h-0 flex-1 flex-col px-(--of-space-md) py-(--of-space-lg)">
-        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col">
-          <h1 className="mb-(--of-space-xs) text-[20px] font-semibold text-text-primary">
-            What do you want to build?
-          </h1>
-          <p className="mb-(--of-space-md) text-[14px] text-text-tertiary">
-            Pick a repo, describe your task, and start a session.
-          </p>
-          <div className="min-h-0 flex-1">
-            <NewSessionInput defaultModelId={defaultModelId ?? undefined} />
+    <div className="relative flex h-[calc(100vh-3.5rem)]">
+      {/* Chat -- fills available space */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col px-(--of-space-lg) py-(--of-space-lg)">
+          <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col">
+            <h1 className="mb-(--of-space-xs) text-[20px] font-semibold text-text-primary">
+              What do you want to build?
+            </h1>
+            <p className="mb-(--of-space-md) text-[14px] text-text-tertiary">
+              Pick a repo, describe your task, and start a session.
+            </p>
+            <div className="min-h-0 flex-1">
+              <NewSessionInput defaultModelId={defaultModelId ?? undefined} />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Recent sessions -- compact list at the bottom */}
-      {userSessions.length > 0 && (
-        <div className="shrink-0 border-t border-stroke-subtle bg-surface-0">
-          <div className="mx-auto max-w-2xl px-(--of-space-md) py-(--of-space-md)">
-            <h2 className="mb-(--of-space-sm) text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
-              Recent sessions
-            </h2>
-            <div className="flex flex-col gap-px max-h-[30vh] overflow-y-auto">
-              {userSessions.slice(0, 10).map((s) => (
-                <SessionCard key={s.id} session={s} />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Right drawer for recent sessions */}
+      <SessionsDrawer sessions={userSessions} />
     </div>
   );
 }

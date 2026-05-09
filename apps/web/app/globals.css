@@ -3,6 +3,7 @@
 @theme {
   --font-sans: var(--of-font-body);
   --font-mono: var(--of-font-mono);
+  --font-heading: var(--of-font-heading);
   --color-scheme: dark;
 
   /* Sharp edges everywhere */
@@ -66,11 +67,13 @@
   --of-space-2xl: 64px;
 
   /* ── Typography ── */
-  --of-font-body: ui-sans-serif, system-ui, sans-serif;
-  --of-font-mono: ui-monospace, monospace;
+  --of-font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --of-font-mono: var(--font-jetbrains), ui-monospace, monospace;
   --of-font-heading: var(--of-font-body);
   --of-font-size-base: 15px;
-  --of-letter-spacing: 0;
+  --of-letter-spacing: -0.01em;
+  --of-heading-weight: 600;
+  --of-heading-tracking: -0.02em;
 
   /* ── Borders ── */
   --of-border-width: 1px;
@@ -117,12 +120,15 @@
 }
 
 /* ── Theme: Terminal ── */
-/* Dark black base. Green only in accents. */
+/* Dark black base. Green only in accents. IBM Plex Mono throughout. */
 [data-theme="terminal"] {
-  --of-font-body: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+  --of-font-body: var(--font-ibm-plex-mono), var(--font-jetbrains), ui-monospace, monospace;
   --of-font-heading: var(--of-font-body);
   --of-font-mono: var(--of-font-body);
-  --of-letter-spacing: 0.05em;
+  --of-font-size-base: 14px;
+  --of-letter-spacing: 0.02em;
+  --of-heading-weight: 500;
+  --of-heading-tracking: 0;
 
   --of-surface-0: #060606;
   --of-surface-1: #0c0c0c;
@@ -153,11 +159,13 @@
 }
 
 /* ── Theme: Typewriter ── */
-/* Near-black with very subtle warmth. Gold accents. */
+/* Near-black with very subtle warmth. Gold accents. Serif headings, clean body. */
 [data-theme="typewriter"] {
-  --of-font-body: Georgia, "Libre Baskerville", "Times New Roman", serif;
-  --of-font-heading: var(--of-font-body);
-  --of-letter-spacing: 0.01em;
+  --of-font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --of-font-heading: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --of-letter-spacing: 0;
+  --of-heading-weight: 400;
+  --of-heading-tracking: -0.01em;
   --of-border-width: 2px;
 
   --of-surface-0: #100f0d;
@@ -189,11 +197,14 @@
 }
 
 /* ── Theme: Blueprint ── */
-/* Near-black with faint blue cast. Cyan accents. */
+/* Near-black with faint blue cast. Cyan accents. Tight, technical type. */
 [data-theme="blueprint"] {
-  --of-font-body: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --of-font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --of-font-heading: var(--of-font-body);
+  --of-font-size-base: 14px;
   --of-letter-spacing: 0;
+  --of-heading-weight: 700;
+  --of-heading-tracking: -0.03em;
 
   --of-surface-0: #08090e;
   --of-surface-1: #0d0f16;
@@ -224,13 +235,16 @@
 }
 
 /* ── Theme: Warm Analog ── */
-/* Light warm cream. Dark text. Burnt orange accents. */
+/* Light warm cream. Dark text. Burnt orange accents. Serif headings on clean body. */
 [data-theme="warm-analog"] {
   color-scheme: light;
 
-  --of-font-body: ui-sans-serif, system-ui, sans-serif;
-  --of-font-heading: var(--of-font-body);
+  --of-font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --of-font-heading: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --of-font-size-base: 15px;
   --of-letter-spacing: 0;
+  --of-heading-weight: 400;
+  --of-heading-tracking: -0.01em;
 
   --of-surface-0: #f6f2ec;
   --of-surface-1: #eee8e0;
@@ -269,6 +283,12 @@ html {
   color-scheme: dark;
   font-size: var(--of-font-size-base);
   letter-spacing: var(--of-letter-spacing);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--of-font-heading);
+  font-weight: var(--of-heading-weight);
+  letter-spacing: var(--of-heading-tracking);
 }
 
 @keyframes route-progress {
