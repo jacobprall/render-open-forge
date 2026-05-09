@@ -21,6 +21,7 @@ import { publishEvent, expireRunStream, mergeToolResults, persistAssistantMessag
 
 const MAX_STEPS = 50;
 const RUN_STATUS_TTL = 3600;
+const TURN_TIMEOUT_MS = 5 * 60 * 1000;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -56,13 +57,12 @@ function buildProviderOptions(job: AgentJob, llmKeys: ResolvedLlmKeys) {
   return thinkingType === "adaptive"
     ? {
         anthropic: {
-          thinking: { type: "adaptive" as const, budget_tokens: 16000 },
-          output_config: { effort: "high" as const },
+          thinking: { type: "adaptive" as const, budgetTokens: 16000 },
         },
       }
     : {
         anthropic: {
-          thinking: { type: "enabled" as const, budget_tokens: 8000 },
+          thinking: { type: "enabled" as const, budgetTokens: 8000 },
         },
       };
 }
@@ -337,7 +337,12 @@ async function runTurn(params: {
     `[agent] runId=${job.runId} skills=${job.resolvedSkills.map((s) => s.slug).join(",")} messages=${inputMessages.length}`,
   );
 
-  const result = await generateText({
+  const abortController = new AbortController();
+  const timeout = setTimeout(() => abortController.abort(), TURN_TIMEOUT_MS);
+
+  let result;
+  try {
+  result = await generateText({
     model,
     system: systemPrompt,
     messages: inputMessages,
@@ -345,6 +350,7 @@ async function runTurn(params: {
     stopWhen: stepCountIs(MAX_STEPS),
     experimental_context: forgeContext,
     providerOptions: thinkingOptions,
+    abortSignal: abortController.signal,
     onStepFinish: async ({ text, toolCalls, toolResults }) => {
       stepCount++;
       if (await isAborted(events, job.runId)) {
@@ -371,6 +377,9 @@ async function runTurn(params: {
       }
     },
   });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const hitStepLimit = stepCount >= MAX_STEPS;
 

@@ -118,9 +118,10 @@ async function processJob(redis: Redis, streamId: string, job: ValidatedAgentJob
     await runAgentTurn(job, redis, platform);
     await ackJob(redis, streamId);
   } catch (err) {
-    console.error(`Job ${job.runId} failed — leaving in PEL for reclaim/retry`, err);
-    // Do NOT ack: leave the entry in the Pending Entry List so
-    // reclaimStalePending() can re-enqueue it (up to maxRetries).
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const errStack = err instanceof Error ? err.stack : undefined;
+    console.error(`[worker] Job ${job.runId} failed (session=${job.sessionId} model=${job.modelId ?? "default"}):\n  ${errMsg}`);
+    if (errStack) console.error(errStack);
   }
 }
 

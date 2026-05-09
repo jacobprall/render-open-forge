@@ -15,6 +15,7 @@ export function MessageArea({
   liveFileChanges,
   askResolved,
   onAskUserResponse,
+  onViewFiles,
   error,
 }: {
   messages: Message[];
@@ -23,6 +24,7 @@ export function MessageArea({
   liveFileChanges: LiveFileChange[];
   askResolved: { question?: string; options?: string[] } | null;
   onAskUserResponse: (answer: string) => void;
+  onViewFiles?: () => void;
   error: string | null;
 }) {
   const [filesPanelOpen, setFilesPanelOpen] = useState(true);
@@ -31,21 +33,32 @@ export function MessageArea({
     <>
       {liveFileChanges.length > 0 && (
         <div className="border border-stroke-subtle bg-surface-1 overflow-hidden">
-          <button
-            type="button"
-            className="w-full flex items-center justify-between px-(--of-space-md) py-(--of-space-sm) text-left text-xs font-medium text-text-secondary transition-colors duration-(--of-duration-instant) hover:bg-surface-2"
-            onClick={() => setFilesPanelOpen((o) => !o)}
-          >
-            <span>Files changed — {liveFileChanges.length}</span>
-            <svg
-              className={`h-3.5 w-3.5 text-text-tertiary transition-transform duration-(--of-duration-fast) ${filesPanelOpen ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          <div className="flex items-center justify-between px-(--of-space-md) py-(--of-space-sm)">
+            <button
+              type="button"
+              className="flex items-center gap-1.5 text-left text-xs font-medium text-text-secondary transition-colors duration-(--of-duration-instant) hover:text-text-primary"
+              onClick={() => setFilesPanelOpen((o) => !o)}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+              <span>Files changed — {liveFileChanges.length}</span>
+              <svg
+                className={`h-3.5 w-3.5 text-text-tertiary transition-transform duration-(--of-duration-fast) ${filesPanelOpen ? "rotate-180" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {onViewFiles && (
+              <button
+                type="button"
+                onClick={onViewFiles}
+                className="text-[11px] text-accent-text transition-colors duration-(--of-duration-instant) hover:text-text-primary"
+              >
+                View all
+              </button>
+            )}
+          </div>
           {filesPanelOpen ? (
             <ul className="divide-y divide-stroke-subtle/50 border-t border-stroke-subtle max-h-48 overflow-y-auto text-xs font-mono px-(--of-space-md) py-1 contain-content">
               {liveFileChanges.map((f) => (

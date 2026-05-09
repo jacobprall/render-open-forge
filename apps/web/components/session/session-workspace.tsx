@@ -78,6 +78,10 @@ export function SessionWorkspace({
     setLiveFileChanges(files);
   }, []);
 
+  const handleViewFiles = useCallback(() => {
+    startTransition(() => setActiveView("files"));
+  }, []);
+
   const fileCount = liveFileChanges.length;
   const hasLineStats =
     session.linesAdded != null || session.linesRemoved != null;
@@ -157,6 +161,7 @@ export function SessionWorkspace({
             initialMessages={initialMessages as Message[]}
             modelId={modelId}
             onFileChanges={handleFileChanges}
+            onViewFiles={handleViewFiles}
           />
         </div>
         <div className={activeView === "files" ? "h-full" : "hidden"}>

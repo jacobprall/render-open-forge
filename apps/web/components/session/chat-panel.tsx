@@ -17,6 +17,7 @@ interface ChatPanelProps {
   initialMessages: Message[];
   modelId: string;
   onFileChanges?: (files: LiveFileChange[]) => void;
+  onViewFiles?: () => void;
   /** Start streaming immediately on mount (used after inline session creation) */
   autoStream?: boolean;
 }
@@ -27,6 +28,7 @@ export function ChatPanel({
   initialMessages,
   modelId,
   onFileChanges,
+  onViewFiles,
   autoStream,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -104,6 +106,7 @@ export function ChatPanel({
             liveFileChanges={stream.liveFileChanges}
             askResolved={askResolved}
             onAskUserResponse={handleAskUserResponse}
+            onViewFiles={onViewFiles}
             error={error}
           />
           <div ref={messagesEndRef} />
