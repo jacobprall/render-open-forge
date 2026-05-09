@@ -104,11 +104,11 @@ export function RepoBranchPicker({ value, onChange }: RepoBranchPickerProps) {
       <button
         type="button"
         onClick={handleOpen}
-        className="inline-flex min-h-10 items-center gap-1.5 border border-stroke-subtle bg-surface-1 px-3 py-2 text-[13px] font-mono text-text-secondary transition-colors duration-(--of-duration-instant) hover:bg-surface-2 hover:text-text-primary"
+        className="inline-flex min-h-10 items-center gap-1.5 border border-stroke-subtle bg-surface-1 px-3 py-2 text-[13px] text-text-secondary transition-colors duration-(--of-duration-instant) hover:bg-surface-2 hover:text-text-primary"
       >
         <GitBranch className="h-3 w-3 shrink-0 text-text-tertiary" />
         {value ? (
-          <span className="truncate max-w-[200px]">
+          <span className="truncate max-w-[200px] font-mono">
             {value.repo} <span className="text-text-tertiary">:</span> {value.branch}
           </span>
         ) : (
