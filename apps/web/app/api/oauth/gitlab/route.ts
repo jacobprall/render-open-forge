@@ -4,6 +4,15 @@ import { NextResponse } from "next/server";
 const applicationId = process.env.GITLAB_APPLICATION_ID;
 const gitlabUrl = (process.env.GITLAB_URL || "https://gitlab.com").replace(/\/$/, "");
 
+function resolveOrigin(req: Request): string {
+  const headers = new Headers(req.headers);
+  const forwardedHost = headers.get("x-forwarded-host");
+  const forwardedProto = headers.get("x-forwarded-proto") || "https";
+  if (forwardedHost) return `${forwardedProto}://${forwardedHost}`;
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  return new URL(req.url).origin;
+}
+
 export async function GET(req: Request) {
   if (!applicationId) {
     return NextResponse.json(
@@ -13,7 +22,7 @@ export async function GET(req: Request) {
   }
 
   const state = crypto.randomBytes(24).toString("hex");
-  const origin = new URL(req.url).origin;
+  const origin = resolveOrigin(req);
   const redirectUri = `${origin}/api/oauth/gitlab/callback`;
 
   const url = new URL(`${gitlabUrl}/oauth/authorize`);
