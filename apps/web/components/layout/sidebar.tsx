@@ -21,14 +21,12 @@ import {
   Building2,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
-import { useInboxCount } from "./use-inbox-count";
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
-  badgeKey?: string;
   children?: { label: string; href: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }[];
 }
 
@@ -37,7 +35,7 @@ const navItems: NavItem[] = [
   { label: "Sessions", href: "/sessions", icon: List, exact: true },
   { label: "Projects", href: "/projects", icon: Layers },
   { label: "Repos", href: "/repos", icon: FolderOpen },
-  { label: "Pull Requests", href: "/pulls", icon: GitPullRequest, badgeKey: "inbox" },
+  { label: "Pull Requests", href: "/pulls", icon: GitPullRequest },
   {
     label: "Settings",
     href: "/settings",
@@ -64,7 +62,6 @@ interface SidebarProps {
 export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
-  const { count: inboxCount } = useInboxCount();
 
   const activeParent = navItems.find(
     (item) =>
@@ -133,13 +130,12 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
                 ? pathname === item.href
                 : pathname === item.href || pathname.startsWith(item.href + "/");
               const Icon = item.icon;
-              const badge = item.badgeKey === "inbox" ? inboxCount : 0;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   title={collapsed ? item.label : undefined}
-                  className={`relative flex min-h-11 items-center gap-3 px-(--of-space-md) py-3 text-[14px] font-medium transition-colors duration-(--of-duration-instant) border-l-[3px] ${
+                  className={`flex min-h-11 items-center gap-3 px-(--of-space-md) py-3 text-[14px] font-medium transition-colors duration-(--of-duration-instant) border-l-[3px] ${
                     isActive
                       ? "bg-surface-2 text-accent-text border-l-accent"
                       : "text-text-secondary hover:bg-surface-2 hover:text-text-primary border-l-transparent"
@@ -147,16 +143,6 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
                 >
                   <Icon className="h-[18px] w-[18px] shrink-0" />
                   {!collapsed && <span className="flex-1">{item.label}</span>}
-                  {badge > 0 && !collapsed && (
-                    <span className="flex h-5 min-w-5 items-center justify-center bg-accent-bg px-1.5 text-[11px] font-semibold tabular-nums text-accent-text">
-                      {badge > 99 ? "99+" : badge}
-                    </span>
-                  )}
-                  {badge > 0 && collapsed && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center bg-accent px-1 text-[10px] font-bold text-white">
-                      {badge > 9 ? "9+" : badge}
-                    </span>
-                  )}
                 </Link>
               );
             })}

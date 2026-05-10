@@ -200,6 +200,26 @@ export class GitLabProvider implements ForgeProvider {
       list: () => notImplemented("commits.list"),
       createStatus: () => notImplemented("commits.createStatus"),
       getCombinedStatus: () => notImplemented("commits.getCombinedStatus"),
+      getDiff: async (
+        owner: string,
+        repo: string,
+        sha: string,
+      ): Promise<string> => {
+        try {
+          const projectId = encodeURIComponent(`${owner}/${repo}`);
+          const encodedSha = encodeURIComponent(sha);
+          const rows = await this.api<Array<{ diff?: string }>>(
+            `/projects/${projectId}/repository/commits/${encodedSha}/diff?unidiff=true`,
+          );
+          if (!Array.isArray(rows) || rows.length === 0) return "";
+          return rows
+            .map(r => (typeof r.diff === "string" ? r.diff.trimEnd() : ""))
+            .filter(Boolean)
+            .join("\n\n");
+        } catch {
+          return "";
+        }
+      },
     };
   }
 

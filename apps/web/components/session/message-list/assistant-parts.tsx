@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { Bot } from "lucide-react";
 import type { AssistantPart } from "@openforge/ui";
 
 const Markdown = dynamic(
@@ -13,6 +14,10 @@ const ToolCallLazy = dynamic(
   { ssr: false, loading: () => <span className="text-xs text-text-tertiary">…</span> },
 );
 
+function formatTimestamp(iso: string) {
+  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
 function partKey(part: AssistantPart, index: number): string {
   if ("id" in part && part.id) return part.id;
   if (part.type === "tool_call" && part.toolCallId) return part.toolCallId;
@@ -20,18 +25,49 @@ function partKey(part: AssistantPart, index: number): string {
   return `${part.type}-${index}`;
 }
 
-export function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streaming?: boolean }) {
+export function AssistantParts({
+  parts,
+  streaming,
+  createdAt,
+}: {
+  parts: AssistantPart[];
+  streaming?: boolean;
+  createdAt?: string | null;
+}) {
+  let lastTextIndex = -1;
+  for (let j = parts.length - 1; j >= 0; j--) {
+    if (parts[j]?.type === "text") {
+      lastTextIndex = j;
+      break;
+    }
+  }
+
   return (
     <div className="flex flex-col gap-1.5 w-full">
       {parts.map((part, i) => {
         const key = partKey(part, i);
         switch (part.type) {
-          case "text":
+          case "text": {
+            const showTime = Boolean(createdAt) && !streaming && lastTextIndex === i;
             return (
-              <div key={key} className="inline-block border border-stroke-subtle bg-surface-1 px-(--of-space-md) py-(--of-space-md) shadow-xs text-[15px] leading-relaxed text-text-primary">
-                <Markdown>{part.text}</Markdown>
+              <div key={key} className="flex w-full min-w-0 flex-col items-start gap-1">
+                <div className="flex w-full min-w-0 flex-col overflow-x-auto rounded-sm border border-stroke-subtle bg-surface-1 text-xs shadow-xs">
+                  <div className="flex w-full min-w-0 items-center gap-2 bg-surface-1 px-(--of-space-md) py-(--of-space-sm)">
+                    <Bot className="size-3.5 text-accent-text/80 shrink-0" />
+                    <span className="min-w-0 truncate text-[13px] font-medium text-text-primary">
+                      Agent
+                    </span>
+                  </div>
+                  <div className="min-w-0 border-t border-stroke-subtle bg-surface-0 px-(--of-space-md) py-(--of-space-md)">
+                    <Markdown>{part.text}</Markdown>
+                  </div>
+                </div>
+                {showTime && createdAt ? (
+                  <span className="ml-1 text-[11px] text-text-tertiary">{formatTimestamp(createdAt)}</span>
+                ) : null}
               </div>
             );
+          }
 
           case "tool_call":
             return (

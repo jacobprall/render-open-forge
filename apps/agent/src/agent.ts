@@ -218,7 +218,13 @@ async function buildForgeContext(params: {
     baseBranch: sessionRow?.baseBranch ?? "main",
     upstream,
     onFileChanged: async (p) => {
-      const ev: StreamEvent = { type: "file_changed", path: p.path, additions: p.additions, deletions: p.deletions };
+      const ev: StreamEvent = {
+        type: "file_changed",
+        path: p.path,
+        additions: p.additions,
+        deletions: p.deletions,
+        unifiedDiffPreview: p.unifiedDiffPreview,
+      };
       await publishEvent(events, job.runId, ev, reqId);
       assistantParts.push({ type: "file_changed", ...p });
     },

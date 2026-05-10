@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { LiveFileChange } from "./chat-panel";
+import { SingleFileDiffViewer } from "@/components/diff-viewer";
 
 interface FilesViewProps {
   sessionId: string;
@@ -103,15 +104,19 @@ export function FilesView({ sessionId, fileChanges }: FilesViewProps) {
                 </span>
               ) : null}
             </div>
-            <div className="border border-stroke-subtle bg-surface-1/50 p-6 text-center">
-              <p className="text-xs text-text-tertiary">
-                Diff view coming soon. File was modified with{" "}
-                {selectedMeta
-                  ? `${selectedMeta.additions} additions and ${selectedMeta.deletions} deletions`
-                  : "changes"}
-                .
-              </p>
-            </div>
+            {selectedMeta?.unifiedDiffPreview ? (
+              <SingleFileDiffViewer diff={selectedMeta.unifiedDiffPreview} />
+            ) : (
+              <div className="border border-stroke-subtle bg-surface-1/50 p-6 text-center">
+                <p className="text-xs text-text-tertiary">
+                  No diff preview available. File was modified with{" "}
+                  {selectedMeta
+                    ? `${selectedMeta.additions} additions and ${selectedMeta.deletions} deletions`
+                    : "changes"}
+                  .
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex h-full items-center justify-center">

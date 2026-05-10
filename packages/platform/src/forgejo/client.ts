@@ -228,6 +228,13 @@ export class ForgejoClient {
     return this.request(`/repos/${owner}/${repo}/git/commits${query}`);
   }
 
+  async getCommitDiff(owner: string, repo: string, sha: string): Promise<string> {
+    return this.request(`/repos/${owner}/${repo}/git/commits/${encodeURIComponent(sha)}.diff`, {
+      responseType: "text",
+      headers: { Accept: "text/plain" },
+    });
+  }
+
   // --- Pull Requests ---
 
   async createPullRequest(params: CreatePrParams): Promise<ForgejoPullRequest> {

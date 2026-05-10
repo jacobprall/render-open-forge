@@ -15,7 +15,10 @@ interface ChatPanelProps {
   modelId: string;
   onFileChanges?: (files: LiveFileChange[]) => void;
   onViewFiles?: () => void;
+  /** Automatically start streaming when mounted */
   autoStream?: boolean;
+  /** Run ID to pass when auto-starting the stream */
+  autoStreamRunId?: string;
 }
 
 export function ChatPanel({
@@ -26,6 +29,7 @@ export function ChatPanel({
   onFileChanges,
   onViewFiles,
   autoStream,
+  autoStreamRunId,
 }: ChatPanelProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -42,9 +46,9 @@ export function ChatPanel({
   useEffect(() => {
     if (autoStream && !autoStreamFired.current) {
       autoStreamFired.current = true;
-      chat.startStreaming();
+      chat.startStreaming(autoStreamRunId);
     }
-  }, [autoStream, chat.startStreaming]);
+  }, [autoStream, chat.startStreaming, autoStreamRunId]);
 
   const scrollToBottom = useCallback(() => {
     const el = scrollContainerRef.current;

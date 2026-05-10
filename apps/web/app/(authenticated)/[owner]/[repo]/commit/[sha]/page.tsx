@@ -1,8 +1,16 @@
+import dynamic from "next/dynamic";
+
+import Link from "next/link";
+import { redirect, notFound } from "next/navigation";
+
 import { getSession } from "@/lib/auth/session";
 import { createForgeProvider } from "@/lib/forge/client";
-import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
 import { relativeTime } from "@/lib/utils";
+
+const UnifiedDiffViewer = dynamic(
+  () => import("@/components/diff-viewer").then((m) => ({ default: m.UnifiedDiffViewer })),
+  { ssr: false, loading: () => <div className="text-xs text-text-tertiary p-4">Loading diff...</div> },
+);
 
 export default async function CommitDetailPage({
   params,
@@ -16,8 +24,14 @@ export default async function CommitDetailPage({
   const forge = createForgeProvider(session.forgeToken, session.forgeType);
 
   let commits;
+  let diffText = "";
   try {
-    commits = await forge.commits.list(owner, repo, { sha, limit: 1 });
+    let diffResult = "";
+    [commits, diffResult] = await Promise.all([
+      forge.commits.list(owner, repo, { sha, limit: 1 }),
+      forge.commits.getDiff(owner, repo, sha).catch(() => ""),
+    ]);
+    diffText = diffResult.trim();
   } catch {
     notFound();
   }
@@ -83,18 +97,21 @@ export default async function CommitDetailPage({
         </div>
       </div>
 
-      {/* Placeholder for diff viewer */}
-      <div className="border border-dashed border-stroke-subtle px-6 py-12 text-center">
-        <p className="text-sm text-text-tertiary">
-          Diff viewer will be added in a future update.
-        </p>
-        <Link
-          href={`/${owner}/${repo}/commits/${commit.sha}`}
-          className="mt-2 inline-block text-sm text-accent-text hover:underline"
-        >
-          ← Back to commits
-        </Link>
-      </div>
+      {diffText ? (
+        <UnifiedDiffViewer diff={diffText} />
+      ) : (
+        <div className="border border-dashed border-stroke-subtle px-6 py-12 text-center">
+          <p className="text-sm text-text-tertiary">
+            Could not load diff for this commit.
+          </p>
+        </div>
+      )}
+      <Link
+        href={`/${owner}/${repo}/commits/${commit.sha}`}
+        className="mt-2 inline-block text-sm text-accent-text hover:underline"
+      >
+        ← Back to commits
+      </Link>
     </div>
   );
 }

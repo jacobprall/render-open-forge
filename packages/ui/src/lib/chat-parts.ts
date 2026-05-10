@@ -38,6 +38,7 @@ export type AssistantFileChangedPart = {
   path: string;
   additions: number;
   deletions: number;
+  unifiedDiffPreview?: string;
   id?: string;
 };
 
@@ -178,6 +179,7 @@ export function appendStreamEvent(
           path: event.path,
           additions: event.additions ?? 0,
           deletions: event.deletions ?? 0,
+          unifiedDiffPreview: event.unifiedDiffPreview,
           id: `file-${seq.current++}`,
         },
       ];

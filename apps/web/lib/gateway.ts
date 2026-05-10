@@ -85,48 +85,40 @@ export async function gatewayStream(
     fwdHeaders["Last-Event-ID"] = opts.lastEventId;
   }
 
-  let res: Response;
-  try {
-    res = await gatewayFetch(gatewayPath, {
-      userId,
-      headers: fwdHeaders,
-    });
-  } catch {
-    return sseError("Gateway unreachable");
-  }
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 500;
 
-  if (!res.ok || !res.body) {
-    const text = await res.text().catch(() => "Gateway stream error");
-    return sseError(text, res.status);
-  }
-
-  const { readable, writable } = new TransformStream();
-  const writer = writable.getWriter();
-
-  void (async () => {
-    const reader = res.body!.getReader();
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        await writer.write(value);
-      }
-      await writer.close();
-    } catch {
-      await writer.close().catch(() => {});
-    } finally {
-      reader.releaseLock();
-    }
-  })();
+      const res = await gatewayFetch(gatewayPath, {
+        userId,
+        headers: fwdHeaders,
+      });
 
-  return new Response(readable, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    },
-  });
+      if (!res.ok || !res.body) {
+        const text = await res.text().catch(() => "Gateway stream error");
+        return sseError(text, res.status);
+      }
+
+      return new Response(res.body, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+          "X-Accel-Buffering": "no",
+        },
+      });
+    } catch (err) {
+      lastError = err;
+      if (attempt < MAX_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+      }
+    }
+  }
+
+  const msg = lastError instanceof Error ? lastError.message : "Gateway unreachable";
+  return sseError(msg);
 }
 
 function sseError(message: string, status = 502): Response {

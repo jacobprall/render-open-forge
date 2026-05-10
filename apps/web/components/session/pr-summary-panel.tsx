@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-fetch";
+import { agentSessionPullHref } from "@/lib/session-pr-href";
 
 interface PrSummaryProps {
   sessionId: string;
@@ -10,6 +11,10 @@ interface PrSummaryProps {
   prNumber: number;
   prStatus: string | null;
   branch: string | null;
+  /** e.g. GitHub PR URL; when set, overrides Forgejo / internal fallback */
+  upstreamPrUrl?: string | null;
+  /** Forgejo (or Gitea) web origin for fallback links — pass from server env */
+  forgejoWebOrigin?: string | null;
 }
 
 const statusConfig: Record<string, { color: string; label: string; dotColor: string }> = {
@@ -18,13 +23,50 @@ const statusConfig: Record<string, { color: string; label: string; dotColor: str
   closed: { color: "text-danger", label: "Closed", dotColor: "bg-red-400" },
 };
 
-export function PrSummaryPanel({ sessionId, repoPath, prNumber, prStatus, branch }: PrSummaryProps) {
+function PrHrefLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  const external = href.startsWith("http://") || href.startsWith("https://");
+  if (external) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+export function PrSummaryPanel({
+  sessionId,
+  repoPath,
+  prNumber,
+  prStatus,
+  branch,
+  upstreamPrUrl,
+  forgejoWebOrigin,
+}: PrSummaryProps) {
   const [isPending, startTransition] = useTransition();
   const [reviewRequested, setReviewRequested] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const status = statusConfig[prStatus ?? "open"] ?? statusConfig.open;
-  const prUrl = `/${repoPath}/pulls/${prNumber}`;
+  const prUrl = agentSessionPullHref({
+    repoPath,
+    prNumber,
+    upstreamPrUrl,
+    forgejoWebOrigin,
+  });
 
   async function handleRequestReview() {
     setError(null);
@@ -52,12 +94,12 @@ export function PrSummaryPanel({ sessionId, repoPath, prNumber, prStatus, branch
           <svg className="h-4 w-4 shrink-0 text-text-tertiary" fill="currentColor" viewBox="0 0 16 16">
             <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z" />
           </svg>
-          <Link
+          <PrHrefLink
             href={prUrl}
             className="truncate text-sm font-medium text-text-primary hover:text-accent-text transition-colors duration-(--of-duration-instant)"
           >
             PR #{prNumber}
-          </Link>
+          </PrHrefLink>
           <span className="flex items-center gap-1.5 text-xs">
             <span className={`h-1.5 w-1.5 rounded-full ${status.dotColor}`} />
             <span className={status.color}>{status.label}</span>
@@ -66,12 +108,12 @@ export function PrSummaryPanel({ sessionId, repoPath, prNumber, prStatus, branch
 
         {prStatus === "open" && (
           <div className="flex items-center gap-2 shrink-0">
-            <Link
+            <PrHrefLink
               href={prUrl}
               className="px-2 py-1 text-xs font-medium text-text-tertiary transition-colors duration-(--of-duration-instant) hover:bg-surface-2 hover:text-text-primary"
             >
               View Diff
-            </Link>
+            </PrHrefLink>
             {reviewRequested ? (
               <span className="text-xs text-accent-text">Review started</span>
             ) : (

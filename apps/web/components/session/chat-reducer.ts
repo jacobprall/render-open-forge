@@ -2,10 +2,13 @@ import type { AssistantPart } from "@openforge/ui";
 import { appendStreamEvent } from "@openforge/ui";
 import type { StreamEvent } from "@openforge/shared";
 
+export const MAX_NO_RUN_RETRIES = 30;
+
 export interface LiveFileChange {
   path: string;
   additions: number;
   deletions: number;
+  unifiedDiffPreview?: string;
 }
 
 export interface AskUserPrompt {
@@ -68,10 +71,12 @@ function mergeLiveChange(
   path: string,
   additions: number,
   deletions: number,
+  unifiedDiffPreview?: string,
 ): LiveFileChange[] {
-  return [...list.filter((e) => e.path !== path), { path, additions, deletions }].sort((a, b) =>
-    a.path.localeCompare(b.path),
-  );
+  return [
+    ...list.filter((e) => e.path !== path),
+    { path, additions, deletions, unifiedDiffPreview },
+  ].sort((a, b) => a.path.localeCompare(b.path));
 }
 
 function isTerminalStreamEvent(event: StreamEvent): boolean {
@@ -136,7 +141,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     case "NO_ACTIVE_RUN": {
       const noRunRetries = state.noRunRetries + 1;
-      if (noRunRetries >= 15) {
+      if (noRunRetries >= MAX_NO_RUN_RETRIES) {
         return {
           ...state,
           noRunRetries,
@@ -192,6 +197,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           event.path,
           event.additions ?? 0,
           event.deletions ?? 0,
+          event.unifiedDiffPreview,
         );
       }
 

@@ -42,13 +42,14 @@ export function ToolLayout({
     <div
       className={cn(
         "border border-stroke-subtle bg-surface-1 text-xs overflow-hidden",
+        open ? "flex flex-col w-full min-w-0" : "inline-flex flex-col max-w-[33%] min-w-0 self-start",
         className,
       )}
     >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 px-(--of-space-md) py-(--of-space-sm) w-full text-left hover:bg-surface-2 transition-colors duration-(--of-duration-instant)"
+        className="flex w-full min-w-0 items-center gap-2 px-(--of-space-md) py-(--of-space-sm) text-left hover:bg-surface-2 transition-colors duration-(--of-duration-instant)"
       >
         {open ? (
           <ChevronDown className="size-3 text-text-tertiary shrink-0" />
@@ -56,16 +57,25 @@ export function ToolLayout({
           <ChevronRight className="size-3 text-text-tertiary shrink-0" />
         )}
         {icon && <span className="shrink-0 text-text-tertiary">{icon}</span>}
-        <span className="font-medium text-text-primary truncate">{title}</span>
-        {subtitle && (
-          <span className="text-text-tertiary truncate font-normal ml-0.5">
-            {subtitle}
+        <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+          <span
+            className={cn(
+              "min-w-0 truncate font-medium text-text-primary",
+              subtitle ? "max-w-[45%] shrink" : "flex-1",
+            )}
+          >
+            {title}
           </span>
-        )}
-        {statusIcon && <span className="ml-auto shrink-0">{statusIcon}</span>}
+          {subtitle && (
+            <span className="min-w-0 flex-1 truncate font-normal text-text-tertiary">
+              {subtitle}
+            </span>
+          )}
+        </span>
+        {statusIcon && <span className="shrink-0">{statusIcon}</span>}
       </button>
       {!open && preview && (
-        <div className="border-t border-stroke-subtle bg-surface-0 px-(--of-space-md) py-(--of-space-xs) font-mono text-text-tertiary overflow-hidden">
+        <div className="min-w-0 border-t border-stroke-subtle bg-surface-0 px-(--of-space-md) py-(--of-space-xs) font-mono text-text-tertiary overflow-x-auto overflow-y-hidden">
           {preview}
         </div>
       )}

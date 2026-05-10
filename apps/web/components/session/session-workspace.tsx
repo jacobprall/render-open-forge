@@ -37,12 +37,15 @@ interface SessionInfo {
   status: string;
   prNumber: number | null;
   prStatus: string | null;
+  upstreamPrUrl: string | null;
   linesAdded: number | null;
   linesRemoved: number | null;
 }
 
 interface SessionWorkspaceProps {
   session: SessionInfo;
+  /** From `FORGEJO_PUBLIC_URL` / `FORGEJO_EXTERNAL_URL` for PR links when `upstreamPrUrl` is absent */
+  forgejoWebOrigin?: string | null;
   /** Chat row / user default model — keeps the header selector aligned with what messages use */
   initialModelId?: string | null;
   activeRunId: string | null;
@@ -63,6 +66,7 @@ const statusDot: Record<string, string> = {
 
 export function SessionWorkspace({
   session,
+  forgejoWebOrigin,
   initialModelId,
   activeRunId,
   initialMessages,
@@ -86,6 +90,11 @@ export function SessionWorkspace({
   const hasLineStats =
     session.linesAdded != null || session.linesRemoved != null;
 
+  const headerPrHref =
+    session.prNumber != null && session.repoPath
+      ? session.upstreamPrUrl?.trim() || `/${session.repoPath}/pulls/${session.prNumber}`
+      : null;
+
   return (
     <div className="absolute inset-0 flex flex-col">
       <header className="shrink-0 border-b border-stroke-subtle">
@@ -103,9 +112,12 @@ export function SessionWorkspace({
               <span className={`h-1.5 w-1.5 rounded-full ${statusDot[session.status] ?? "bg-text-tertiary"}`} />
               {session.status}
             </span>
-            {session.prNumber != null ? (
+            {headerPrHref ? (
               <a
-                href={`/${session.repoPath}/pulls/${session.prNumber}`}
+                href={headerPrHref}
+                {...(headerPrHref.startsWith("http://") || headerPrHref.startsWith("https://")
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
                 className="text-blue-400 hover:text-blue-300 font-mono"
               >
                 PR #{session.prNumber}
@@ -149,6 +161,8 @@ export function SessionWorkspace({
             prNumber={session.prNumber}
             prStatus={session.prStatus ?? null}
             branch={session.branch}
+            upstreamPrUrl={session.upstreamPrUrl}
+            forgejoWebOrigin={forgejoWebOrigin}
           />
         </div>
       )}
@@ -162,6 +176,8 @@ export function SessionWorkspace({
             modelId={modelId}
             onFileChanges={handleFileChanges}
             onViewFiles={handleViewFiles}
+            autoStream={activeRunId != null}
+            autoStreamRunId={activeRunId ?? undefined}
           />
         </div>
         <div className={activeView === "files" ? "h-full" : "hidden"}>

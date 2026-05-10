@@ -48,6 +48,7 @@ export default async function SessionDetailPage({
         status: sessions.status,
         prNumber: sessions.prNumber,
         prStatus: sessions.prStatus,
+        upstreamPrUrl: sessions.upstreamPrUrl,
         linesAdded: sessions.linesAdded,
         linesRemoved: sessions.linesRemoved,
       })
@@ -94,8 +95,12 @@ export default async function SessionDetailPage({
         .orderBy(chatMessages.createdAt)
     : [];
 
+  const forgejoWebOrigin =
+    process.env.FORGEJO_PUBLIC_URL || process.env.FORGEJO_EXTERNAL_URL || null;
+
   return (
     <SessionWorkspace
+      forgejoWebOrigin={forgejoWebOrigin}
       initialModelId={initialModelId}
       session={{
         id: sessionRow.id,
@@ -106,6 +111,7 @@ export default async function SessionDetailPage({
         status: sessionRow.status,
         prNumber: sessionRow.prNumber,
         prStatus: sessionRow.prStatus ?? null,
+        upstreamPrUrl: sessionRow.upstreamPrUrl ?? null,
         linesAdded: sessionRow.linesAdded,
         linesRemoved: sessionRow.linesRemoved,
       }}

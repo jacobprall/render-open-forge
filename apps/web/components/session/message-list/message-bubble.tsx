@@ -33,10 +33,7 @@ export function MessageBubble({ message }: { message: Message }) {
 
   return (
     <div className="flex flex-col gap-1 [content-visibility:auto]">
-      <AssistantParts parts={message.parts} />
-      {timestamp && (
-        <span className="ml-1 text-[11px] text-text-tertiary">{timestamp}</span>
-      )}
+      <AssistantParts parts={message.parts} createdAt={message.createdAt} />
     </div>
   );
 }

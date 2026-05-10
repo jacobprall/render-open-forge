@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   chatReducer,
   initialChatState,
+  MAX_NO_RUN_RETRIES,
   type ChatState,
   type Message,
 } from "../../../apps/web/components/session/chat-reducer";
@@ -237,7 +238,7 @@ describe("chatReducer", () => {
     });
 
     test("sets error after max retries", () => {
-      const state = makeState({ status: "waitingForRun", noRunRetries: 14 });
+      const state = makeState({ status: "waitingForRun", noRunRetries: MAX_NO_RUN_RETRIES - 1 });
       const next = chatReducer(state, { type: "NO_ACTIVE_RUN" });
       expect(next.status).toBe("error");
       expect(next.error).toContain("did not start");

@@ -432,6 +432,18 @@ export class GitHubProvider extends BaseForgeProvider {
           })),
         };
       },
+
+      getDiff: async (owner: string, repo: string, sha: string): Promise<string> => {
+        try {
+          return await this.apiRaw(`/${owner}/${repo}/commits/${sha}`, {
+            headers: {
+              Accept: "application/vnd.github.v3.diff",
+            },
+          });
+        } catch {
+          return "";
+        }
+      },
     };
   }
 

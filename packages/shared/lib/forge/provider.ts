@@ -75,6 +75,7 @@ export interface CommitOperations {
   list(owner: string, repo: string, opts?: { sha?: string; limit?: number }): Promise<ForgeCommit[]>;
   createStatus(owner: string, repo: string, sha: string, status: ForgeCommitStatus): Promise<void>;
   getCombinedStatus(owner: string, repo: string, ref: string): Promise<ForgeCombinedStatus>;
+  getDiff(owner: string, repo: string, sha: string): Promise<string>;
 }
 
 export interface PullRequestOperations {

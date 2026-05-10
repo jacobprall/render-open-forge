@@ -15,6 +15,7 @@ import type { StreamEvent } from "@openforge/shared";
 import {
   chatReducer,
   initialChatState,
+  MAX_NO_RUN_RETRIES,
   type Message,
   type ChatStatus,
   type LiveFileChange,
@@ -22,8 +23,7 @@ import {
 } from "./chat-reducer";
 
 const MAX_SEEN_IDS = 5000;
-const MAX_NO_RUN_RETRIES = 15;
-const NO_RUN_RETRY_DELAY_MS = 1000;
+const NO_RUN_RETRY_DELAY_MS = 2000;
 
 export type { Message, LiveFileChange, AskUserPrompt, ChatStatus };
 
@@ -47,6 +47,8 @@ export interface UseAgentChatReturn {
   submitAskUserReply: (answer: string) => Promise<void>;
   stopStreaming: () => Promise<void>;
   startStreaming: (runId?: string) => void;
+  addUserMessage: (message: Message) => void;
+  clearError: () => void;
 }
 
 export function useAgentChat({
@@ -138,26 +140,39 @@ export function useAgentChat({
     }
   }, [evictSeenIds, state.noRunRetries]);
 
-  const handleSSEError = useCallback(() => {
-    startTransition(() => {
-      dispatch({ type: "FINISH_STREAMING" });
-    });
-  }, []);
-
   const es = useEventSource({
     url: streamUrl,
     enabled: isActive,
     onMessage: handleSSEMessage,
-    onError: handleSSEError,
-    maxReconnectAttempts: 3,
+    maxReconnectAttempts: 5,
+    reconnectInterval: 2000,
   });
   const esRef = useRef(es);
   esRef.current = es;
 
-  const startStreaming = useCallback((runId?: string) => {
-    seenIds.current.clear();
-    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-    dispatch({ type: "START_STREAMING", runId });
+  useEffect(() => {
+    if (es.status === "error" && isActive) {
+      dispatch({ type: "SET_ERROR", error: "Lost connection to server" });
+    }
+  }, [es.status, isActive]);
+
+  const startStreaming = useCallback(
+    (runId?: string) => {
+      seenIds.current.clear();
+      // New run / new stream session: do not reuse Last-Event-ID from a prior run.
+      es.resetLastEventId();
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      dispatch({ type: "START_STREAMING", runId });
+    },
+    [es.resetLastEventId],
+  );
+
+  const addUserMessage = useCallback((message: Message) => {
+    dispatch({ type: "ADD_USER_MESSAGE", message });
+  }, []);
+
+  const clearError = useCallback(() => {
+    dispatch({ type: "CLEAR_ERROR" });
   }, []);
 
   const sendMessage = useCallback(
@@ -261,5 +276,7 @@ export function useAgentChat({
     submitAskUserReply,
     stopStreaming,
     startStreaming,
+    addUserMessage,
+    clearError,
   };
 }

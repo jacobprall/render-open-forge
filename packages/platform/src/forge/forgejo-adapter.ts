@@ -361,6 +361,14 @@ export class ForgejoProvider extends BaseForgeProvider {
           })),
         };
       },
+      async getDiff(owner, repo, sha) {
+        try {
+          const text = await c.getCommitDiff(owner, repo, sha);
+          return typeof text === "string" ? text : "";
+        } catch {
+          return "";
+        }
+      },
     };
   }
 

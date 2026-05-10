@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export type RepoTabItem = {
-  id: "code" | "sessions" | "commits" | "pulls" | "ci" | "settings";
+  id: "code" | "sessions" | "commits" | "ci" | "settings";
   label: string;
   href: string;
 };
@@ -28,8 +28,6 @@ function isActive(pathname: string, tab: RepoTabItem, basePath: string) {
       return p.startsWith(`${base}/sessions`);
     case "commits":
       return p.startsWith(`${base}/commits`);
-    case "pulls":
-      return p.startsWith(`${base}/pulls`);
     case "ci":
       return p.startsWith(`${base}/actions`);
     case "settings":
