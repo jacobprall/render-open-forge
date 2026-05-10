@@ -137,7 +137,6 @@ export function NewChatView({
         const data = await res.json();
         setSessionId(data.id);
         sessionIdRef.current = data.id;
-        window.history.replaceState(null, "", `/sessions/${data.id}`);
         stream.startStreaming();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
