@@ -1,33 +1,20 @@
-import { NextResponse } from "next/server";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
 export async function POST(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { id } = await params;
-
-  try {
-    await getPlatform().mirrors.sync(auth, id);
-    return NextResponse.json({ synced: true });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  return gatewayProxy(req, `/mirrors/${id}`, userId);
 }
 
 export async function DELETE(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { id } = await params;
-
-  try {
-    await getPlatform().mirrors.delete(auth, id);
-    return NextResponse.json({ deleted: true });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  return gatewayProxy(req, `/mirrors/${id}`, userId);
 }

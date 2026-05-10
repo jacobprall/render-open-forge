@@ -1,5 +1,6 @@
 import { Hono } from "hono";
-import { ValidationError } from "@openforge/shared";
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { ValidationError, logger } from "@openforge/shared";
 import { getPlatform } from "../platform";
 
 export const webhookRoutes = new Hono();
@@ -77,4 +78,59 @@ webhookRoutes.post("/gitlab", async (c) => {
   }
 
   return c.json({ ok: true });
+});
+
+const FAILURE_STATUSES = new Set(["build_failed", "update_failed", "deactivated", "pre_deploy_failed"]);
+
+function verifyRenderSignature(rawBody: string, signatureHeader: string | null, secret: string): boolean {
+  if (!signatureHeader) return false;
+  const hmac = createHmac("sha256", secret);
+  hmac.update(rawBody);
+  const expected = hmac.digest("hex");
+  const provided = signatureHeader.replace(/^sha256=/, "");
+  try {
+    return timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(provided, "hex"));
+  } catch {
+    return false;
+  }
+}
+
+webhookRoutes.post("/render", async (c) => {
+  const secret = process.env.RENDER_WEBHOOK_SECRET;
+  if (!secret) return c.json({ error: "RENDER_WEBHOOK_SECRET not configured" }, 500);
+
+  const rawBody = await c.req.text();
+  const signature = c.req.header("render-signature") ?? c.req.header("x-render-signature") ?? null;
+
+  if (!verifyRenderSignature(rawBody, signature, secret)) {
+    return c.json({ error: "Invalid signature" }, 401);
+  }
+
+  let payload: { type?: string; data?: { id?: string; serviceId?: string; serviceName?: string; status?: string; commit?: { id?: string; message?: string } } };
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return c.json({ error: "Invalid JSON" }, 400);
+  }
+
+  const data = payload.data;
+  if (!data?.serviceId || !data?.status) return c.json({ received: true, action: "ignored" });
+  if (!FAILURE_STATUSES.has(data.status)) return c.json({ received: true, action: "ignored", status: data.status });
+
+  logger.info("render webhook: deploy failure detected", { serviceId: data.serviceId, deployId: data.id, status: data.status });
+
+  try {
+    const result = await getPlatform().sessions.createFromDeployFailure({
+      serviceId: data.serviceId,
+      serviceName: data.serviceName ?? data.serviceId,
+      deployId: data.id ?? "unknown",
+      commitId: data.commit?.id,
+      commitMessage: data.commit?.message,
+    });
+    if (!result) return c.json({ received: true, action: "no_matching_resource" });
+    return c.json({ received: true, action: "session_created", sessionId: result.sessionId, runId: result.runId });
+  } catch (err) {
+    logger.errorWithCause(err, "render webhook: failed to create diagnostic session", { serviceId: data.serviceId });
+    return c.json({ error: "Processing failed" }, 500);
+  }
 });

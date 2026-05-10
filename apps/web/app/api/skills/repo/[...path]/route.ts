@@ -1,24 +1,12 @@
-import { NextResponse } from "next/server";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ path: string[] }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { path } = await params;
-
-  if (path.length < 2) {
-    return NextResponse.json({ error: "Invalid repo path" }, { status: 400 });
-  }
-
-  const [owner, repo] = path;
-
-  try {
-    const result = await getPlatform().skills.listRepoSkills(auth, owner, repo);
-    return NextResponse.json(result);
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  const qs = req.nextUrl.search;
+  return gatewayProxy(req, `/skills/repo/${path.join("/")}${qs}`, userId);
 }

@@ -6,7 +6,7 @@ import type { BreadcrumbItem } from "./breadcrumbs";
 
 const labelOverrides: Record<string, string> = {
   repos: "Repos",
-  sessions: "Chat",
+  sessions: "Sessions",
   projects: "Projects",
   pulls: "Pull Requests",
   settings: "Settings",

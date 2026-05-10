@@ -1,18 +1,11 @@
-import { NextResponse } from "next/server";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
 export async function POST(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const auth = await requireAuth();
-    const { id } = await params;
-
-    await getPlatform().mirrors.sync(auth, id);
-    return NextResponse.json({ synced: true });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  const userId = await requireUserId();
+  const { id } = await params;
+  return gatewayProxy(req, `/mirrors/${id}/sync`, userId);
 }

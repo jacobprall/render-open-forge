@@ -1,14 +1,7 @@
-import { NextResponse } from "next/server";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { type NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
-export async function GET() {
-  const auth = await requireAuth();
-
-  try {
-    const count = await getPlatform().inbox.countUnread(auth);
-    return NextResponse.json({ count });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+export async function GET(req: NextRequest) {
+  const userId = await requireUserId();
+  return gatewayProxy(req, "/inbox/count", userId);
 }

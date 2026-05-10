@@ -1,18 +1,12 @@
-import { NextResponse } from "next/server";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { type NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ org: string }> },
 ) {
-  const auth = await requireAuth();
-  await params;
-
-  try {
-    const result = await getPlatform().orgs.getUsage(auth);
-    return NextResponse.json(result);
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  const userId = await requireUserId();
+  const { org } = await params;
+  const qs = req.nextUrl.search;
+  return gatewayProxy(req, `/orgs/${org}/usage${qs}`, userId);
 }

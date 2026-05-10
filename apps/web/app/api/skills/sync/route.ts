@@ -1,14 +1,7 @@
-import { NextResponse } from "next/server";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
-export async function POST() {
-  const auth = await requireAuth();
-
-  try {
-    await getPlatform().skills.syncSkills(auth);
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+export async function POST(req: NextRequest) {
+  const userId = await requireUserId();
+  return gatewayProxy(req, "/skills/sync", userId);
 }

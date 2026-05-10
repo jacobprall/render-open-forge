@@ -8,6 +8,7 @@ import {
   FolderOpen,
   Layers,
   MessageCircle,
+  List,
   GitPullRequest,
   Settings,
   ChevronLeft,
@@ -27,12 +28,14 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
   badgeKey?: string;
   children?: { label: string; href: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }[];
 }
 
 const navItems: NavItem[] = [
-  { label: "Chat", href: "/sessions", icon: MessageCircle },
+  { label: "Chat", href: "/sessions/new", icon: MessageCircle },
+  { label: "Sessions", href: "/sessions", icon: List, exact: true },
   { label: "Projects", href: "/projects", icon: Layers },
   { label: "Repos", href: "/repos", icon: FolderOpen },
   { label: "Pull Requests", href: "/pulls", icon: GitPullRequest, badgeKey: "inbox" },
@@ -113,7 +116,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
           } ${collapsed ? "w-16" : "w-56"}`}
         >
           <div
-            className={`flex h-14 items-center border-b border-stroke-subtle ${
+            className={`flex h-14 items-center ${
               collapsed ? "justify-center" : "gap-2 px-(--of-space-md)"
             }`}
           >
@@ -127,8 +130,9 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
 
           <nav className="flex-1 py-(--of-space-sm)">
             {navItems.map((item) => {
-              const isActive =
-                pathname === item.href || pathname.startsWith(item.href + "/");
+              const isActive = item.exact
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(item.href + "/");
               const Icon = item.icon;
               const badge = item.badgeKey === "inbox" ? inboxCount : 0;
               return (

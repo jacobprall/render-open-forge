@@ -239,7 +239,7 @@ function OverviewTab({
           })()}
           className="mt-2 inline-block text-sm text-accent hover:text-accent-text"
         >
-          View sessions
+          View sessions &rarr;
         </Link>
       </section>
 

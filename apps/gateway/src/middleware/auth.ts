@@ -54,9 +54,15 @@ export const requireApiAuth = createMiddleware<GatewayEnv>(async (c, next) => {
   const gatewaySecret = process.env.GATEWAY_API_SECRET;
 
   if (gatewaySecret && token === gatewaySecret) {
-    const auth = await resolveAdminAuth();
+    const impersonateUserId = c.req.header("X-OpenForge-User-Id");
+    const auth = impersonateUserId
+      ? await resolveUserAuth(impersonateUserId)
+      : await resolveAdminAuth();
     if (!auth) {
-      return c.json({ error: "Admin user not configured" }, 503);
+      return c.json(
+        { error: impersonateUserId ? "User not found" : "Admin user not configured" },
+        impersonateUserId ? 404 : 503,
+      );
     }
     c.set("auth", auth);
     return next();
@@ -93,6 +99,32 @@ async function resolveAdminAuth(): Promise<AuthContext | null> {
     forgeToken: forgeInfo.token,
     forgeType: forgeInfo.forgeType,
     isAdmin: true,
+  };
+}
+
+async function resolveUserAuth(userId: string): Promise<AuthContext | null> {
+  const db = getPlatform().db;
+  const [user] = await db
+    .select({
+      id: users.id,
+      forgejoUsername: users.forgejoUsername,
+      isAdmin: users.isAdmin,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) return null;
+
+  const forgeInfo = await resolveForgeTokenInfo(db, user.id);
+  if (!forgeInfo) return null;
+
+  return {
+    userId: user.id,
+    username: user.forgejoUsername ?? "unknown",
+    forgeToken: forgeInfo.token,
+    forgeType: forgeInfo.forgeType,
+    isAdmin: user.isAdmin ?? false,
   };
 }
 

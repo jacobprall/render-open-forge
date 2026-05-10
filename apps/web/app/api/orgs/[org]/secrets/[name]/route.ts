@@ -1,18 +1,11 @@
-import { NextResponse } from "next/server";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { type NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
 export async function DELETE(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ org: string; name: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { org, name } = await params;
-
-  try {
-    await getPlatform().orgs.deleteSecret(auth, org, name);
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  return gatewayProxy(req, `/orgs/${org}/secrets/${name}`, userId);
 }

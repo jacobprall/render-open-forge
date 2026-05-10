@@ -1,30 +1,20 @@
 import { NextResponse } from "next/server";
-import { logger } from "@openforge/shared";
-import { getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { gatewayFetch } from "@/lib/gateway";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  const rawBody = await req.text();
-  const signature = req.headers.get("x-hub-signature-256") ?? "";
-  const event = req.headers.get("x-github-event");
-
-  const { webhooks } = getPlatform();
-
-  try {
-    await webhooks.handleGithubWebhook(rawBody, signature);
-  } catch (err) {
-    return handlePlatformError(err);
-  }
-
-  try {
-    await webhooks.handleGithubEvent(event, rawBody);
-  } catch (err) {
-    logger.errorWithCause(err, "github webhook handler failed", {});
-    return NextResponse.json({ error: "Processing failed" }, { status: 500 });
-  }
-
-  return NextResponse.json({ received: true });
+  const body = await req.text();
+  const res = await gatewayFetch("/webhooks/github", {
+    method: "POST",
+    body,
+    headers: {
+      "Content-Type": req.headers.get("Content-Type") ?? "application/json",
+      "x-hub-signature-256": req.headers.get("x-hub-signature-256") ?? "",
+      "x-github-event": req.headers.get("x-github-event") ?? "",
+    },
+  });
+  const data = await res.json().catch(() => ({}));
+  return NextResponse.json(data, { status: res.status });
 }

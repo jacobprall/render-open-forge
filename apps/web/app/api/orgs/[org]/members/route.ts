@@ -1,65 +1,30 @@
-import { NextResponse } from "next/server";
-import { safeJson } from "@/lib/api-utils";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { type NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
 export async function GET(
-  _request: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ org: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { org } = await params;
-
-  try {
-    const members = await getPlatform().orgs.listMembers(auth, org);
-    return NextResponse.json(members);
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  const qs = req.nextUrl.search;
+  return gatewayProxy(req, `/orgs/${org}/members${qs}`, userId);
 }
 
 export async function PUT(
-  request: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ org: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { org } = await params;
-  const parsedBody = await safeJson(request);
-  if ("error" in parsedBody) {
-    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
-  }
-  const { username } = parsedBody.data as { username?: string };
-  if (!username) {
-    return NextResponse.json({ error: "username is required" }, { status: 400 });
-  }
-
-  try {
-    await getPlatform().orgs.addMember(auth, org, username);
-    return new NextResponse(null, { status: 204 });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  return gatewayProxy(req, `/orgs/${org}/members`, userId);
 }
 
 export async function DELETE(
-  request: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ org: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { org } = await params;
-  const parsedBody = await safeJson(request);
-  if ("error" in parsedBody) {
-    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
-  }
-  const { username } = parsedBody.data as { username?: string };
-  if (!username) {
-    return NextResponse.json({ error: "username is required" }, { status: 400 });
-  }
-
-  try {
-    await getPlatform().orgs.removeMember(auth, org, username);
-    return new NextResponse(null, { status: 204 });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  return gatewayProxy(req, `/orgs/${org}/members`, userId);
 }

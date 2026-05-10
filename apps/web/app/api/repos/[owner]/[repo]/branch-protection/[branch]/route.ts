@@ -1,35 +1,20 @@
-import { NextResponse } from "next/server";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string; branch: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { owner, repo, branch } = await params;
-  const decoded = decodeURIComponent(branch);
-
-  try {
-    const protection = await getPlatform().repos.getBranchProtection(auth, owner, repo, decoded);
-    return NextResponse.json({ protection });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  return gatewayProxy(req, `/repos/${owner}/${repo}/branch-protection/${branch}`, userId);
 }
 
 export async function DELETE(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string; branch: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { owner, repo, branch } = await params;
-  const decoded = decodeURIComponent(branch);
-
-  try {
-    await getPlatform().repos.deleteBranchProtection(auth, owner, repo, decoded);
-    return NextResponse.json({ success: true });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  return gatewayProxy(req, `/repos/${owner}/${repo}/branch-protection/${branch}`, userId);
 }

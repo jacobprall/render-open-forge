@@ -1,18 +1,11 @@
-import { NextResponse } from "next/server";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string; runId: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { owner, repo, runId } = await params;
-
-  try {
-    const result = await getPlatform().repos.getTestResults(auth, owner, repo, runId);
-    return NextResponse.json(result);
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  return gatewayProxy(req, `/repos/${owner}/${repo}/actions/runs/${runId}/test-results`, userId);
 }

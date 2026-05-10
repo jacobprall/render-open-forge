@@ -1,16 +1,8 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { createForgeProvider } from "@/lib/forge/client";
+import { type NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
-export async function GET(request: Request) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const url = new URL(request.url);
-  const q = url.searchParams.get("q");
-  if (!q) return NextResponse.json([]);
-
-  const forge = createForgeProvider(session.forgeToken, session.forgeType);
-  const repos = await forge.repos.search(q, 20);
-  return NextResponse.json(repos);
+export async function GET(req: NextRequest) {
+  const userId = await requireUserId();
+  const qs = req.nextUrl.search;
+  return gatewayProxy(req, `/search${qs}`, userId);
 }

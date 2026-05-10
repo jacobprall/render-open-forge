@@ -19,6 +19,8 @@ import { webhookRoutes } from "./routes/webhooks";
 import { ciRoutes } from "./routes/ci";
 import { modelRoutes } from "./routes/models";
 import { notificationRoutes } from "./routes/notifications";
+import { projectRoutes } from "./routes/projects";
+import { searchRoutes } from "./routes/search";
 import { streamRoutes } from "./routes/stream";
 import { handleMcpRequest } from "./mcp/server";
 
@@ -47,6 +49,8 @@ app.route("/api/mirrors", mirrorRoutes);
 app.route("/api/invites", inviteRoutes);
 app.route("/api/models", modelRoutes);
 app.route("/api/notifications", notificationRoutes);
+app.route("/api/projects", projectRoutes);
+app.route("/api/search", searchRoutes);
 app.route("/api/stream", streamRoutes);
 
 // --- MCP endpoint (authenticated) ---

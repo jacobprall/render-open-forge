@@ -1,17 +1,11 @@
-import { NextResponse } from "next/server";
-import { getPlatform, requireAuth } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const [{ id }, auth] = await Promise.all([params, requireAuth()]);
-
-  try {
-    const events = await getPlatform().sessions.listCiEvents(auth, id);
-    return NextResponse.json({ events });
-  } catch (err) {
-    return handlePlatformError(err);
-  }
+  const userId = await requireUserId();
+  const { id } = await params;
+  return gatewayProxy(req, `/sessions/${id}/ci-events`, userId);
 }

@@ -1,71 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError, parseJsonBody } from "@/lib/api/errors";
-import type { ReviewEvent } from "@openforge/platform";
-
-const REVIEW_EVENTS = ["APPROVE", "REQUEST_CHANGES", "COMMENT"] as const;
-const EVENT_MAP: Record<string, ReviewEvent> = {
-  APPROVE: "approve",
-  REQUEST_CHANGES: "request_changes",
-  COMMENT: "comment",
-};
+import { NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string; number: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { owner, repo, number } = await params;
-  const n = Number(number);
-  if (!Number.isFinite(n) || n < 1) {
-    return NextResponse.json({ error: "Invalid PR number" }, { status: 400 });
-  }
-
-  try {
-    const reviews = await getPlatform().pullRequests.listReviews(auth, owner, repo, n);
-    return NextResponse.json({ reviews });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  return gatewayProxy(req, `/pulls/${owner}/${repo}/${number}/reviews`, userId);
 }
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string; number: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { owner, repo, number } = await params;
-  const n = Number(number);
-  if (!Number.isFinite(n) || n < 1) {
-    return NextResponse.json({ error: "Invalid PR number" }, { status: 400 });
-  }
-
-  const body = await parseJsonBody<Record<string, unknown>>(req);
-
-  const rawEvent = typeof body.event === "string" ? body.event.toUpperCase() : "";
-  if (!REVIEW_EVENTS.includes(rawEvent as (typeof REVIEW_EVENTS)[number])) {
-    return NextResponse.json({ error: "Invalid event — use APPROVE, REQUEST_CHANGES, or COMMENT" }, { status: 400 });
-  }
-
-  const event = EVENT_MAP[rawEvent]!;
-  const reviewBody = typeof body.body === "string" ? body.body : undefined;
-  const comments = Array.isArray(body.comments)
-    ? (body.comments as Array<Record<string, unknown>>).map((c) => ({
-        body: String(c.body ?? ""),
-        path: String(c.path ?? ""),
-        newLine: typeof c.new_line_num === "number" ? c.new_line_num : undefined,
-        oldLine: typeof c.old_line_num === "number" ? c.old_line_num : undefined,
-      }))
-    : undefined;
-
-  try {
-    const review = await getPlatform().pullRequests.submitReview(auth, owner, repo, n, {
-      event,
-      body: reviewBody,
-      comments,
-    });
-    return NextResponse.json({ review });
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  return gatewayProxy(req, `/pulls/${owner}/${repo}/${number}/reviews`, userId);
 }

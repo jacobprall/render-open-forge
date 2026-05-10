@@ -165,6 +165,7 @@
   color-scheme: light;
 
   --of-font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --of-font-mono: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --of-font-heading: var(--font-lora), Georgia, "Times New Roman", serif;
   --of-font-size-base: 15px;
   --of-letter-spacing: 0;

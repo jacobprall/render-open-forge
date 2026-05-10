@@ -1,21 +1,12 @@
-import { NextResponse } from "next/server";
-import { requireAuth, getPlatform } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
-interface RouteParams {
-  params: Promise<{ owner: string; repo: string }>;
-}
-
-export async function GET(request: Request, { params }: RouteParams) {
-  const auth = await requireAuth();
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ owner: string; repo: string }> },
+) {
+  const userId = await requireUserId();
   const { owner, repo } = await params;
-  const url = new URL(request.url);
-  const ref = url.searchParams.get("ref") || undefined;
-
-  try {
-    const listing = await getPlatform().repos.getFileContents(auth, owner, repo, "", ref);
-    return NextResponse.json(listing);
-  } catch (e) {
-    return handlePlatformError(e);
-  }
+  const qs = req.nextUrl.search;
+  return gatewayProxy(req, `/repos/${owner}/${repo}/contents${qs}`, userId);
 }

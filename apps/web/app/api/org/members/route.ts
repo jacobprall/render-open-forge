@@ -1,13 +1,8 @@
-import { NextResponse } from "next/server";
-import { getPlatform, requireAuth } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import { type NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
-export async function GET() {
-  await requireAuth();
-  try {
-    const members = await getPlatform().orgs.listPlatformMembers();
-    return NextResponse.json(members);
-  } catch (err) {
-    return handlePlatformError(err);
-  }
+export async function GET(req: NextRequest) {
+  const userId = await requireUserId();
+  const qs = req.nextUrl.search;
+  return gatewayProxy(req, `/org/members${qs}`, userId);
 }

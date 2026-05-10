@@ -1,17 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getPlatform, requireAuth } from "@/lib/platform";
-import { handlePlatformError } from "@/lib/api/errors";
+import type { NextRequest } from "next/server";
+import { gatewayProxy, requireUserId } from "@/lib/gateway";
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string; repoPath: string }> },
 ) {
-  const auth = await requireAuth();
+  const userId = await requireUserId();
   const { id, repoPath } = await params;
-  try {
-    await getPlatform().projects.removeRepo(auth, id, decodeURIComponent(repoPath));
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    return handlePlatformError(err);
-  }
+  return gatewayProxy(req, `/projects/${id}/repos/${encodeURIComponent(repoPath)}`, userId);
 }
