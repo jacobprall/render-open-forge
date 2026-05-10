@@ -1,12 +1,9 @@
 /**
- * Barrel export for the forge abstraction layer.
+ * Barrel export for forge types and interfaces.
  *
- * Usage:
- *   import { createForgeProvider, getDefaultForgeProvider } from "@openforge/shared/lib/forge";
- *   import type { ForgeProvider, ForgeRepo, ForgePullRequest } from "@openforge/shared/lib/forge";
+ * Implementation code (adapters, factories) lives in @openforge/platform/forge.
  */
 
-// Normalized types
 export type {
   ForgeRepo,
   ForgeBranch,
@@ -46,7 +43,6 @@ export type {
   ForgeWebhookEventType,
 } from "./types";
 
-// Provider interface + capability interfaces
 export type {
   ForgeProvider,
   ForgeProviderType,
@@ -65,10 +61,3 @@ export type {
   WebhookOperations,
   GitOperations,
 } from "./provider";
-
-// Concrete adapters
-export { ForgejoProvider } from "./forgejo-adapter";
-
-// Factory
-export { createForgeProvider, getDefaultForgeProvider } from "./factory";
-export type { ForgeProviderConfig } from "./factory";

@@ -1,23 +1,12 @@
 # Gateway-First Architecture Migration
 
+> **Status: COMPLETE** — All 6 phases have been implemented.
+>
 > **Goal:** Make the Hono gateway the single canonical API layer. The Next.js web
 > app becomes a pure rendering concern — pages, RSC data loading, and thin proxy
 > routes that forward client-side requests to the gateway.
 
-## Current Problems
-
-1. **Near-complete API duplication** — 78 route handlers in `apps/web/app/api/`,
-   ~50 in `apps/gateway/src/routes/`, covering the same domains.
-2. **Gateway is barely used** — only `GET /api/models` proxies through it;
-   everything else in the web app goes direct to `@openforge/platform`.
-3. **Three independent `PlatformContainer` instances** — web, gateway, and agent
-   worker all wire their own. Only gateway and agent genuinely need one.
-4. **SSE streaming duplicated** — both web and gateway implement run-event
-   replay, inbox polling, and CI log tailing.
-5. **`@openforge/shared` is a grab-bag** — contains forge adapters, encryption,
-   job queue, and run-stream helpers that also live in `@openforge/platform`.
-
-## Target Architecture
+## Architecture
 
 ```
 Browser
@@ -63,138 +52,86 @@ apps/gateway (Hono)
 4. **Streaming is pass-through** — SSE endpoints in the web app become HTTP
    proxies that pipe the gateway's SSE response through to the browser.
 5. **Shared is for types** — `@openforge/shared` holds types, errors, logger,
-   and model catalog. Implementation code moves to `@openforge/platform`.
+   and model catalog. Implementation code lives in `@openforge/platform`.
 
-## Migration Phases
+## Implementation Summary
 
-### Phase 1: Gateway Auth Enhancement
+### Phase 1: Gateway Auth Enhancement ✅
 
-**File:** `apps/gateway/src/middleware/auth.ts`
+Added user impersonation to `apps/gateway/src/middleware/auth.ts`:
+`GATEWAY_API_SECRET` + `X-OpenForge-User-Id` header resolves an `AuthContext`
+for the specified user (not admin fallback).
 
-Add user impersonation support: when the request is authenticated via
-`GATEWAY_API_SECRET` and includes `X-OpenForge-User-Id`, resolve an `AuthContext`
-for that specific user (not the admin fallback). This lets the web app proxy
-requests on behalf of the logged-in user.
+### Phase 2: `gatewayFetch` Upgrade ✅
 
-```
-if (token === GATEWAY_API_SECRET && X-OpenForge-User-Id is present) {
-  → resolve AuthContext for that user ID
-} else if (token === GATEWAY_API_SECRET) {
-  → resolve admin AuthContext (existing behavior)
-} else {
-  → resolve API key auth (existing behavior)
-}
-```
+Rewrote `apps/web/lib/gateway.ts` with:
+- `gatewayFetch(path, opts)` — low-level fetch with internal auth and userId
+- `gatewayProxy(req, gatewayPath, userId)` — forward NextRequest → NextResponse
+- `gatewayStream(gatewayPath, userId)` — proxy SSE streams
+- `requireUserId()` — resolve NextAuth session → userId
 
-### Phase 2: Upgrade `gatewayFetch` Helper
+### Phase 3: Missing Gateway Routes ✅
 
-**File:** `apps/web/lib/gateway.ts`
+Added to the gateway:
+- `projects.ts` — full CRUD + repo associations
+- `search.ts` — repository search
+- `org.ts` — singular org (platform org, members)
+- Render deploy webhooks in `webhooks.ts`
+- Repo listing + branch listing in `sessions.ts`
 
-Enhance to:
-- Accept a `userId` parameter and set `X-OpenForge-User-Id` header
-- Forward request bodies with correct `Content-Type`
-- Support SSE pass-through (return raw `Response` for streaming)
-- Map gateway errors to Next.js `NextResponse` errors
+### Phase 4: Web API Route Conversion ✅
 
-### Phase 3: Add Missing Gateway Routes
+Converted 57+ web API route files into thin proxy handlers. All business logic
+removed; routes call `gatewayProxy()` or `gatewayStream()`. Server actions
+(`sessions/actions.ts`, `pulls/actions.ts`) also converted to use `gatewayFetch`.
 
-Routes that exist in web but not in gateway:
+### Phase 5: `@openforge/shared` Cleanup ✅
 
-| Domain | Routes to add |
-|--------|---------------|
-| Projects | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/:id`, `POST /api/projects/:id/repos`, `DELETE /api/projects/:id/repos/:path` |
-| Search | `GET /api/search?q=` |
-| Sync | `GET /api/sync/github/repos`, `GET /api/sync/gitlab/repos` |
-| Webhooks | `POST /api/webhooks/render` |
-| Metrics | `GET /api/metrics` |
+Deleted from shared:
+- Forge implementations: `forgejo-adapter.ts`, `factory.ts` (live in platform)
+- Orphaned files: `job-queue.ts`, `run-stream.ts`, `dead-letter.ts`, `metrics.ts`,
+  `tool-state.ts`, `paste-blocks.ts`, `diff.ts`, `chat-parts.ts`
+- Forgejo: `client.ts`, `ci-helpers.ts`
+- `api-key-resolver.ts` (moved implementation into platform)
+- Removed `@openforge/db` dependency from shared
 
-### Phase 4: Convert Web API Routes to Proxies
+Kept in shared: `errors.ts`, `api-types.ts`, `request-id.ts`, `logger.ts`,
+`model-catalog.ts`, `stream-types.ts`, `ci/test-results.ts`, `encryption.ts`,
+`llm-key-validation.ts`, `forgejo/webhook-signature.ts`, forge types/interfaces.
 
-Convert domain by domain. Each web `route.ts` becomes a thin proxy:
+### Phase 6: Dead Code Removal ✅
 
-```typescript
-// Before (direct platform call):
-export async function POST(req: NextRequest) {
-  const session = await requireAuth();
-  const body = await req.json();
-  const platform = getPlatform();
-  const result = await platform.sessions.create({ ...body, userId: session.user.id });
-  return NextResponse.json(result);
-}
+Deleted 20+ orphaned files from `apps/web/lib/`:
+- `sessions/enqueue-message.ts`, `sessions/auto-title.ts`
+- `agent/enqueue-session-job.ts`, `agent/escalation.ts`
+- `ci/result-handler.ts`, `ci/dispatcher.ts`, `ci/local-runner.ts`,
+  `ci/ci-result-schema.ts`, `ci/workflow-parser.ts`
+- `skills/resolve-for-session.ts`
+- `sse/shared-subscriber.ts`, `sse/connection-pool.ts`
+- `sync/mirror-engine.ts`
+- `invites/create-invite.ts`
+- `orgs/org-service.ts`, `orgs/permissions.ts`, `orgs/quotas.ts`
+- `models/anthropic-models.ts`
+- `api/client.ts`, `api/handler.ts`, `api/index.ts`, `api/types.ts`,
+  `api/pagination.ts`
 
-// After (gateway proxy):
-export async function POST(req: NextRequest) {
-  const session = await requireAuth();
-  return gatewayProxy(req, "/sessions", session.user.id);
-}
-```
-
-**Order of conversion** (by dependency risk, lowest first):
-1. Models (already done)
-2. Projects (new domain, clean slate)
-3. Inbox (read-heavy, simple)
-4. Notifications
-5. Skills
-6. Mirrors
-7. Settings
-8. Search
-9. Orgs / Invites
-10. Sessions (most complex, highest traffic)
-11. Repos / Pulls (most endpoints)
-12. Webhooks / CI (public routes, different auth)
-13. SSE Streaming (sessions, inbox, CI logs)
-
-### Phase 5: Clean Up `@openforge/shared`
-
-Move implementation code out of `@openforge/shared/lib/` into
-`@openforge/platform`:
-
-| Currently in shared | Move to |
-|---------------------|---------|
-| `lib/forge/*` (adapters, types, factory) | Already in `@openforge/platform/forge/` — delete from shared |
-| `lib/forgejo/*` (client, webhooks, CI) | Already in `@openforge/platform/forgejo/` — delete from shared |
-| `lib/encryption.ts` | Already re-exported from platform — delete from shared |
-| `lib/api-key-resolver.ts` | Already re-exported from platform — delete from shared |
-| `lib/llm-key-validation.ts` | Already re-exported from platform — delete from shared |
-| `lib/job-queue.ts` | Already in `@openforge/platform/queue/` — delete from shared |
-| `lib/run-stream.ts` | Already in `@openforge/platform/events/` — delete from shared |
-| `lib/dead-letter.ts` | Already in platform — delete from shared |
-| `lib/metrics.ts` | Already in platform — delete from shared |
-
-**Keep in shared:** `errors.ts`, `api-types.ts`, `request-id.ts`, `logger.ts`,
-`model-catalog.ts`, `stream-types.ts`, `ci/test-results.ts`, `client.ts`.
-
-**Keep in shared/lib (UI utilities used by @openforge/ui):** `chat-parts.ts`,
-`paste-blocks.ts`, `diff.ts`, `tool-state.ts`.
-
-### Phase 6: Remove Dead Code
-
-- Delete `apps/web/lib/db.ts` / `apps/web/lib/redis.ts` if no longer imported
-  by API routes (RSC pages may still use them).
-- Remove `@openforge/platform` from `apps/web/package.json` dependencies if
-  only RSC server components use it (optional — platform for RSC reads is fine).
-- Clean up web middleware rate-limiter references to non-existent paths
-  (`/api/chat`, `/api/agent/stream`).
-
-## Risk Mitigation
-
-- **Feature parity check:** Before converting each domain, verify the gateway
-  route handles all edge cases the web route does (error codes, validation,
-  side effects like `after()` hooks).
-- **Incremental rollout:** Convert one domain at a time, test, then proceed.
-- **SSE is highest risk:** Streaming proxy requires careful handling of
-  connection lifecycle, backpressure, and client disconnection.
-- **OAuth flows stay in web:** OAuth redirect callbacks (`/api/oauth/*`) must
-  remain in the web app since they set cookies and redirect the browser. These
-  are not API routes in the traditional sense.
-- **NextAuth stays in web:** `[...nextauth]` route handlers are inherently
-  browser-session-based and stay in web.
+Simplified `instrumentation.ts` (removed mirror cron).
 
 ## What Stays in Web
 
-These routes remain in `apps/web` because they're browser-specific:
+These remain in `apps/web` because they're browser-specific:
 
 - `GET/POST /api/auth/[...nextauth]` — NextAuth session management
-- `POST /api/auth/invite/accept` — browser flow (sets session, redirects)
+- `POST /api/auth/invite/accept` — browser flow (uses platform directly)
 - `GET /api/oauth/github` + `/callback` — OAuth redirect flow
 - `GET /api/oauth/gitlab` + `/callback` — OAuth redirect flow
+- `GET /api/sync/[provider]/repos` — sync connection repos (uses web-specific OAuth helpers)
+- `GET /api/metrics` — observability endpoint
+- `GET /api/health` — health check
+
+## Impact
+
+- **Net code reduction:** ~7,300 lines removed across all phases
+- **Eliminated duplication:** Business logic exists in one place (gateway + platform)
+- **Cleaner shared package:** No more implementation code; only types, errors, and utilities
+- **Clear layering:** Browser → Web (proxy) → Gateway (API) → Platform (logic)

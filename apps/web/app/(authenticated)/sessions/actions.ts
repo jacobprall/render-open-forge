@@ -1,20 +1,23 @@
 "use server";
 
-import { getPlatform, requireAuth } from "@/lib/platform";
-import { AppError } from "@openforge/shared";
+import { gatewayFetch, requireUserId } from "@/lib/gateway";
 import { revalidatePath } from "next/cache";
 
 export async function archiveSessionAction(sessionId: string): Promise<{ error?: string }> {
   try {
-    const auth = await requireAuth();
-    await getPlatform().sessions.archive(auth, sessionId);
+    const userId = await requireUserId();
+    const res = await gatewayFetch(`/api/sessions/${sessionId}/archive`, {
+      method: "POST",
+      userId,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      return { error: body?.error ?? `Archive failed (${res.status})` };
+    }
     revalidatePath("/sessions");
     revalidatePath("/", "layout");
     return {};
   } catch (err) {
-    if (err instanceof AppError) {
-      return { error: err.message };
-    }
     if (err instanceof Response) {
       const body = await err.json().catch(() => null);
       return { error: body?.error ?? "Unauthorized" };

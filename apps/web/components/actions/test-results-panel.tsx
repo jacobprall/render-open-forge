@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import type { TestCase, TestResultSummary, TestSuite } from "@openforge/shared/lib/ci/test-results"
+import type { TestCase, TestResultSummary, TestSuite } from "@openforge/shared"
 
 const fetcher = (url: string) =>
   fetch(url, { cache: "no-store" }).then(async (res) => {

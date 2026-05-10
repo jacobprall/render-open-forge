@@ -13,7 +13,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@openforge/db": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

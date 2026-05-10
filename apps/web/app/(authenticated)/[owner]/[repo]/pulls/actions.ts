@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { requireAuth, getPlatform } from "@/lib/platform";
+import { gatewayFetch, requireUserId } from "@/lib/gateway";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -27,9 +27,9 @@ export async function mergePullRequestAction(
   number: number,
   method: string,
 ): Promise<{ error?: string }> {
-  let auth;
+  let userId: string;
   try {
-    auth = await requireAuth();
+    userId = await requireUserId();
   } catch {
     redirect("/");
   }
@@ -41,7 +41,16 @@ export async function mergePullRequestAction(
 
   try {
     const { owner: o, repo: r, number: n, method: m } = parsed.data;
-    await getPlatform().pullRequests.mergePullRequest(auth, o, r, n, m);
+    const res = await gatewayFetch(`/api/repos/${o}/${r}/pulls/${n}/merge`, {
+      method: "POST",
+      userId,
+      body: JSON.stringify({ method: m }),
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      return { error: body?.error ?? "Merge failed" };
+    }
     revalidatePath(`/${parsed.data.owner}/${parsed.data.repo}/pulls/${parsed.data.number}`);
     return {};
   } catch (e) {
@@ -57,9 +66,9 @@ export async function createPullRequestAction(
   head: string,
   base: string,
 ): Promise<{ number?: number; error?: string }> {
-  let auth;
+  let userId: string;
   try {
-    auth = await requireAuth();
+    userId = await requireUserId();
   } catch {
     redirect("/");
   }
@@ -78,12 +87,17 @@ export async function createPullRequestAction(
 
   try {
     const { owner: o, repo: r, title: t, body: b, head: h, base: baseBranch } = parsed.data;
-    const result = await getPlatform().pullRequests.createPullRequest(auth, o, r, {
-      title: t,
-      body: b,
-      head: h,
-      base: baseBranch,
+    const res = await gatewayFetch(`/api/repos/${o}/${r}/pulls`, {
+      method: "POST",
+      userId,
+      body: JSON.stringify({ title: t, body: b, head: h, base: baseBranch }),
+      headers: { "Content-Type": "application/json" },
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      return { error: body?.error ?? "Failed to create pull request" };
+    }
+    const result = await res.json();
     return { number: result.number };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to create pull request" };

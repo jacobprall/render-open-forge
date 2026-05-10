@@ -3,6 +3,18 @@
 // Lib - Stream event types
 export type { StreamEvent } from "./lib/stream-types";
 
+// Forge types & interfaces (implementations live in @openforge/platform)
+export type {
+  ForgeProvider,
+  ForgeProviderType,
+  ForgeRepo,
+  ForgeBranch,
+  ForgePullRequest,
+  ForgeFileContent,
+  ForgeCommit,
+  ForgeUser,
+} from "./lib/forge";
+
 // Errors + API types + logging + request ID
 export {
   AgentError,
