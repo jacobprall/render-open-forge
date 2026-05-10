@@ -1,16 +1,10 @@
-import dynamic from "next/dynamic";
-
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 
 import { getSession } from "@/lib/auth/session";
 import { createForgeProvider } from "@/lib/forge/client";
 import { relativeTime } from "@/lib/utils";
-
-const UnifiedDiffViewer = dynamic(
-  () => import("@/components/diff-viewer").then((m) => ({ default: m.UnifiedDiffViewer })),
-  { ssr: false, loading: () => <div className="text-xs text-text-tertiary p-4">Loading diff...</div> },
-);
+import { CommitDiffViewer } from "./diff-viewer-client";
 
 export default async function CommitDetailPage({
   params,
@@ -98,7 +92,7 @@ export default async function CommitDetailPage({
       </div>
 
       {diffText ? (
-        <UnifiedDiffViewer diff={diffText} />
+        <CommitDiffViewer diff={diffText} />
       ) : (
         <div className="border border-dashed border-stroke-subtle px-6 py-12 text-center">
           <p className="text-sm text-text-tertiary">
