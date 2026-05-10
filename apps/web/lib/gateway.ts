@@ -79,22 +79,39 @@ export async function gatewayStream(
   gatewayPath: string,
   userId: string,
 ): Promise<Response> {
-  const res = await gatewayFetch(gatewayPath, {
-    userId,
-    headers: { Accept: "text/event-stream" },
-  });
+  let res: Response;
+  try {
+    res = await gatewayFetch(gatewayPath, {
+      userId,
+      headers: { Accept: "text/event-stream" },
+    });
+  } catch {
+    return sseError("Gateway unreachable");
+  }
 
   if (!res.ok || !res.body) {
     const text = await res.text().catch(() => "Gateway stream error");
-    return new Response(text, { status: res.status });
+    return sseError(text, res.status);
   }
 
-  const upstream = res.body;
   const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
 
-  void upstream
-    .pipeTo(writable)
-    .catch(() => writable.close().catch(() => {}));
+  void (async () => {
+    const reader = res.body!.getReader();
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        await writer.write(value);
+      }
+      await writer.close();
+    } catch {
+      await writer.close().catch(() => {});
+    } finally {
+      reader.releaseLock();
+    }
+  })();
 
   return new Response(readable, {
     headers: {
@@ -104,6 +121,16 @@ export async function gatewayStream(
       "X-Accel-Buffering": "no",
     },
   });
+}
+
+function sseError(message: string, status = 502): Response {
+  return new Response(
+    `data: ${JSON.stringify({ type: "error", message })}\n\n`,
+    {
+      status,
+      headers: { "Content-Type": "text/event-stream" },
+    },
+  );
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
