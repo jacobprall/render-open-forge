@@ -89,7 +89,14 @@ export async function gatewayStream(
     return new Response(text, { status: res.status });
   }
 
-  return new Response(res.body, {
+  const upstream = res.body;
+  const { readable, writable } = new TransformStream();
+
+  void upstream
+    .pipeTo(writable)
+    .catch(() => writable.close().catch(() => {}));
+
+  return new Response(readable, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
