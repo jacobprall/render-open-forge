@@ -69,6 +69,9 @@ export type {
   CreateOrUpdateApiKeyParams,
   CreateOrUpdateApiKeyResult,
   UpdateApiKeyParams,
+  AccessTokenMetadata,
+  CreateAccessTokenParams,
+  CreateAccessTokenResult,
 } from "./settings";
 
 export { SkillService } from "./skill";

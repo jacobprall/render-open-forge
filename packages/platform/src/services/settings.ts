@@ -1,5 +1,6 @@
+import { createHash, randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
-import { llmApiKeys } from "@openforge/db/schema";
+import { llmApiKeys, apiKeys } from "@openforge/db/schema";
 import {
   InsufficientPermissionsError,
   SessionNotFoundError,
@@ -53,6 +54,33 @@ export interface CreateOrUpdateApiKeyResult {
 export interface UpdateApiKeyParams {
   label?: string;
   apiKey?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Access token types (gateway personal access tokens)
+// ---------------------------------------------------------------------------
+
+export interface AccessTokenMetadata {
+  id: string;
+  label: string;
+  prefix: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+export interface CreateAccessTokenParams {
+  label: string;
+  expiresInDays?: number | null;
+}
+
+export interface CreateAccessTokenResult {
+  id: string;
+  label: string;
+  prefix: string;
+  token: string;
+  expiresAt: string | null;
+  createdAt: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -243,9 +271,118 @@ export class SettingsService {
     await this.db.delete(llmApiKeys).where(eq(llmApiKeys.id, id));
   }
 
+  // -------------------------------------------------------------------------
+  // listAccessTokens — GET /settings/access-tokens
+  // -------------------------------------------------------------------------
+
+  async listAccessTokens(auth: AuthContext): Promise<AccessTokenMetadata[]> {
+    const rows = await this.db
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.userId, auth.userId));
+
+    return rows.map((r) => ({
+      id: r.id,
+      label: r.label,
+      prefix: r.prefix,
+      lastUsedAt: r.lastUsedAt?.toISOString() ?? null,
+      expiresAt: r.expiresAt?.toISOString() ?? null,
+      createdAt: r.createdAt.toISOString(),
+    }));
+  }
+
+  // -------------------------------------------------------------------------
+  // createAccessToken — POST /settings/access-tokens
+  // -------------------------------------------------------------------------
+
+  async createAccessToken(
+    auth: AuthContext,
+    params: CreateAccessTokenParams,
+  ): Promise<CreateAccessTokenResult> {
+    const label = params.label?.trim();
+    if (!label) {
+      throw new ValidationError("Label is required");
+    }
+
+    const raw = randomBytes(24).toString("hex");
+    const token = `of_${raw}`;
+    const prefix = token.slice(0, 7);
+    const hashedKey = createHash("sha256").update(token).digest("hex");
+
+    const expiresAt = params.expiresInDays
+      ? new Date(Date.now() + params.expiresInDays * 86_400_000)
+      : null;
+
+    const id = crypto.randomUUID();
+    const now = new Date();
+
+    await this.db.insert(apiKeys).values({
+      id,
+      userId: auth.userId,
+      label,
+      hashedKey,
+      prefix,
+      expiresAt,
+      createdAt: now,
+    });
+
+    return {
+      id,
+      label,
+      prefix,
+      token,
+      expiresAt: expiresAt?.toISOString() ?? null,
+      createdAt: now.toISOString(),
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // updateAccessToken — PATCH /settings/access-tokens/:id
+  // -------------------------------------------------------------------------
+
+  async updateAccessToken(
+    auth: AuthContext,
+    id: string,
+    params: { label: string },
+  ): Promise<void> {
+    const label = params.label?.trim();
+    if (!label) {
+      throw new ValidationError("Label is required");
+    }
+    await this.authorizeAccessToken(auth, id);
+    await this.db.update(apiKeys).set({ label }).where(eq(apiKeys.id, id));
+  }
+
+  // -------------------------------------------------------------------------
+  // deleteAccessToken — DELETE /settings/access-tokens/:id
+  // -------------------------------------------------------------------------
+
+  async deleteAccessToken(auth: AuthContext, id: string): Promise<void> {
+    await this.authorizeAccessToken(auth, id);
+    await this.db.delete(apiKeys).where(eq(apiKeys.id, id));
+  }
+
   // =========================================================================
   // Private helpers
   // =========================================================================
+
+  private async authorizeAccessToken(
+    auth: AuthContext,
+    id: string,
+  ): Promise<typeof apiKeys.$inferSelect> {
+    const [row] = await this.db
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.id, id))
+      .limit(1);
+    if (!row) {
+      throw new SessionNotFoundError("Access token not found");
+    }
+    if (row.userId !== auth.userId) {
+      throw new InsufficientPermissionsError("Access denied");
+    }
+    return row;
+  }
 
   private async authorizeKey(
     auth: AuthContext,

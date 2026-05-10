@@ -51,7 +51,6 @@ Pluggable adapters live in `src/interfaces/` and allow swapping infrastructure w
 |---------|----------------|
 | `StorageAdapter` | S3, local filesystem, in-memory |
 | `CacheAdapter` | Redis, in-memory |
-| `CIDispatcher` | Render Workflows, noop |
 | `NotificationSink` | Console, webhook, composite, noop |
 | `AuthProvider` | Static token, composite |
 | `QueueAdapter` | Redis Streams |

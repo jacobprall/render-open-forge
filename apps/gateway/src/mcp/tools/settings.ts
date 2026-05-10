@@ -46,4 +46,37 @@ export const registerSettingsTools: ToolRegistrar = (server, p, auth) => {
     await p.settings.deleteApiKey(auth, keyId);
     return textResult({ ok: true });
   });
+
+  // --- Personal access tokens (gateway auth) ---
+
+  server.registerTool("list-access-tokens", {
+    title: "List Access Tokens",
+    description: "List your personal access tokens for gateway/MCP authentication.",
+  }, async () => {
+    const tokens = await p.settings.listAccessTokens(auth);
+    return textResult({ tokens });
+  });
+
+  server.registerTool("create-access-token", {
+    title: "Create Access Token",
+    description: "Generate a new personal access token. The plaintext token is returned once and cannot be retrieved later.",
+    inputSchema: z.object({
+      label: z.string().min(1).describe("A descriptive label for the token"),
+      expiresInDays: z.number().int().positive().nullable().optional().describe("Days until expiration (null for no expiration)"),
+    }),
+  }, async (args) => {
+    const result = await p.settings.createAccessToken(auth, args);
+    return textResult(result);
+  });
+
+  server.registerTool("delete-access-token", {
+    title: "Revoke Access Token",
+    description: "Revoke a personal access token. Any clients using it will lose access.",
+    inputSchema: z.object({
+      tokenId: z.string().describe("The ID of the token to revoke"),
+    }),
+  }, async ({ tokenId }) => {
+    await p.settings.deleteAccessToken(auth, tokenId);
+    return textResult({ ok: true });
+  });
 };
