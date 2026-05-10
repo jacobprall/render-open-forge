@@ -31,7 +31,7 @@ export const AgentJobSchema = z.object({
     }),
   ),
   modelMessages: z.array(z.unknown()).optional(),
-  resolvedSkills: z.array(ResolvedSkillSchema).min(1),
+  resolvedSkills: z.array(ResolvedSkillSchema),
   projectConfig: z.unknown().optional(),
   projectContext: z.string().nullish(),
   modelId: z.string().optional(),
