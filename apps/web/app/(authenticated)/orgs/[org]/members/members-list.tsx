@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import Image from "next/image";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface Member {
   id: number;
@@ -46,13 +47,11 @@ export function MembersList({ org }: { org: string }) {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch(base, {
+      const { ok, data: json } = await apiFetch<{ error?: string }>(base, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: trimmed }),
+        body: { username: trimmed },
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((json as { error?: string }).error ?? "Failed to add member");
+      if (!ok) throw new Error(json.error ?? "Failed to add member");
       setMessage(`Added ${trimmed} to ${org}.`);
       setUsername("");
       await mutate();
@@ -68,13 +67,11 @@ export function MembersList({ org }: { org: string }) {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch(base, {
+      const { ok, data: json } = await apiFetch<{ error?: string }>(base, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: login }),
+        body: { username: login },
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((json as { error?: string }).error ?? "Failed to remove member");
+      if (!ok) throw new Error(json.error ?? "Failed to remove member");
       setMessage(`Removed ${login} from ${org}.`);
       await mutate();
     } catch (e) {

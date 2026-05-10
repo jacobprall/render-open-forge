@@ -78,7 +78,7 @@ export function ReadRenderer({
           code={result.content}
           filePath={filePath}
           showLineNumbers={false}
-          maxHeight="max-h-64"
+          maxHeight="max-h-[28rem]"
         />
       ) : null}
     </ToolLayout>
@@ -119,7 +119,7 @@ export function WriteRenderer({
           code={args.content.length > 800 ? args.content.slice(0, 800) + "\n…" : args.content}
           filePath={filePath}
           showLineNumbers={false}
-          maxHeight="max-h-48"
+          maxHeight="max-h-96"
         />
       )}
     </ToolLayout>

@@ -5,10 +5,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const userId = await requireUserId();
   const { id } = await params;
-  return gatewayStream(`/stream/sessions/${id}`, userId);
+  const lastEventId =
+    req.headers.get("Last-Event-ID") ??
+    req.nextUrl.searchParams.get("lastEventId") ??
+    undefined;
+  return gatewayStream(`/stream/sessions/${id}`, userId, { lastEventId });
 }

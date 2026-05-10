@@ -16,6 +16,13 @@ interface UseEventSourceReturn {
   status: "idle" | "connecting" | "connected" | "disconnected" | "error";
   close: () => void;
   reconnect: () => void;
+  resetLastEventId: () => void;
+}
+
+function sseUrlWithLastEventId(baseUrl: string, lastEventId: string): string {
+  const u = new URL(baseUrl, window.location.href);
+  u.searchParams.set("lastEventId", lastEventId);
+  return u.toString();
 }
 
 export function useEventSource({
@@ -32,6 +39,14 @@ export function useEventSource({
   const reconnectAttempts = useRef(0);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMounted = useRef(true);
+  const lastEventIdRef = useRef<string | null>(null);
+  const onMessageRef = useRef(onMessage);
+  const onErrorRef = useRef(onError);
+  const onOpenRef = useRef(onOpen);
+
+  onMessageRef.current = onMessage;
+  onErrorRef.current = onError;
+  onOpenRef.current = onOpen;
 
   const cleanup = useCallback(() => {
     if (reconnectTimer.current) {
@@ -50,24 +65,33 @@ export function useEventSource({
     cleanup();
     setStatus("connecting");
 
-    const es = new EventSource(url);
+    const lid = lastEventIdRef.current;
+    const resolvedUrl =
+      lid != null && lid !== ""
+        ? sseUrlWithLastEventId(url, lid)
+        : url;
+
+    const es = new EventSource(resolvedUrl);
     esRef.current = es;
 
     es.onopen = (event) => {
       if (!isMounted.current) return;
       reconnectAttempts.current = 0;
       setStatus("connected");
-      onOpen?.(event);
+      onOpenRef.current?.(event);
     };
 
     es.onmessage = (event) => {
       if (!isMounted.current) return;
-      onMessage(event);
+      if (event.lastEventId) {
+        lastEventIdRef.current = event.lastEventId;
+      }
+      onMessageRef.current(event);
     };
 
     es.onerror = (event) => {
       if (!isMounted.current) return;
-      onError?.(event);
+      onErrorRef.current?.(event);
 
       if (es.readyState === EventSource.CLOSED) {
         setStatus("disconnected");
@@ -100,7 +124,7 @@ export function useEventSource({
         });
       }
     };
-  }, [url, enabled, cleanup, onMessage, onError, onOpen, reconnectInterval, maxReconnectAttempts]);
+  }, [url, enabled, cleanup, reconnectInterval, maxReconnectAttempts]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -123,5 +147,9 @@ export function useEventSource({
     connect();
   }, [connect]);
 
-  return { status, close, reconnect };
+  const resetLastEventId = useCallback(() => {
+    lastEventIdRef.current = null;
+  }, []);
+
+  return { status, close, reconnect, resetLastEventId };
 }

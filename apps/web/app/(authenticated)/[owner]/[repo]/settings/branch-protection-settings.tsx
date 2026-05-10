@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { apiFetch } from "@/lib/api-fetch";
 
 type Props = {
   owner: string;
@@ -66,13 +67,11 @@ export function BranchProtectionSettings(props: Props) {
     setMessage(null);
     setError(null);
     try {
-      const res = await fetch(base, {
+      const { ok, data: j } = await apiFetch<{ error?: string }>(base, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(defaultProtectedBranchRule(defaultBranch)),
+        body: defaultProtectedBranchRule(defaultBranch),
       });
-      const j = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(j.error ?? "Failed to create rule");
+      if (!ok) throw new Error(j.error ?? "Failed to create rule");
       setMessage(`Branch ${defaultBranch} is now protected with required approvals (1).`);
       setProtectedDefault(true);
     } catch (e) {
@@ -88,9 +87,8 @@ export function BranchProtectionSettings(props: Props) {
     setError(null);
     try {
       const delUrl = `${base}/${encodeURIComponent(defaultBranch)}`;
-      const res = await fetch(delUrl, { method: "DELETE" });
-      const j = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(j.error ?? "Failed to delete rule");
+      const { ok, data: j } = await apiFetch<{ error?: string }>(delUrl, { method: "DELETE" });
+      if (!ok) throw new Error(j.error ?? "Failed to delete rule");
       setMessage(`Removed protection rule for ${defaultBranch}.`);
       setProtectedDefault(false);
     } catch (e) {

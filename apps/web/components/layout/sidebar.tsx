@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   FolderOpen,
@@ -170,7 +169,7 @@ export function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProps) {
               }`}
             >
               {user.avatarUrl ? (
-                <Image
+                <img
                   src={user.avatarUrl}
                   alt={user.username}
                   width={28}

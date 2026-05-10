@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api-fetch";
 
 export function InstallSkillForm() {
   const [url, setUrl] = useState("");
@@ -19,14 +20,12 @@ export function InstallSkillForm() {
     setResult(null);
     startTransition(async () => {
       try {
-        const res = await fetch("/api/skills/install", {
+        const { ok, data } = await apiFetch<{ error?: string; name?: string; slug?: string }>("/api/skills/install", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: url.trim() }),
+          body: { url: url.trim() },
         });
-        const data = await res.json();
 
-        if (!res.ok) {
+        if (!ok) {
           setResult({ type: "error", message: typeof data.error === "string" ? data.error : "Install failed" });
           return;
         }

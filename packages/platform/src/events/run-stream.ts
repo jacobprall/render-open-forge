@@ -31,14 +31,16 @@ export async function publishRunEvent(
   payloadJson: string,
 ): Promise<void> {
   const key = runEventStreamKey(runId);
+  let streamId: string | null = null;
   try {
-    await redis.xadd(key, "MAXLEN", "~", STREAM_MAXLEN, "*", STREAM_FIELD, payloadJson);
+    streamId = await redis.xadd(key, "MAXLEN", "~", STREAM_MAXLEN, "*", STREAM_FIELD, payloadJson);
   } catch (err) {
     console.warn("[run-stream] XADD failed; skipping PUBLISH", { runId });
     return;
   }
   try {
-    await redis.publish(`run:${runId}`, payloadJson);
+    const pubPayload = JSON.stringify({ _sid: streamId, ...JSON.parse(payloadJson) });
+    await redis.publish(`run:${runId}`, pubPayload);
   } catch (err) {
     console.error("[run-stream] PUBLISH failed", { runId });
   }
@@ -57,15 +59,15 @@ export async function readRunEventHistoryDetailed(
   redis: Redis,
   runId: string,
   limit = 2000,
-): Promise<{ payloads: string[]; lastStreamId: string | null }> {
+): Promise<{ entries: { id: string; payload: string }[]; payloads: string[]; lastStreamId: string | null }> {
   const key = runEventStreamKey(runId);
   try {
-    const entries = (await redis.xrange(key, "-", "+", "COUNT", String(limit))) as
+    const raw = (await redis.xrange(key, "-", "+", "COUNT", String(limit))) as
       | [string, string[]][]
       | null;
-    const parsed = parseStreamEntries(entries);
+    const parsed = parseStreamEntries(raw);
     const lastStreamId = parsed.length > 0 ? parsed[parsed.length - 1]!.id : null;
-    return { payloads: parsed.map((p) => p.payload), lastStreamId };
+    return { entries: parsed, payloads: parsed.map((p) => p.payload), lastStreamId };
   } catch (err) {
     throw new RedisStreamError(`Failed to read run event history for ${runId}`, {
       cause: err,
@@ -80,13 +82,23 @@ export async function readRunEventPayloadsAfterId(
   afterStreamId: string,
   limit = 2000,
 ): Promise<string[]> {
+  const { entries } = await readRunEventEntriesAfterId(redis, runId, afterStreamId, limit);
+  return entries.map((e) => e.payload);
+}
+
+export async function readRunEventEntriesAfterId(
+  redis: Redis,
+  runId: string,
+  afterStreamId: string,
+  limit = 2000,
+): Promise<{ entries: { id: string; payload: string }[] }> {
   const key = runEventStreamKey(runId);
   try {
     const start = `(${afterStreamId}`;
-    const entries = (await redis.xrange(key, start, "+", "COUNT", String(limit))) as
+    const raw = (await redis.xrange(key, start, "+", "COUNT", String(limit))) as
       | [string, string[]][]
       | null;
-    return parseStreamEntries(entries).map((p) => p.payload);
+    return { entries: parseStreamEntries(raw) };
   } catch (err) {
     throw new RedisStreamError(`Failed to read run events after id for ${runId}`, {
       cause: err,

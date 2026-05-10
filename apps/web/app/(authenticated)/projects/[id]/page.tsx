@@ -14,6 +14,7 @@ import {
   Trash2,
   Save,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface ProjectRepo {
   id: string;
@@ -129,10 +130,9 @@ function OverviewTab({
 
   const handleAddRepo = useCallback(async () => {
     if (!newRepoPath.trim()) return;
-    await fetch(`/api/projects/${project.id}/repos`, {
+    await apiFetch(`/api/projects/${project.id}/repos`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repoPath: newRepoPath.trim() }),
+      body: { repoPath: newRepoPath.trim() },
     });
     setNewRepoPath("");
     setAddingRepo(false);
@@ -141,7 +141,7 @@ function OverviewTab({
 
   const handleRemoveRepo = useCallback(
     async (repoPath: string) => {
-      await fetch(`/api/projects/${project.id}/repos/${encodeURIComponent(repoPath)}`, {
+      await apiFetch(`/api/projects/${project.id}/repos/${encodeURIComponent(repoPath)}`, {
         method: "DELETE",
       });
       mutate();
@@ -274,10 +274,9 @@ function SettingsTab({
 
   const handleSave = useCallback(() => {
     startSaving(async () => {
-      await fetch(`/api/projects/${project.id}`, {
+      await apiFetch(`/api/projects/${project.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, instructions: instructions || undefined }),
+        body: { name, instructions: instructions || undefined },
       });
       setSaved(true);
       mutate();
@@ -287,7 +286,7 @@ function SettingsTab({
 
   const handleDelete = useCallback(async () => {
     if (!confirm(`Delete project "${project.name}"? This will also delete all its sessions.`)) return;
-    await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
+    await apiFetch(`/api/projects/${project.id}`, { method: "DELETE" });
     onDelete();
   }, [project, onDelete]);
 

@@ -12,7 +12,7 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { sessions, chats, prEvents } from "@openforge/db";
 import {
   readRunEventHistoryDetailed,
-  readRunEventPayloadsAfterId,
+  readRunEventEntriesAfterId,
 } from "@openforge/platform";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
@@ -92,6 +92,8 @@ async function subscribeToRun(
 streamRoutes.get("/sessions/:id", async (c) => {
   const auth = c.get("auth");
   const sessionId = c.req.param("id");
+  const lastEventId =
+    c.req.header("Last-Event-ID") ?? c.req.query("lastEventId") ?? null;
   const db = getPlatform().db;
 
   const [sessionRow, chatRow] = await Promise.all([
@@ -126,10 +128,43 @@ streamRoutes.get("/sessions/:id", async (c) => {
     maxRetriesPerRequest: 3,
   });
 
-  let detailed: { payloads: string[]; lastStreamId: string | null };
+  // Step 1: Subscribe to pub/sub FIRST, buffering messages to close the race window
+  const pubsubBuffer: { sid: string | null; payload: string }[] = [];
+  let draining = false;
+
+  let sub: Awaited<ReturnType<typeof subscribeToRun>> | null = null;
   try {
-    detailed = await readRunEventHistoryDetailed(cmd, runId);
+    sub = await subscribeToRun(runId, (message) => {
+      let sid: string | null = null;
+      try {
+        const parsed = JSON.parse(message) as { _sid?: string };
+        sid = parsed._sid ?? null;
+      } catch { /* use null sid */ }
+      if (!draining) {
+        pubsubBuffer.push({ sid, payload: message });
+      }
+    });
   } catch {
+    cmd.disconnect();
+    c.header("Content-Type", "text/event-stream");
+    return c.body(
+      `data: ${JSON.stringify({ type: "error", code: "STREAM_INTERRUPTED", retryable: true })}\n\n`,
+    );
+  }
+
+  // Step 2: Read history (from Last-Event-ID or beginning)
+  type EventEntry = { id: string; payload: string };
+  let historyEntries: EventEntry[];
+  try {
+    if (lastEventId) {
+      const result = await readRunEventEntriesAfterId(cmd, runId, lastEventId);
+      historyEntries = result.entries;
+    } else {
+      const result = await readRunEventHistoryDetailed(cmd, runId);
+      historyEntries = result.entries;
+    }
+  } catch {
+    await sub.unsubscribe().catch(() => {});
     cmd.disconnect();
     c.header("Content-Type", "text/event-stream");
     return c.body(
@@ -137,37 +172,28 @@ streamRoutes.get("/sessions/:id", async (c) => {
     );
   }
 
-  let gap: string[] = [];
-  if (detailed.lastStreamId) {
-    try {
-      gap = await readRunEventPayloadsAfterId(cmd, runId, detailed.lastStreamId);
-    } catch {
-      cmd.disconnect();
-      c.header("Content-Type", "text/event-stream");
-      return c.body(
-        `data: ${JSON.stringify({ type: "error", code: "REPLAY_FAILED", retryable: true })}\n\n`,
-      );
-    }
-  }
+  const lastHistoryId = historyEntries.length > 0
+    ? historyEntries[historyEntries.length - 1]!.id
+    : lastEventId;
 
-  const allPayloads = [...detailed.payloads, ...gap];
-  const hasTerminal = allPayloads.some((p) => {
+  // Check for a synthetic terminal if none was found in history
+  let syntheticTerminal: string | null = null;
+  const hasTerminal = historyEntries.some((e) => {
     try {
-      const parsed = JSON.parse(p) as { type?: string };
+      const parsed = JSON.parse(e.payload) as { type?: string };
       return parsed.type ? isTerminalEvent(parsed.type) : false;
     } catch {
       return false;
     }
   });
-
   if (!hasTerminal) {
     const runStatus = await cmd.get(`run:${runId}:status`).catch(() => null);
     if (runStatus === "completed" || runStatus === "failed" || runStatus === "aborted") {
       const syntheticType =
         runStatus === "completed" ? "done" : runStatus === "aborted" ? "aborted" : "error";
-      allPayloads.push(
-        JSON.stringify({ type: syntheticType, message: "Run already finished", synthetic: true }),
-      );
+      syntheticTerminal = JSON.stringify({
+        type: syntheticType, message: "Run already finished", synthetic: true,
+      });
     }
   }
 
@@ -182,17 +208,64 @@ streamRoutes.get("/sessions/:id", async (c) => {
 
     stream.onAbort(() => void cleanup());
 
-    for (const payload of allPayloads) {
+    // Step 3: Replay history with SSE id fields
+    for (const entry of historyEntries) {
       if (closed) return;
-      await stream.writeSSE({ data: payload });
+      await stream.writeSSE({ id: entry.id, data: entry.payload });
       try {
-        const parsed = JSON.parse(payload) as { type?: string };
+        const parsed = JSON.parse(entry.payload) as { type?: string };
         if (parsed.type && isTerminalEvent(parsed.type)) {
           await cleanup();
           return;
         }
       } catch { /* non-fatal */ }
     }
+
+    if (syntheticTerminal) {
+      await stream.writeSSE({ data: syntheticTerminal });
+      await cleanup();
+      return;
+    }
+
+    // Step 4: Flush buffered pub/sub messages, deduplicating by stream ID
+    draining = true;
+    for (const buffered of pubsubBuffer) {
+      if (closed) return;
+      if (buffered.sid && lastHistoryId && buffered.sid <= lastHistoryId) continue;
+      const sseId = buffered.sid ?? undefined;
+      await stream.writeSSE({ id: sseId, data: buffered.payload });
+      try {
+        const parsed = JSON.parse(buffered.payload) as { type?: string };
+        if (parsed.type && isTerminalEvent(parsed.type)) {
+          await cleanup();
+          return;
+        }
+      } catch { /* non-fatal */ }
+    }
+    pubsubBuffer.length = 0;
+
+    // Step 5: Switch pub/sub handler from buffering to live-writing
+    const liveSub = await subscribeToRun(runId, (message) => {
+      if (closed) return;
+      let sid: string | null = null;
+      try {
+        const parsed = JSON.parse(message) as { _sid?: string };
+        sid = parsed._sid ?? null;
+      } catch { /* use null sid */ }
+      const sseId = sid ?? undefined;
+      stream.writeSSE({ id: sseId, data: message }).catch(() => {});
+      try {
+        const parsed = JSON.parse(message) as { type?: string };
+        if (parsed.type && isTerminalEvent(parsed.type)) {
+          clearInterval(keepAlive);
+          void cleanup();
+        }
+      } catch { /* non-fatal */ }
+    });
+
+    // Remove the buffering handler
+    await sub?.unsubscribe().catch(() => {});
+    sub = liveSub;
 
     const keepAlive = setInterval(async () => {
       if (closed) return;
@@ -204,29 +277,6 @@ streamRoutes.get("/sessions/:id", async (c) => {
       }
     }, KEEPALIVE_MS);
 
-    let sub: Awaited<ReturnType<typeof subscribeToRun>> | null = null;
-    try {
-      sub = await subscribeToRun(runId, (message) => {
-        if (closed) return;
-        stream.writeSSE({ data: message }).catch(() => {});
-        try {
-          const parsed = JSON.parse(message) as { type?: string };
-          if (parsed.type && isTerminalEvent(parsed.type)) {
-            clearInterval(keepAlive);
-            void cleanup();
-          }
-        } catch { /* non-fatal */ }
-      });
-    } catch {
-      clearInterval(keepAlive);
-      await stream.writeSSE({
-        data: JSON.stringify({ type: "error", code: "STREAM_INTERRUPTED", retryable: true }),
-      });
-      await cleanup();
-      return;
-    }
-
-    // Hold stream open until abort or terminal event
     await new Promise<void>((resolve) => {
       const check = setInterval(() => {
         if (closed) {

@@ -46,12 +46,26 @@ sessionRoutes.post("/", async (c) => {
   return c.json({ id: result.sessionId, ...result }, 201);
 });
 
+const reposCache = new Map<string, { data: unknown; expiresAt: number }>();
+const REPOS_CACHE_TTL = 120_000; // 2 minutes
+
 sessionRoutes.get("/repos", async (c) => {
   const auth = c.get("auth");
+  const cacheKey = auth.userId;
+  const cached = reposCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return c.json(cached.data);
+  }
+
   const forge = getForgeProviderForAuth(auth);
   const repos = await forge.repos.list();
-  return c.json(repos);
+  const payload = { repos };
+  reposCache.set(cacheKey, { data: payload, expiresAt: Date.now() + REPOS_CACHE_TTL });
+  return c.json(payload);
 });
+
+const branchesCache = new Map<string, { data: unknown; expiresAt: number }>();
+const BRANCHES_CACHE_TTL = 120_000;
 
 sessionRoutes.get("/repos/:repoPath/branches", async (c) => {
   const auth = c.get("auth");
@@ -59,9 +73,38 @@ sessionRoutes.get("/repos/:repoPath/branches", async (c) => {
   const [owner, repo] = repoPath.split("/");
   if (!owner || !repo) return c.json({ error: "Invalid repo path" }, 400);
 
+  const cacheKey = `${auth.userId}:${repoPath}`;
+  const cached = branchesCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return c.json(cached.data);
+  }
+
   const forge = getForgeProviderForAuth(auth);
   const branches = await forge.branches.list(owner, repo);
-  return c.json(branches);
+  const payload = { branches };
+  branchesCache.set(cacheKey, { data: payload, expiresAt: Date.now() + BRANCHES_CACHE_TTL });
+  return c.json(payload);
+});
+
+sessionRoutes.post("/repos/:repoPath/branches", async (c) => {
+  const auth = c.get("auth");
+  const repoPath = decodeURIComponent(c.req.param("repoPath"));
+  const [owner, repo] = repoPath.split("/");
+  if (!owner || !repo) return c.json({ error: "Invalid repo path" }, 400);
+
+  const body = z
+    .object({ name: z.string().min(1), from: z.string().optional() })
+    .safeParse(await c.req.json());
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
+
+  const forge = getForgeProviderForAuth(auth);
+  const fromBranch = body.data.from ?? "main";
+  const branch = await forge.branches.create(owner, repo, body.data.name, fromBranch);
+
+  // Bust the branches cache for this repo
+  branchesCache.delete(`${auth.userId}:${repoPath}`);
+
+  return c.json({ branch }, 201);
 });
 
 const SendMessageSchema = z.object({

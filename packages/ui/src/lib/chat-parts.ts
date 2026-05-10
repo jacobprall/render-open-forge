@@ -3,6 +3,7 @@ import type { StreamEvent } from "@openforge/shared";
 export type AssistantTextPart = {
   type: "text";
   text: string;
+  id?: string;
 };
 
 export type AssistantToolCallPart = {
@@ -11,6 +12,7 @@ export type AssistantToolCallPart = {
   toolCallId: string;
   args?: unknown;
   result?: unknown;
+  id?: string;
 };
 
 export type AssistantAskUserPart = {
@@ -18,6 +20,7 @@ export type AssistantAskUserPart = {
   question: string;
   options?: string[];
   toolCallId?: string;
+  id?: string;
 };
 
 export type AssistantTaskPart = {
@@ -27,6 +30,7 @@ export type AssistantTaskPart = {
   status: "running" | "done" | "error";
   result?: string;
   error?: string;
+  id?: string;
 };
 
 export type AssistantFileChangedPart = {
@@ -34,6 +38,7 @@ export type AssistantFileChangedPart = {
   path: string;
   additions: number;
   deletions: number;
+  id?: string;
 };
 
 export type AssistantPart =
@@ -46,19 +51,33 @@ export type AssistantPart =
 export function appendStreamEvent(
   parts: AssistantPart[],
   event: StreamEvent,
+  seqCounter?: { current: number },
 ): AssistantPart[] {
+  const seq = seqCounter ?? { current: 0 };
   switch (event.type) {
     case "token": {
       if (!event.token) return parts;
       const last = parts[parts.length - 1];
       if (last?.type === "text") {
-        return [...parts.slice(0, -1), { type: "text", text: last.text + event.token }];
+        return [...parts.slice(0, -1), { ...last, text: last.text + event.token }];
       }
-      return [...parts, { type: "text", text: event.token }];
+      return [
+        ...parts,
+        { type: "text", text: event.token, id: `text-${seq.current++}` },
+      ];
     }
 
     case "tool_call": {
       if (!event.toolCallId) return parts;
+      if (
+        parts.some(
+          (p) =>
+            p.type === "tool_call" &&
+            (p.toolCallId === event.toolCallId || p.id === event.toolCallId),
+        )
+      ) {
+        return parts;
+      }
       return [
         ...parts,
         {
@@ -66,6 +85,7 @@ export function appendStreamEvent(
           toolName: event.toolName ?? "tool",
           toolCallId: event.toolCallId,
           args: event.args,
+          id: event.toolCallId,
         },
       ];
     }
@@ -80,21 +100,50 @@ export function appendStreamEvent(
     }
 
     case "ask_user": {
+      const toolCallId = event.toolCallId;
+      if (
+        toolCallId &&
+        parts.some(
+          (p) =>
+            p.type === "ask_user" &&
+            (p.toolCallId === toolCallId || p.id === `ask-${toolCallId}`),
+        )
+      ) {
+        return parts;
+      }
+      const id = toolCallId ? `ask-${toolCallId}` : `ask-${seq.current++}`;
       return [
         ...parts,
         {
           type: "ask_user",
           question: event.question ?? "",
           options: event.options,
-          toolCallId: event.toolCallId,
+          toolCallId,
+          id,
         },
       ];
     }
 
     case "task_start": {
+      const taskId = event.taskId;
+      if (
+        taskId &&
+        parts.some(
+          (p) => p.type === "task" && (p.taskId === taskId || p.id === `task-${taskId}`),
+        )
+      ) {
+        return parts;
+      }
+      const id = taskId ? `task-${taskId}` : `task-${seq.current++}`;
       return [
         ...parts,
-        { type: "task", task: event.task ?? "", taskId: event.taskId, status: "running" as const },
+        {
+          type: "task",
+          task: event.task ?? "",
+          taskId,
+          status: "running" as const,
+          id,
+        },
       ];
     }
 
@@ -102,7 +151,11 @@ export function appendStreamEvent(
       return parts.map((p) =>
         p.type === "task" &&
         (event.taskId ? p.taskId === event.taskId : !p.taskId && p.task === event.task)
-          ? { ...p, status: "done" as const, result: typeof event.result === "string" ? event.result : undefined }
+          ? {
+              ...p,
+              status: "done" as const,
+              result: typeof event.result === "string" ? event.result : undefined,
+            }
           : p,
       );
     }
@@ -120,7 +173,13 @@ export function appendStreamEvent(
       if (!event.path) return parts;
       return [
         ...parts,
-        { type: "file_changed" as const, path: event.path, additions: event.additions ?? 0, deletions: event.deletions ?? 0 },
+        {
+          type: "file_changed" as const,
+          path: event.path,
+          additions: event.additions ?? 0,
+          deletions: event.deletions ?? 0,
+          id: `file-${seq.current++}`,
+        },
       ];
     }
 

@@ -4,6 +4,7 @@ import { useState, useCallback, useTransition } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { Layers, Plus, FolderOpen, MessageCircle, Clock } from "lucide-react";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface ProjectRepo {
   id: string;
@@ -38,12 +39,11 @@ export default function ProjectsPage() {
   const handleCreate = useCallback(() => {
     if (!newName.trim()) return;
     startCreating(async () => {
-      const res = await fetch("/api/projects", {
+      const { ok } = await apiFetch("/api/projects", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim() }),
+        body: { name: newName.trim() },
       });
-      if (!res.ok) return;
+      if (!ok) return;
       setNewName("");
       setShowCreate(false);
       mutate();

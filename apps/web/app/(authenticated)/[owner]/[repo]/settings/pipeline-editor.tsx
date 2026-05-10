@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Select } from "@/components/primitives/select";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface PipelineStep {
   id: string;
@@ -125,13 +127,11 @@ export function PipelineEditor({ owner, repo }: Props) {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch(base, {
+      const { ok, data: json } = await apiFetch<{ error?: unknown }>(base, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config),
+        body: config,
       });
-      const json = (await res.json()) as { error?: unknown };
-      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to save config");
+      if (!ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to save config");
       setMessage("Pipeline configuration saved.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -201,16 +201,16 @@ export function PipelineEditor({ owner, repo }: Props) {
                   <div className="mt-4 grid gap-3 border-t border-stroke-default pt-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-1 block text-xs text-text-tertiary">Role</label>
-                      <select
+                      <Select
                         value={step.role}
-                        onChange={(e) => updateStep(step.id, { role: e.target.value })}
-                        className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary focus:border-accent focus:outline-none"
-                      >
-                        <option value="implement">Implement</option>
-                        <option value="review">Review</option>
-                        <option value="verify">Verify</option>
-                        <option value="merge">Merge / Deliver</option>
-                      </select>
+                        onChange={(v) => updateStep(step.id, { role: v })}
+                        options={[
+                          { value: "implement", label: "Implement" },
+                          { value: "review", label: "Review" },
+                          { value: "verify", label: "Verify" },
+                          { value: "merge", label: "Merge / Deliver" },
+                        ]}
+                      />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs text-text-tertiary">Model</label>
@@ -223,18 +223,18 @@ export function PipelineEditor({ owner, repo }: Props) {
                     </div>
                     <div>
                       <label className="mb-1 block text-xs text-text-tertiary">Trigger</label>
-                      <select
+                      <Select
                         value={step.trigger}
-                        onChange={(e) => updateStep(step.id, { trigger: e.target.value })}
-                        className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary focus:border-accent focus:outline-none"
-                      >
-                        <option value="user_message">user_message</option>
-                        <option value="ci_failure">ci_failure</option>
-                        <option value="review_comment">review_comment</option>
-                        <option value="pr_opened">pr_opened</option>
-                        <option value="pr_merged">pr_merged</option>
-                        <option value="workflow_run">workflow_run</option>
-                      </select>
+                        onChange={(v) => updateStep(step.id, { trigger: v })}
+                        options={[
+                          { value: "user_message", label: "user_message" },
+                          { value: "ci_failure", label: "ci_failure" },
+                          { value: "review_comment", label: "review_comment" },
+                          { value: "pr_opened", label: "pr_opened" },
+                          { value: "pr_merged", label: "pr_merged" },
+                          { value: "workflow_run", label: "workflow_run" },
+                        ]}
+                      />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs text-text-tertiary">

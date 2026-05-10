@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import useSWR from "swr";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface Comment {
   id: number;
@@ -62,13 +63,11 @@ export function PRComments({
     setPosting(true);
     setPostError(null);
     try {
-      const res = await fetch(`${base}/comments`, {
+      const { ok, data: j } = await apiFetch<{ error?: string }>(`${base}/comments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: newComment }),
+        body: { body: newComment },
       });
-      const j = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(j.error ?? "Post failed");
+      if (!ok) throw new Error(j.error ?? "Post failed");
       setNewComment("");
       await mutate();
     } catch (e) {
@@ -80,10 +79,9 @@ export function PRComments({
 
   async function toggleResolve(commentId: number, currentlyResolved: boolean) {
     try {
-      await fetch(`${base}/comments/${commentId}/resolve`, {
+      await apiFetch(`${base}/comments/${commentId}/resolve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ unresolve: currentlyResolved }),
+        body: { unresolve: currentlyResolved },
       });
       await mutate();
     } catch {

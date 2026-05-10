@@ -75,7 +75,7 @@ export function ToolLayout({
       >
         <div className="overflow-hidden">
           {children && (
-            <div className="border-t border-stroke-subtle bg-surface-0 px-(--of-space-md) py-(--of-space-sm) font-mono overflow-auto max-h-72">
+            <div className="border-t border-stroke-subtle bg-surface-0 px-(--of-space-md) py-(--of-space-sm) font-mono overflow-auto max-h-128">
               {children}
             </div>
           )}

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Select } from "@/components/primitives/select";
 import { createPullRequestAction } from "../actions";
 
 export function NewPrForm({
@@ -67,37 +68,25 @@ export function NewPrForm({
           <label className="mb-1.5 block text-sm font-medium text-text-secondary">
             Head branch <span className="text-danger">*</span>
           </label>
-          <select
+          <Select
             value={head}
-            onChange={(e) => setHead(e.target.value)}
-            className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary transition-colors duration-(--of-duration-instant) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-          >
-            <option value="">Select branch…</option>
-            {branches
+            onChange={setHead}
+            placeholder="Select branch…"
+            options={branches
               .filter((b) => b !== base)
-              .map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-          </select>
+              .map((b) => ({ value: b, label: b }))}
+          />
           <p className="mt-1 text-xs text-text-tertiary">The branch with your changes</p>
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-text-secondary">
             Base branch <span className="text-danger">*</span>
           </label>
-          <select
+          <Select
             value={base}
-            onChange={(e) => setBase(e.target.value)}
-            className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary transition-colors duration-(--of-duration-instant) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-          >
-            {branches.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
+            onChange={setBase}
+            options={branches.map((b) => ({ value: b, label: b }))}
+          />
           <p className="mt-1 text-xs text-text-tertiary">The branch you want to merge into</p>
         </div>
       </div>

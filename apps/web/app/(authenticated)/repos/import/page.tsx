@@ -7,6 +7,7 @@ import {
   type RowSelectionState,
 } from "@tanstack/react-table";
 import { DataTable } from "@/components/primitives/data-table";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface ExternalRepo {
   full_name: string;
@@ -149,19 +150,17 @@ export default function ImportPage() {
 
     for (const repo of toImport) {
       try {
-        const res = await fetch("/api/repos/import", {
+        const { ok, data: json } = await apiFetch<{ error?: string }>("/api/repos/import", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             clone_addr: repo.clone_url,
             repo_name: repo.name,
             mirror: true,
             service: activeProvider,
             sync_connection_id: data[activeProvider]?.connectionId,
-          }),
+          },
         });
-        const json = await res.json();
-        if (res.ok) {
+        if (ok) {
           results.push({ name: repo.full_name, ok: true });
         } else {
           results.push({

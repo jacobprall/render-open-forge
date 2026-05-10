@@ -8,6 +8,7 @@ interface ModelSelectorProps {
   value: string;
   onChange: (modelId: string) => void;
   compact?: boolean;
+  dropUp?: boolean;
 }
 
 async function modelsFetcher(url: string): Promise<ModelSummary[]> {
@@ -16,7 +17,7 @@ async function modelsFetcher(url: string): Promise<ModelSummary[]> {
   return data.models ?? [];
 }
 
-export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) {
+export function ModelSelector({ value, onChange, compact, dropUp }: ModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { data: models = [], isLoading } = useSWR("/api/models", modelsFetcher, {
@@ -54,7 +55,7 @@ export function ModelSelector({ value, onChange, compact }: ModelSelectorProps) 
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 bottom-full z-50 mb-1 max-h-72 w-72 max-w-[calc(100vw-2rem)] overflow-y-auto border border-stroke-default bg-surface-1 shadow-xl">
+        <div className={`absolute right-0 z-50 max-h-72 w-72 max-w-[calc(100vw-2rem)] overflow-y-auto border border-stroke-default bg-surface-1 shadow-xl ${dropUp ? "bottom-full mb-1" : "top-full mt-1"}`}>
           {models.map((model) => (
             <button
               key={model.id}

@@ -17,7 +17,7 @@ import {
   toRelativePath,
   type AssistantPart,
   type PasteBlock,
-} from "../../../packages/shared";
+} from "../../../packages/ui/src/index.ts";
 
 describe("shared chat stream reducer", () => {
   test("combines adjacent text tokens without mutating existing parts", () => {
@@ -25,13 +25,19 @@ describe("shared chat stream reducer", () => {
       { type: "text", text: "hello" },
     ]) as AssistantPart[];
 
-    const result = appendStreamEvent(initial, {
-      type: "token",
-      token: " world",
-    });
+    const seq = { current: 0 };
+    const result = appendStreamEvent(
+      initial,
+      {
+        type: "token",
+        token: " world",
+      },
+      seq,
+    );
 
     expect(result).toEqual([{ type: "text", text: "hello world" }]);
     expect(initial).toEqual([{ type: "text", text: "hello" }]);
+    expect(seq.current).toBe(0);
   });
 
   test("attaches tool results to the matching call only", () => {
@@ -41,11 +47,15 @@ describe("shared chat stream reducer", () => {
     ];
 
     expect(
-      appendStreamEvent(parts, {
-        type: "tool_result",
-        toolCallId: "b",
-        result: { content: "ok" },
-      }),
+      appendStreamEvent(
+        parts,
+        {
+          type: "tool_result",
+          toolCallId: "b",
+          result: { content: "ok" },
+        },
+        { current: 0 },
+      ),
     ).toEqual([
       { type: "tool_call", toolName: "bash", toolCallId: "a" },
       {
@@ -62,24 +72,37 @@ describe("shared chat stream reducer", () => {
       { type: "text", text: "hello" },
     ];
 
-    const result = appendStreamEvent(parts, {
-      type: "tool_call",
-      toolName: "bash",
-    });
+    const result = appendStreamEvent(
+      parts,
+      {
+        type: "tool_call",
+        toolName: "bash",
+      },
+      { current: 0 },
+    );
 
     expect(result).toEqual([{ type: "text", text: "hello" }]);
   });
 
   test("tracks task lifecycle events by task name", () => {
-    const running = appendStreamEvent([], {
-      type: "task_start",
-      task: "inspect",
-    });
-    const done = appendStreamEvent(running, {
-      type: "task_done",
-      task: "inspect",
-      result: "finished",
-    });
+    const seq = { current: 0 };
+    const running = appendStreamEvent(
+      [],
+      {
+        type: "task_start",
+        task: "inspect",
+      },
+      seq,
+    );
+    const done = appendStreamEvent(
+      running,
+      {
+        type: "task_done",
+        task: "inspect",
+        result: "finished",
+      },
+      seq,
+    );
 
     expect(done).toEqual([
       {
@@ -87,23 +110,50 @@ describe("shared chat stream reducer", () => {
         task: "inspect",
         status: "done",
         result: "finished",
+        id: "task-0",
       },
     ]);
   });
 
   test("disambiguates concurrent tasks with matching descriptions via taskId", () => {
-    const a = appendStreamEvent([], { type: "task_start", task: "Run tests", taskId: "t1" });
-    const ab = appendStreamEvent(a, { type: "task_start", task: "Run tests", taskId: "t2" });
-    const finished = appendStreamEvent(ab, {
-      type: "task_done",
-      task: "Run tests",
-      taskId: "t1",
-      result: "ok",
-    });
+    const seq = { current: 0 };
+    const a = appendStreamEvent(
+      [],
+      { type: "task_start", task: "Run tests", taskId: "t1" },
+      seq,
+    );
+    const ab = appendStreamEvent(
+      a,
+      { type: "task_start", task: "Run tests", taskId: "t2" },
+      seq,
+    );
+    const finished = appendStreamEvent(
+      ab,
+      {
+        type: "task_done",
+        task: "Run tests",
+        taskId: "t1",
+        result: "ok",
+      },
+      seq,
+    );
 
     expect(finished).toEqual([
-      { type: "task", task: "Run tests", taskId: "t1", status: "done", result: "ok" },
-      { type: "task", task: "Run tests", taskId: "t2", status: "running" },
+      {
+        type: "task",
+        task: "Run tests",
+        taskId: "t1",
+        status: "done",
+        result: "ok",
+        id: "task-t1",
+      },
+      {
+        type: "task",
+        task: "Run tests",
+        taskId: "t2",
+        status: "running",
+        id: "task-t2",
+      },
     ]);
   });
 });

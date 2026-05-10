@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import useSWR from "swr";
 import { savePreferencesAction } from "./actions";
 import { THEME_PRESETS, type ThemePreset } from "@/components/providers/theme-provider";
+import { Select } from "@/components/primitives/select";
 import type { UserPreferencesData } from "@openforge/db/schema";
 
 interface ModelOption {
@@ -27,21 +28,21 @@ function ModelSelect({
   loading: boolean;
   placeholder?: string;
 }) {
+  const options = loading
+    ? [{ value: "__loading", label: "Loading models…", disabled: true }]
+    : models.map((m) => ({
+        value: m.id,
+        label: `${m.label}${m.supportsThinking ? " (thinking)" : ""}`,
+      }));
+
   return (
-    <select
+    <Select
       name={name}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary transition-colors duration-(--of-duration-instant) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-    >
-      {placeholder && <option value="">{placeholder}</option>}
-      {loading && <option disabled>Loading models…</option>}
-      {models.map((m) => (
-        <option key={m.id} value={m.id}>
-          {m.label}{m.supportsThinking ? " (thinking)" : ""}
-        </option>
-      ))}
-    </select>
+      onChange={onChange}
+      placeholder={placeholder}
+      options={options}
+    />
   );
 }
 

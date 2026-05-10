@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface FileEditorProps {
   owner: string;
@@ -35,19 +36,17 @@ export function FileEditor({
     setSaving(true);
     setError(null);
 
-    const res = await fetch(
+    const { ok, data } = await apiFetch<{ error?: string }>(
       `/api/repos/${owner}/${repo}/contents/${filePath}`,
       {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, message, sha: sha || undefined, branch }),
+        body: { content, message, sha: sha || undefined, branch },
       },
     );
 
-    if (res.ok) {
+    if (ok) {
       router.push(`/${owner}/${repo}`);
     } else {
-      const data = await res.json().catch(() => ({}));
       setError(typeof data.error === "string" ? data.error : "Failed to save file");
     }
     setSaving(false);

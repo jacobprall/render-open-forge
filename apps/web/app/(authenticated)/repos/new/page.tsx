@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { createForgeProvider } from "@/lib/forge/client";
 import Link from "next/link";
+import { Select } from "@/components/primitives/select";
 
 export const metadata: Metadata = { title: "New Repository" };
 
@@ -170,16 +171,15 @@ export default async function NewRepoPage({
           >
             Default branch
           </label>
-          <select
-            id="default_branch"
+          <Select
             name="default_branch"
             defaultValue="main"
-            className="w-full border border-stroke-subtle bg-surface-1 px-3 py-2 text-sm text-text-primary outline-none transition-colors duration-(--of-duration-instant) focus:border-accent/50 focus:ring-1 focus:ring-accent/25"
-          >
-            <option value="main">main</option>
-            <option value="master">master</option>
-            <option value="develop">develop</option>
-          </select>
+            options={[
+              { value: "main", label: "main" },
+              { value: "master", label: "master" },
+              { value: "develop", label: "develop" },
+            ]}
+          />
         </div>
 
         {/* Visibility */}

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { PanelRightOpen, PanelRightClose, Filter } from "lucide-react";
+import { Select } from "@/components/primitives/select";
 import type { SessionCardSession } from "./session-card";
 import { SessionCard } from "./session-card";
 
@@ -70,21 +71,17 @@ export function SessionsDrawer({ sessions, projectNames, projectFilter }: Sessio
               Recent
             </h2>
             {projectIds.length > 1 && (
-              <div className="relative">
-                <select
-                  value={filterProject ?? ""}
-                  onChange={(e) => setFilterProject(e.target.value || null)}
-                  className="appearance-none border-none bg-transparent pr-5 text-[12px] text-text-tertiary outline-none cursor-pointer hover:text-text-secondary"
-                >
-                  <option value="">All projects</option>
-                  {projectIds.map((pid) => (
-                    <option key={pid} value={pid}>
-                      {projectNames?.[pid] ?? pid.slice(0, 8)}
-                    </option>
-                  ))}
-                </select>
-                <Filter className="pointer-events-none absolute right-0 top-0.5 h-3 w-3 text-text-tertiary" />
-              </div>
+              <Select
+                size="sm"
+                value={filterProject ?? ""}
+                onChange={(v) => setFilterProject(v || null)}
+                placeholder="All projects"
+                icon={<Filter className="h-3 w-3" />}
+                options={projectIds.map((pid) => ({
+                  value: pid,
+                  label: projectNames?.[pid] ?? pid.slice(0, 8),
+                }))}
+              />
             )}
           </div>
         </div>
