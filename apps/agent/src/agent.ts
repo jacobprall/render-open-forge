@@ -19,7 +19,7 @@ import { publishEvent, expireRunStream, mergeToolResults, persistAssistantMessag
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MAX_STEPS = 50;
+const MAX_STEPS = 100;
 const RUN_STATUS_TTL = 3600;
 const TURN_TIMEOUT_MS = 5 * 60 * 1000;
 

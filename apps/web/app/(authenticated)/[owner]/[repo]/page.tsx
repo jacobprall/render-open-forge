@@ -106,7 +106,7 @@ export default async function RepoDetailPage({
           </div>
         </div>
         <Link
-          href="/sessions"
+          href={`/sessions/new?repo=${encodeURIComponent(`${owner}/${repoName}`)}`}
           className="inline-flex shrink-0 items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover"
         >
           <svg
