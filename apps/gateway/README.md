@@ -29,7 +29,7 @@ The server starts on port `4100` by default (override with `GATEWAY_PORT`).
 | `FORGEJO_INTERNAL_URL` | Yes | Internal URL of the Forgejo instance (e.g. `http://openforge-forgejo:3000`) |
 | `FORGEJO_AGENT_TOKEN` | Yes | Forgejo API token used by the platform for automated git operations |
 | `FORGEJO_WEBHOOK_SECRET` | No | HMAC secret used to verify incoming Forgejo webhooks |
-| `CI_RUNNER_SECRET` | No | Secret used by the CI runner to authenticate `/api/ci/results` callbacks |
+| `CI_RUNNER_SECRET` | No | Shared secret for authenticating `POST /api/ci/results` callbacks (e.g. from GitHub Actions) |
 | `ENCRYPTION_KEY` | No | AES key for encrypting secrets at rest |
 | `GATEWAY_PORT` | No | HTTP listen port (default: `4100`) |
 
@@ -63,7 +63,7 @@ The gateway resolves the token to an admin `AuthContext`. Per-user API key looku
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/ci/results` | CI runner posts test/build results |
+| `POST` | `/api/ci/results` | Ingest CI test/build results (caller sends `x-ci-secret`) |
 
 ### Sessions
 

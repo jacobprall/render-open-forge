@@ -65,10 +65,8 @@ services:
         sync: false
       - key: RENDER_WEBHOOK_SECRET
         sync: false
-      - key: RENDER_CI_WORKFLOW_SLUG
-        value: openforge-ci
       - key: CI_RUNNER_SECRET
-        generateValue: true # openforge-ci reads the same value via fromService.envVarKey
+        generateValue: true # use same value in GitHub Actions (or other callers) for POST /api/ci/results
       - key: CI_CALLBACK_URL
         sync: false
       - key: NODE_ENV
@@ -198,9 +196,6 @@ services:
         value: "4100"
       - key: NODE_ENV
         value: production
-
-  # CI Runner — deploy as a Render Workflow via the Dashboard (not supported in Blueprints yet).
-  # Source: apps/ci-runner, build: bun install && npx turbo build --filter=@openforge/ci-runner
 
   # Redis (job queue + streaming)
   - type: keyvalue

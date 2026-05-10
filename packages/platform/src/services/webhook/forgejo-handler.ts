@@ -176,7 +176,7 @@ export class ForgejoWebhookHandler {
     }
   }
 
-  private async handlePullRequest(forge: ForgeProvider, payload: unknown): Promise<void> {
+  private async handlePullRequest(_forge: ForgeProvider, payload: unknown): Promise<void> {
     const { db, ciService } = this.deps;
     const p = payload as Record<string, unknown>;
     const action = p.action as string | undefined;
@@ -235,29 +235,6 @@ export class ForgejoWebhookHandler {
         }
       }
 
-      if ((action === "opened" || action === "synchronized") && branch) {
-        const headSha =
-          headRef && typeof headRef.sha === "string" ? headRef.sha : "";
-        if (headSha) {
-          const prParts = parseRepoPath(repo);
-          if (prParts) {
-            ciService
-              .dispatchForEvent({
-                forge,
-                repoOwner: prParts.owner,
-                repoName: prParts.repo,
-                branch,
-                commitSha: headSha,
-                event: "pull_request",
-                sessionId: s.id,
-              })
-              .catch((err) =>
-                logger.errorWithCause(err, "ci dispatch on PR failed", { repo, pr: number }),
-              );
-          }
-        }
-      }
-
       if (action === "closed") {
         const prStatus = merged ? ("merged" as const) : ("closed" as const);
         await db
@@ -306,8 +283,8 @@ export class ForgejoWebhookHandler {
     }
   }
 
-  private async handlePush(forge: ForgeProvider, payload: unknown): Promise<void> {
-    const { db, ciService } = this.deps;
+  private async handlePush(_forge: ForgeProvider, payload: unknown): Promise<void> {
+    const { db } = this.deps;
     const p = payload as Record<string, unknown>;
     const repo = repoFullName(p.repository);
     const ref = p.ref;
@@ -344,26 +321,6 @@ export class ForgejoWebhookHandler {
         updatedAt: new Date(),
       })
       .where(eq(sessions.id, s.id));
-
-    const pushParts = parseRepoPath(repo);
-    if (pushParts) {
-      const after = typeof p.after === "string" ? p.after : "";
-      if (after && after !== "0000000000000000000000000000000000000000") {
-        ciService
-          .dispatchForEvent({
-            forge,
-            repoOwner: pushParts.owner,
-            repoName: pushParts.repo,
-            branch,
-            commitSha: after,
-            event: "push",
-            sessionId: s.id,
-          })
-          .catch((err) =>
-            logger.errorWithCause(err, "ci dispatch on push failed", { repo, branch }),
-          );
-      }
-    }
   }
 
   private async handlePrComment(event: string, payload: unknown): Promise<void> {

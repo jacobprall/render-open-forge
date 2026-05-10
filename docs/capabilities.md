@@ -16,7 +16,7 @@ The agent includes file I/O, pull request, review, and CI tools:
 | `add_pr_comment`, `resolve_comment` | PR discussion and thread resolution |
 | `request_review` | Request reviewers on a PR |
 | `pull_request_diff` | Fetch unified diffs for review |
-| `read_build_log` | Diagnose CI failures from Forgejo Actions job logs |
+| `read_build_log` | Diagnose CI failures from GitHub Actions job logs |
 | `create_repo` | Provision new repositories on the forge |
 | `submit_spec` | Structured technical specifications (goal, approach, files, risks, verification plan) |
 | `web_fetch` | HTTP requests for documentation/APIs |
@@ -46,20 +46,18 @@ This supports incremental adoption: mirror GitHub repos in, ship PRs internally,
 
 ## Webhook-driven CI reactions
 
-Forgejo webhooks drive both CI execution and the agent:
+GitHub (and other forge) webhooks drive CI awareness and the agent:
 
-- **CI failure → auto-fix:** when a Render Workflows CI run reports failure (via `/api/ci/results`) on a session's branch, the agent is enqueued with step output context (capped at configurable `maxCiFixAttempts`, default 3). Failures detected only through Forgejo **`workflow_run`** (classic Actions) still enqueue the agent as before.
+- **CI failure → auto-fix:** when a run reports failure—via **`POST /api/ci/results`** and/or GitHub **`workflow_run`** events—on a session's branch, the agent can be enqueued with step output context (capped at configurable `maxCiFixAttempts`, default 3).
 - **CI success + auto-merge:** if a session has `autoMerge` enabled and CI passes (`workflow_run` **completed** successfully), the forge merges the open PR automatically.
 - **PR events:** new PRs, merges, and closures update session state; review comments trigger agent runs to address feedback
 - **Push tracking:** file change counts roll up to the session for activity dashboards
-
-**Note:** Commit statuses for Render-driven CI use contexts prefixed with `ci/`; the web app ignores **`status`** webhook echoes for those contexts to avoid duplicate `ci_events` rows.
 
 ## Web UI
 
 - **Repositories:** file tree, blob viewer with syntax highlighting, inline editor, commit history and diffs
 - **Pull requests:** create, review, merge/close; per-repo and global dashboard with filtering
-- **Actions:** Forgejo Actions run logs and test results
+- **Actions:** GitHub Actions run logs and test results
 - **Sessions:** chat with SSE streaming, skill and model selection, spec review
 - **Settings:** skill management, API key management, GitHub/GitLab connections, mirrors, preferences (default model)
 - **Organizations:** member management, usage dashboards (tokens, sandbox minutes, storage)

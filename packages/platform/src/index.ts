@@ -45,11 +45,6 @@ export type {
 
 // Forgejo helpers
 export {
-  getWorkflowTemplate,
-  WORKFLOW_TEMPLATES,
-  type WorkflowTemplateKey,
-} from "./forgejo/ci-helpers";
-export {
   verifyForgejoWebhookSignature,
   isForgejoWebhookVerificationConfigured,
   shouldAllowUnsignedForgejoWebhooks,
@@ -133,10 +128,6 @@ export { MemoryStorageAdapter } from "./storage/memory-adapter";
 // Cache adapter
 export type { CacheAdapter } from "./interfaces/cache";
 export { RedisCacheAdapter, MemoryCacheAdapter } from "./interfaces/cache";
-
-// CI dispatcher
-export type { CIDispatcher, CIJobInput, CIDispatchResult } from "./interfaces/ci-dispatcher";
-export { RenderWorkflowsDispatcher, NoopCIDispatcher, LocalCIDispatcher } from "./interfaces/ci-dispatcher";
 
 // Notification sink
 export type { NotificationSink, NotificationPayload, NotificationLevel } from "./interfaces/notification-sink";

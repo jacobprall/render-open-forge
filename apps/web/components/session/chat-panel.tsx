@@ -15,6 +15,7 @@ interface ChatPanelProps {
   modelId: string;
   onFileChanges?: (files: LiveFileChange[]) => void;
   onViewFiles?: () => void;
+  onTitleChange?: (title: string) => void;
   /** Automatically start streaming when mounted */
   autoStream?: boolean;
   /** Run ID to pass when auto-starting the stream */
@@ -28,6 +29,7 @@ export function ChatPanel({
   modelId,
   onFileChanges,
   onViewFiles,
+  onTitleChange,
   autoStream,
   autoStreamRunId,
 }: ChatPanelProps) {
@@ -41,6 +43,7 @@ export function ChatPanel({
     activeRunId,
     initialMessages,
     onFileChanges,
+    onTitleChange,
   });
 
   useEffect(() => {

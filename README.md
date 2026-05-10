@@ -27,7 +27,6 @@ graph LR
         Web["openforge-web · Next.js"]
         Gateway["openforge-gateway · Hono"]
         Agent["openforge-agent · Bun worker"]
-        CI["openforge-ci · Render Workflows"]
     end
 
     subgraph Platform["packages/platform"]
@@ -58,7 +57,8 @@ graph LR
 | **openforge-gateway** | Hono REST/SSE/MCP API — connect Claude Desktop, Cursor, or any MCP client |
 | **openforge-agent** | Bun worker reading jobs from Redis Streams, driving multi-step LLM execution |
 | **openforge-sandbox** | Isolated Docker environment for git operations and code execution |
-| **openforge-ci** | Render Workflows task runner: clone, run CI steps, post results |
+
+**CI:** GitHub Actions on your repositories; OpenForge reacts via GitHub webhooks and accepts detailed payloads on `POST /api/ci/results` (shared secret).
 
 ## Repo layout
 
@@ -67,7 +67,6 @@ apps/
   web/                   Next.js 15: auth, chat UI, repo browser, streaming (port 4000)
   gateway/               Hono headless API: REST, SSE, MCP (port 4100)
   agent/                 Agent worker: LLM tools, skills, Redis Streams consumer
-  ci-runner/             Render Workflows CI task runner
 
 packages/
   platform/              Framework-agnostic service layer, ForgeProvider abstraction

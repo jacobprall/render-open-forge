@@ -27,7 +27,8 @@ interface Project {
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to load");
-  return res.json();
+  const data = await res.json();
+  return data.projects ?? data;
 };
 
 export default function ProjectsPage() {

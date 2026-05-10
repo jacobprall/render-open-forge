@@ -45,7 +45,6 @@ export default async function RepoLayout({
       label: "Commits",
       href: `${basePath}/commits/${encodeURIComponent(repoData.defaultBranch)}`,
     },
-    { id: "ci" as const, label: "CI", href: `${basePath}/actions` },
     { id: "settings" as const, label: "Settings", href: `${basePath}/settings` },
   ];
 

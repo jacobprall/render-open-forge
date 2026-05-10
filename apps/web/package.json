@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
-    "@openforge/ci-runner": "workspace:*",
     "@openforge/db": "workspace:*",
     "@openforge/platform": "workspace:*",
     "@openforge/shared": "workspace:*",

@@ -111,6 +111,15 @@ export function NewChatView({
       });
 
       window.history.replaceState(null, "", `/sessions/${data.id}`);
+
+      apiFetch<{ ok?: boolean; title?: string }>(
+        `/api/sessions/${data.id}/auto-title`,
+        { method: "POST" },
+      ).then(({ ok: titleOk, data: titleData }) => {
+        if (titleOk && titleData.title) {
+          document.title = `${titleData.title} | OpenForge`;
+        }
+      }).catch(() => {});
     } catch (err) {
       setCreateError(
         err instanceof Error ? err.message : "Something went wrong",

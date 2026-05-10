@@ -125,13 +125,12 @@ sessionRoutes.post("/:id/message", async (c) => {
     requestId: requestId ?? undefined,
   });
 
-  if (result.isFirstMessage) {
-    getPlatform().sessions.generateAutoTitle(sessionId, auth.userId).catch((err) => {
-      console.error("[auto-title] Failed:", err);
-    });
-  }
-
-  return c.json({ success: true, messageId: result.messageId, runId: result.runId });
+  return c.json({
+    success: true,
+    messageId: result.messageId,
+    runId: result.runId,
+    isFirstMessage: result.isFirstMessage,
+  });
 });
 
 const ReplySchema = z.object({

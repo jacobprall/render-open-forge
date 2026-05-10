@@ -19,8 +19,7 @@
         "ANTHROPIC_API_KEY",
         "OPENAI_API_KEY",
         "ENCRYPTION_KEY",
-        "RENDER_API_KEY",
-        "CI_RUNNER_MODE"
+        "RENDER_API_KEY"
       ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },

@@ -33,6 +33,7 @@ interface UseAgentChatOptions {
   activeRunId?: string | null;
   initialMessages?: Message[];
   onFileChanges?: (files: LiveFileChange[]) => void;
+  onTitleChange?: (title: string) => void;
 }
 
 export interface UseAgentChatReturn {
@@ -57,6 +58,7 @@ export function useAgentChat({
   activeRunId: externalRunId,
   initialMessages = [],
   onFileChanges,
+  onTitleChange,
 }: UseAgentChatOptions): UseAgentChatReturn {
   const [state, dispatch] = useReducer(
     chatReducer,
@@ -68,6 +70,8 @@ export function useAgentChat({
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onFileChangesRef = useRef(onFileChanges);
   onFileChangesRef.current = onFileChanges;
+  const onTitleChangeRef = useRef(onTitleChange);
+  onTitleChangeRef.current = onTitleChange;
 
   useEffect(() => {
     if (externalRunId) {
@@ -192,7 +196,10 @@ export function useAgentChat({
         const body: Record<string, unknown> = { content };
         if (modelId) body.modelId = modelId;
 
-        const { ok, data } = await apiFetch<{ error?: string }>(
+        const { ok, data } = await apiFetch<{
+          error?: string;
+          isFirstMessage?: boolean;
+        }>(
           `/api/sessions/${sessionId}/message`,
           { method: "POST", body },
         );
@@ -210,6 +217,17 @@ export function useAgentChat({
 
         dispatch({ type: "CLEAR_ERROR" });
         startStreaming();
+
+        if (data.isFirstMessage) {
+          apiFetch<{ ok?: boolean; title?: string }>(
+            `/api/sessions/${sessionId}/auto-title`,
+            { method: "POST" },
+          ).then(({ ok: titleOk, data: titleData }) => {
+            if (titleOk && titleData.title) {
+              onTitleChangeRef.current?.(titleData.title);
+            }
+          }).catch(() => {});
+        }
       } catch {
         dispatch({ type: "SET_ERROR", error: "Network error -- failed to send message" });
       }

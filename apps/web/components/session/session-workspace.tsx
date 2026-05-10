@@ -72,6 +72,7 @@ export function SessionWorkspace({
   initialMessages,
 }: SessionWorkspaceProps) {
   const [activeView, setActiveView] = useState<ViewTab>("chat");
+  const [title, setTitle] = useState(session.title);
   const [modelId, setModelId] = useState(() => {
     const id = initialModelId?.trim();
     return id && id.length > 0 ? id : DEFAULT_MODEL_ID;
@@ -80,6 +81,11 @@ export function SessionWorkspace({
 
   const handleFileChanges = useCallback((files: LiveFileChange[]) => {
     setLiveFileChanges(files);
+  }, []);
+
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    document.title = `${newTitle} | OpenForge`;
   }, []);
 
   const handleViewFiles = useCallback(() => {
@@ -176,6 +182,7 @@ export function SessionWorkspace({
             modelId={modelId}
             onFileChanges={handleFileChanges}
             onViewFiles={handleViewFiles}
+            onTitleChange={handleTitleChange}
             autoStream={activeRunId != null}
             autoStreamRunId={activeRunId ?? undefined}
           />

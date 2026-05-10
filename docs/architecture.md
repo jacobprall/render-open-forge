@@ -63,7 +63,6 @@ const platform = createPlatform({
   // Optional overrides:
   // storage: new S3StorageAdapter(config),
   // cache: new MemoryCacheAdapter(),
-  // ciDispatcher: new NoopCIDispatcher(),
   // notificationSink: new WebhookSink(url),
   // authProvider: new StaticTokenAuthProvider(tokens),
 });
@@ -84,12 +83,12 @@ const platform = createPlatform({
 | **NotificationService** | Aggregated notification feed (CI failures, agent errors) | `list` |
 | **InviteService** | User invitation lifecycle | `listInvites`, `createInvite`, `acceptInvite` |
 | **MirrorService** | GitHub/GitLab repo mirroring | `list`, `create`, `sync`, `delete`, `resolveConflict` |
-| **CIService** | CI result ingestion, workflow dispatch, auto-fix | `handleResult`, `dispatchForEvent`, `enqueueSessionTriggerJob` |
+| **CIService** | CI result ingestion, webhook-driven CI updates, auto-fix | `handleResult`, `dispatchForEvent`, `enqueueSessionTriggerJob` |
 | **WebhookService** | Forgejo/GitHub/GitLab webhook routing | `handleForgejoWebhook`, `handleGithubWebhook`, `handleGitlabWebhook` |
 
 ### Pluggable adapters
 
-Infrastructure concerns are abstracted behind interfaces. Default implementations use Redis and Render Workflows, but any can be swapped at construction time.
+Infrastructure concerns are abstracted behind interfaces. Default implementations use Redis, but any can be swapped at construction time.
 
 | Interface | Default implementation | Purpose |
 |---|---|---|
@@ -97,11 +96,10 @@ Infrastructure concerns are abstracted behind interfaces. Default implementation
 | **`EventBus`** | `RedisEventBus` (Streams + Pub/Sub) | Real-time run streaming, KV state (abort flags), history replay, reply back-channel |
 | **`CacheAdapter`** | `RedisCacheAdapter` | Generic get/set/del cache with `getOrSet` helper |
 | **`StorageAdapter`** | `S3StorageAdapter`, `LocalStorageAdapter`, `MemoryStorageAdapter` | Object store: `put`, `get`, `delete`, `list`, `getSignedUrl` |
-| **`CIDispatcher`** | `RenderWorkflowsDispatcher` | Dispatch CI jobs to Render Workflows |
 | **`NotificationSink`** | `ConsoleSink` | Deliver user notifications (`WebhookSink`, `CompositeSink`, `NoopSink` also available) |
 | **`AuthProvider`** | `StaticTokenAuthProvider`, `CompositeAuthProvider` | Map bearer token → `AuthContext` for gateway auth |
 
-Additional testing variants: `MemoryCacheAdapter`, `NoopCIDispatcher`.
+Additional testing variants: `MemoryCacheAdapter`.
 
 ### ForgeProvider
 
@@ -172,17 +170,15 @@ Examples:
 - Disable verification skills to let CI catch issues instead
 - Write custom skills to encode project-specific instructions, conventions, or constraints
 
-## CI execution (Render Workflows)
+## CI execution (GitHub Actions)
 
-Forgejo holds repos and workflow YAML; **Render Workflows** runs the jobs.
+Repositories use **GitHub Actions** for CI. OpenForge does not run a custom in-repo workflow runner.
 
-1. Authors commit `.forgejo/workflows/*.yml` (GitHub Actions-shaped files).
-2. Forgejo sends `push` / `pull_request` webhooks to the web app.
-3. The web app loads workflow definitions from the repo via the Forge API, matches triggers, creates a `ci_events` row, sets a **pending** commit status on Forgejo, and calls `render.workflows.startTask` (or runs in-process when `CI_RUNNER_MODE=local`).
-4. The `openforge-ci` worker (`apps/ci-runner`) executes: shallow git clone, runs each `run:` step under bash, captures logs, scans for JUnit/TAP, then POSTs JSON to `/api/ci/results` with the shared `CI_RUNNER_SECRET`.
-5. The web app validates the callback, updates Postgres, sets success/failure/error on the commit status, and enqueues the agent on failure (auto-fix, capped at `maxCiFixAttempts`).
+1. Workflows run on GitHub when you push or open/update PRs.
+2. **GitHub webhooks** (`workflow_run`, `check_suite`, pushes, etc.) notify OpenForge so sessions, PR state, and the inbox stay in sync.
+3. Optional: a workflow can **POST** structured test/build output to **`POST /api/ci/results`** on the web/gateway URL, using the shared **`CI_RUNNER_SECRET`** (sent as the `x-ci-secret` header). The app validates the callback, updates Postgres (`ci_events`, commit status where applicable), and can enqueue the agent for auto-fix on failure (capped at `maxCiFixAttempts`).
 
-Only `run:` shell steps are executed — `uses:` / marketplace actions are not supported.
+For repository browsing and logs, GitHub Actions runs and artifacts are read via the forge/GitHub integration exposed through platform services.
 
 ## Message persistence
 

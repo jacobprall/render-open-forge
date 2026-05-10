@@ -106,20 +106,11 @@ The script outputs three values — capture them:
 | `FORGEJO_AGENT_TOKEN` | openforge-web, openforge-agent, openforge-gateway |
 | `FORGEJO_OAUTH_CLIENT_ID` | openforge-web |
 | `FORGEJO_OAUTH_CLIENT_SECRET` | openforge-web |
-| `CI_CALLBACK_URL` | openforge-web (`https://openforge-web-xxxx.onrender.com/api/ci/callback`) |
 | `FORGEJO_WEBHOOK_SECRET` | openforge-gateway (random string, e.g. `openssl rand -hex 32`) |
 
-### Step 8: Set Up CI Workflow
+### Step 8: GitHub Actions CI (optional)
 
-Render Workflows can't be defined in Blueprints. Create manually:
-
-1. Dashboard → **Workflows** → **New Workflow**
-2. Connect repo, root directory: `apps/ci-runner`
-3. Build command: `bun install && npx turbo build --filter=@openforge/ci-runner`
-4. Env vars:
-   - `FORGEJO_INTERNAL_URL` = `http://openforge-forgejo:3000`
-   - `FORGEJO_AGENT_TOKEN` = same token
-   - `CI_RUNNER_SECRET` = copy from openforge-web
+Use **GitHub Actions** on your repositories for CI. OpenForge reacts via GitHub webhooks and can ingest detailed payloads when a workflow **POST**s to **`/api/ci/results`** on your web app URL with the **`x-ci-secret`** header set to the same **`CI_RUNNER_SECRET`** as on `openforge-web`.
 
 ### Step 9: Push Database Schema
 
@@ -169,7 +160,6 @@ curl https://openforge-web-xxxx.onrender.com/api/health/workers
 | `bun install --frozen-lockfile` fails in Docker | Bun version mismatch. Pin the exact version in the Dockerfile (e.g. `oven/bun:1.2.19`). |
 | Turbo `--filter` can't find package | Use the full scoped name: `--filter=@openforge/web` not `--filter=web` |
 | `Forgejo is not supposed to be run as root` | Run CLI commands as the `git` user: `su -c '...' git` |
-| CI runner exits immediately | Expected for Render Workflows — the process registers tasks and exits. Deploy as a Workflow, not a worker. |
 | Redirects to `localhost:4000` after login | `AUTH_URL` is not set on `openforge-web`. Set it to the web app's public URL |
 | `Sandbox request failed (401): Unauthorized` | `SANDBOX_SHARED_SECRET` mismatch between agent and sandbox. Agent must pull from sandbox via `fromService`. If already deployed, manually copy the value from sandbox to agent in the Render Dashboard |
 | `drizzle-kit push` fails with "Interactive prompts" | Forgejo tables are in the shared DB. Use `drizzle-kit generate` + `drizzle-kit migrate` instead (the `tablesFilter` in `drizzle.config.ts` excludes Forgejo tables) |

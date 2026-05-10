@@ -35,7 +35,7 @@ export type {
 } from "./mirror";
 
 export { CIService, ciResultPayloadSchema } from "./ci";
-export type { CIResultPayload, DispatchForEventParams, DispatchResult } from "./ci";
+export type { CIResultPayload } from "./ci";
 
 export { WebhookService } from "./webhook";
 

@@ -78,8 +78,6 @@ import {
   shouldAllowUnsignedForgejoWebhooks,
 } from "../forgejo/webhook-signature";
 
-import { getWorkflowTemplate } from "../forgejo/ci-helpers";
-
 // ─── Mappers ─────────────────────────────────────────────────────────────────
 
 function mapRepo(r: NativeRepo): ForgeRepo {
@@ -485,15 +483,7 @@ export class ForgejoProvider extends BaseForgeProvider {
       async downloadArtifact(owner, repo, artifactId) {
         return c.downloadArtifact(owner, repo, artifactId);
       },
-      getWorkflowTemplate(language) {
-        const tmpl = getWorkflowTemplate(language);
-        if (!tmpl) return null;
-        return {
-          name: language,
-          path: tmpl.filename,
-          content: tmpl.content,
-        };
-      },
+      getWorkflowTemplate: () => null,
     };
   }
 

@@ -29,9 +29,6 @@ function requiresApiCsrfProtection(pathname: string, method: string): boolean {
   if (pathname.startsWith("/api/auth/")) {
     return false;
   }
-  if (pathname.startsWith("/api/ci/")) {
-    return false;
-  }
   return true;
 }
 

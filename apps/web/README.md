@@ -39,7 +39,6 @@ Authentication uses **NextAuth v5** (beta) with a credentials provider (email / 
 - **`@openforge/shared`** — types, constants, validation schemas
 - **`@openforge/ui`** — shared React component library
 - **`@openforge/skills`** — agent skill definitions
-- **`@openforge/ci-runner`** — CI job execution (imported for workflow dispatch)
 
 ## Notable External Dependencies
 
