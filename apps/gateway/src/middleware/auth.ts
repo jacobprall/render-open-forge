@@ -189,7 +189,7 @@ async function resolveForgeTokenInfo(
   db: ReturnType<typeof getPlatform>["db"],
   userId: string,
 ): Promise<ForgeTokenInfo | null> {
-  const providerOrder = ["forgejo", "github", "gitlab"] as const;
+  const providerOrder = ["github", "forgejo", "gitlab"] as const;
   for (const provider of providerOrder) {
     const [row] = await db
       .select({ accessToken: accounts.access_token })
