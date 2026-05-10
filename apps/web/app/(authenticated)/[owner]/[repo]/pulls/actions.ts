@@ -49,7 +49,7 @@ export async function mergePullRequestAction(
     });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
-      return { error: body?.error ?? "Merge failed" };
+      return { error: typeof body?.error === "string" ? body.error : "Merge failed" };
     }
     revalidatePath(`/${parsed.data.owner}/${parsed.data.repo}/pulls/${parsed.data.number}`);
     return {};
@@ -95,7 +95,7 @@ export async function createPullRequestAction(
     });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
-      return { error: body?.error ?? "Failed to create pull request" };
+      return { error: typeof body?.error === "string" ? body.error : "Failed to create pull request" };
     }
     const result = await res.json();
     return { number: result.number };

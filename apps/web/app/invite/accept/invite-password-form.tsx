@@ -33,7 +33,7 @@ export function InvitePasswordForm({ token }: { token: string }) {
       const data = (await res.json()) as { ok?: boolean; email?: string; error?: string };
 
       if (!res.ok) {
-        setError(data.error ?? "Could not complete invite");
+        setError(typeof data.error === "string" ? data.error : "Could not complete invite");
         return;
       }
 

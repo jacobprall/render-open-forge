@@ -58,7 +58,7 @@ export function useChatMessages({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Failed to send message" }));
-        setError(data.error ?? "Failed to send message");
+        setError(typeof data.error === "string" ? data.error : "Failed to send message");
         return;
       }
 
@@ -84,7 +84,7 @@ export function useChatMessages({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Reply failed" }));
-        setError(data.error ?? "Failed to send reply to agent");
+        setError(typeof data.error === "string" ? data.error : "Failed to send reply to agent");
       }
     } catch {
       setError("Network error — reply failed");

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
+import { formatZodError } from "../middleware/validation";
 
 export const inviteRoutes = new Hono<GatewayEnv>();
 
@@ -19,7 +20,7 @@ const CreateInviteSchema = z.object({
 inviteRoutes.post("/", async (c) => {
   const auth = c.get("auth");
   const body = CreateInviteSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   const result = await getPlatform().invites.createInvite(auth, body.data);
   return c.json(result, 201);
 });
@@ -31,7 +32,7 @@ const AcceptInviteSchema = z.object({
 
 inviteRoutes.post("/accept", async (c) => {
   const body = AcceptInviteSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   const result = await getPlatform().invites.acceptInvite(body.data.token, body.data.password);
   return c.json(result);
 });

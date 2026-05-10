@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
+import { formatZodError } from "../middleware/validation";
 
 export const repoRoutes = new Hono<GatewayEnv>();
 
@@ -22,7 +23,7 @@ const ImportRepoSchema = z.object({
 repoRoutes.post("/import", async (c) => {
   const auth = c.get("auth");
   const body = ImportRepoSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const { repo, deferredTasks } = await getPlatform().repos.importRepo(auth, body.data);
 
@@ -71,7 +72,7 @@ repoRoutes.put("/:owner/:repo/contents/*", async (c) => {
   const repo = c.req.param("repo");
   const filePath = c.req.param("*") ?? "";
   const body = PutFileSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const result = await getPlatform().repos.putFileContents(auth, owner, repo, filePath, body.data);
   return c.json(result);
@@ -105,7 +106,7 @@ repoRoutes.post("/:owner/:repo/agent-config", async (c) => {
   const owner = c.req.param("owner");
   const repo = c.req.param("repo");
   const body = WriteAgentConfigSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const result = await getPlatform().repos.writeAgentConfig(auth, owner, repo, body.data);
   return c.json(result);
@@ -132,7 +133,7 @@ repoRoutes.post("/:owner/:repo/branch-protection", async (c) => {
   const owner = c.req.param("owner");
   const repo = c.req.param("repo");
   const body = SetBranchProtectionSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const rule = await getPlatform().repos.setBranchProtection(auth, owner, repo, body.data);
   return c.json(rule);
@@ -176,7 +177,7 @@ repoRoutes.put("/:owner/:repo/secrets/:name", async (c) => {
   const repo = c.req.param("repo");
   const name = c.req.param("name");
   const body = SetSecretSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   await getPlatform().repos.setSecret(auth, owner, repo, name, body.data.value);
   return c.json({ ok: true });

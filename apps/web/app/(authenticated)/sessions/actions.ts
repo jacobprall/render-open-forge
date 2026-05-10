@@ -12,7 +12,7 @@ export async function archiveSessionAction(sessionId: string): Promise<{ error?:
     });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
-      return { error: body?.error ?? `Archive failed (${res.status})` };
+      return { error: typeof body?.error === "string" ? body.error : `Archive failed (${res.status})` };
     }
     revalidatePath("/sessions");
     revalidatePath("/", "layout");
@@ -20,7 +20,7 @@ export async function archiveSessionAction(sessionId: string): Promise<{ error?:
   } catch (err) {
     if (err instanceof Response) {
       const body = await err.json().catch(() => null);
-      return { error: body?.error ?? "Unauthorized" };
+      return { error: typeof body?.error === "string" ? body.error : "Unauthorized" };
     }
     return { error: err instanceof Error ? err.message : "Failed to archive session" };
   }

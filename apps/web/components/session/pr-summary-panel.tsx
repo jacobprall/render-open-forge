@@ -34,7 +34,7 @@ export function PrSummaryPanel({ sessionId, repoPath, prNumber, prStatus, branch
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setError(data.error ?? "Failed to request review");
+          setError(typeof data.error === "string" ? data.error : "Failed to request review");
           return;
         }
         setReviewRequested(true);

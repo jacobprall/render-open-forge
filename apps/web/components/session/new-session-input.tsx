@@ -54,7 +54,8 @@ export function NewSessionInput({ defaultModelId, defaultRepo, defaultBranch, pr
 
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            throw new Error(data.error ?? `Failed to create session (${res.status})`);
+            const msg = typeof data.error === "string" ? data.error : `Failed to create session (${res.status})`;
+            throw new Error(msg);
           }
 
           const data = await res.json();

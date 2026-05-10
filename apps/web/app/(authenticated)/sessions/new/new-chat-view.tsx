@@ -7,7 +7,8 @@ import {
   useEffect,
   useMemo,
 } from "react";
-import { Send, GitBranch } from "lucide-react";
+import Link from "next/link";
+import { Send, GitBranch, MessageCircle } from "lucide-react";
 import { useChatStream } from "@/components/session/use-chat-stream";
 import { useChatMessages } from "@/components/session/use-chat-messages";
 import type { Message } from "@/components/session/use-chat-messages";
@@ -16,11 +17,20 @@ import { RepoBranchPicker } from "@/components/session/repo-branch-picker";
 import { ModelSelector } from "@/components/model-selector";
 import { DEFAULT_MODEL_ID } from "@/lib/model-defaults";
 
+interface RecentSession {
+  id: string;
+  title: string | null;
+  status: string;
+  repoPath: string | null;
+  createdAt: Date | null;
+}
+
 interface NewChatViewProps {
   defaultModelId?: string;
   defaultRepo?: string;
   defaultBranch?: string;
   projectId?: string;
+  recentSessions?: RecentSession[];
 }
 
 export function NewChatView({
@@ -28,6 +38,7 @@ export function NewChatView({
   defaultRepo,
   defaultBranch,
   projectId,
+  recentSessions = [],
 }: NewChatViewProps) {
   const [sessionId, setSessionId] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -119,7 +130,8 @@ export function NewChatView({
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error ?? `Failed to create session (${res.status})`);
+          const msg = typeof data.error === "string" ? data.error : `Failed to create session (${res.status})`;
+          throw new Error(msg);
         }
 
         const data = await res.json();
@@ -178,7 +190,7 @@ export function NewChatView({
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-(--of-space-md) py-(--of-space-xl)">
         {hasMessages ? (
-          <div className="mx-auto max-w-2xl flex flex-col gap-(--of-space-lg)">
+          <div className="mx-auto max-w-2xl flex min-h-full flex-col justify-end gap-(--of-space-lg)">
             <MessageArea
               messages={messages}
               streamingParts={stream.streamingParts}
@@ -196,10 +208,36 @@ export function NewChatView({
       <div className="shrink-0 border-t border-stroke-subtle px-(--of-space-md) py-(--of-space-md)">
         <div className="mx-auto max-w-2xl">
           {!hasSession && (
-            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />
-              <ModelSelector value={modelId} onChange={setModelId} compact />
-            </div>
+            <>
+              {recentSessions.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-text-tertiary">
+                    Recent sessions
+                  </h3>
+                  <div className="divide-y divide-stroke-subtle border border-stroke-subtle bg-surface-0">
+                    {recentSessions.map((s) => (
+                      <Link
+                        key={s.id}
+                        href={`/sessions/${s.id}`}
+                        className="flex items-center gap-3 px-3 py-2.5 transition-colors duration-(--of-duration-instant) hover:bg-surface-1"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
+                        <span className="min-w-0 flex-1 truncate text-[13px] text-text-secondary">
+                          {s.title || "Untitled session"}
+                        </span>
+                        <span className="shrink-0 text-[11px] font-mono text-text-tertiary">
+                          {s.repoPath ?? "scratch"}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />
+                <ModelSelector value={modelId} onChange={setModelId} compact />
+              </div>
+            </>
           )}
           <form
             onSubmit={(e) => {

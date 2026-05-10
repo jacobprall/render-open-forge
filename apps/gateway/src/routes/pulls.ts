@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
+import { formatZodError } from "../middleware/validation";
 
 export const pullRoutes = new Hono<GatewayEnv>();
 
@@ -21,7 +22,7 @@ pullRoutes.post("/:owner/:repo", async (c) => {
   const owner = c.req.param("owner");
   const repo = c.req.param("repo");
   const body = CreatePullRequestSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const result = await getPlatform().pullRequests.createPullRequest(auth, owner, repo, body.data);
   return c.json(result, 201);
@@ -42,7 +43,7 @@ pullRoutes.patch("/:owner/:repo/:number", async (c) => {
   const repo = c.req.param("repo");
   const number = Number(c.req.param("number"));
   const body = UpdatePullRequestSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const result = await getPlatform().pullRequests.updatePullRequest(auth, owner, repo, number, body.data);
   return c.json(result);
@@ -63,7 +64,7 @@ pullRoutes.post("/:owner/:repo/:number/merge", async (c) => {
   const number = Number(c.req.param("number"));
   const raw = await c.req.json().catch(() => ({}));
   const body = MergePullRequestSchema.safeParse(raw);
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   await getPlatform().pullRequests.mergePullRequest(auth, owner, repo, number, body.data?.method);
   return c.json({ ok: true });
@@ -99,7 +100,7 @@ pullRoutes.post("/:owner/:repo/:number/comments", async (c) => {
   const repo = c.req.param("repo");
   const number = Number(c.req.param("number"));
   const body = CreateCommentSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const comment = await getPlatform().pullRequests.createComment(auth, owner, repo, number, body.data);
   return c.json(comment, 201);
@@ -120,7 +121,7 @@ pullRoutes.post("/:owner/:repo/:number/comments/:commentId/resolve", async (c) =
   const commentId = Number(c.req.param("commentId"));
   const raw = await c.req.json().catch(() => ({}));
   const body = ResolveCommentSchema.safeParse(raw);
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const result = await getPlatform().pullRequests.resolveComment(
     auth, owner, repo, commentId, body.data?.unresolve,
@@ -166,7 +167,7 @@ pullRoutes.post("/:owner/:repo/:number/reviews", async (c) => {
   const repo = c.req.param("repo");
   const number = Number(c.req.param("number"));
   const body = SubmitReviewSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const review = await getPlatform().pullRequests.submitReview(auth, owner, repo, number, body.data);
   return c.json(review, 201);

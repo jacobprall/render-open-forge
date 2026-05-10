@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+import { getDb } from "@/lib/db";
+import { sessions } from "@openforge/db";
+import { eq, desc } from "drizzle-orm";
 import { getUserPreferences } from "@/lib/db/loaders";
 import { NewChatView } from "./new-chat-view";
 
@@ -15,7 +18,24 @@ export default async function NewSessionPage({
   if (!session) redirect("/");
 
   const userId = String(session.userId);
-  const prefsRow = await getUserPreferences(userId);
+  const db = getDb();
+
+  const [prefsRow, recentSessions] = await Promise.all([
+    getUserPreferences(userId),
+    db
+      .select({
+        id: sessions.id,
+        title: sessions.title,
+        status: sessions.status,
+        repoPath: sessions.repoPath,
+        createdAt: sessions.createdAt,
+      })
+      .from(sessions)
+      .where(eq(sessions.userId, userId))
+      .orderBy(desc(sessions.createdAt))
+      .limit(5),
+  ]);
+
   const defaultModelId = prefsRow?.data?.defaultModelId ?? undefined;
 
   return (
@@ -24,6 +44,7 @@ export default async function NewSessionPage({
       defaultRepo={params.repo}
       defaultBranch={params.branch}
       projectId={params.project}
+      recentSessions={recentSessions}
     />
   );
 }

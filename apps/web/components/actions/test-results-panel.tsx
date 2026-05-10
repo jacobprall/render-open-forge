@@ -7,7 +7,7 @@ import type { TestCase, TestResultSummary, TestSuite } from "@openforge/shared"
 const fetcher = (url: string) =>
   fetch(url, { cache: "no-store" }).then(async (res) => {
     const json = (await res.json()) as { testResults: TestResultSummary | null; error?: string }
-    if (!res.ok) throw new Error(json.error ?? "Failed to load test results")
+    if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to load test results")
     return json.testResults
   })
 

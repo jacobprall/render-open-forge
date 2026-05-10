@@ -110,7 +110,7 @@ export default function ImportPage() {
         const res = await fetch(`/api/sync/${provider}/repos`);
         const json = await res.json();
         if (!res.ok) {
-          setError(json.error ?? "Failed to fetch repos");
+          setError(typeof json.error === "string" ? json.error : "Failed to fetch repos");
           return;
         }
         setData((prev) => ({
@@ -167,7 +167,7 @@ export default function ImportPage() {
           results.push({
             name: repo.full_name,
             ok: false,
-            error: json.error ?? "Import failed",
+            error: typeof json.error === "string" ? json.error : "Import failed",
           });
         }
       } catch {

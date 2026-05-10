@@ -16,7 +16,7 @@ export function ReviewButton({ sessionId }: { sessionId: string }) {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setError(data.error ?? "Failed");
+          setError(typeof data.error === "string" ? data.error : "Failed");
           return;
         }
         setDone(true);

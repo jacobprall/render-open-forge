@@ -32,8 +32,8 @@ export function SecretsSettings({ owner, repo }: Props) {
     setError(null)
     try {
       const res = await fetch(base, { cache: "no-store" })
-      const json = (await res.json()) as { secrets?: SecretEntry[]; error?: string }
-      if (!res.ok) throw new Error(json.error ?? "Failed to load secrets")
+      const json = (await res.json()) as { secrets?: SecretEntry[]; error?: unknown }
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to load secrets")
       setSecrets(json.secrets ?? [])
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -60,8 +60,8 @@ export function SecretsSettings({ owner, repo }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: newValue }),
       })
-      const json = (await res.json()) as { error?: string }
-      if (!res.ok) throw new Error(json.error ?? "Failed to save secret")
+      const json = (await res.json()) as { error?: unknown }
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to save secret")
       setMessage(`Secret "${trimmed}" saved.`)
       setNewName("")
       setNewValue("")
@@ -79,8 +79,8 @@ export function SecretsSettings({ owner, repo }: Props) {
     setMessage(null)
     try {
       const res = await fetch(`${base}/${encodeURIComponent(name)}`, { method: "DELETE" })
-      const json = (await res.json()) as { error?: string }
-      if (!res.ok) throw new Error(json.error ?? "Failed to delete secret")
+      const json = (await res.json()) as { error?: unknown }
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to delete secret")
       setMessage(`Secret "${name}" deleted.`)
       await refresh()
     } catch (e) {

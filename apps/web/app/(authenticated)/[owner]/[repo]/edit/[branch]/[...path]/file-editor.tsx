@@ -48,7 +48,7 @@ export function FileEditor({
       router.push(`/${owner}/${repo}`);
     } else {
       const data = await res.json().catch(() => ({}));
-      setError(data.error || "Failed to save file");
+      setError(typeof data.error === "string" ? data.error : "Failed to save file");
     }
     setSaving(false);
   }

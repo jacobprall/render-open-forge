@@ -27,7 +27,7 @@ export function InstallSkillForm() {
         const data = await res.json();
 
         if (!res.ok) {
-          setResult({ type: "error", message: data.error ?? "Install failed" });
+          setResult({ type: "error", message: typeof data.error === "string" ? data.error : "Install failed" });
           return;
         }
 

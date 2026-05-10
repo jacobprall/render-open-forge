@@ -54,7 +54,7 @@ export function MirrorSync({ mirrorId, remoteRepoUrl, direction, lastSyncAt, sta
         const text = await res.text();
         try {
           const json = JSON.parse(text);
-          setError(json.error ?? `Sync failed (${res.status})`);
+          setError(typeof json.error === "string" ? json.error : `Sync failed (${res.status})`);
         } catch {
           setError(`Sync failed (${res.status}): ${text.slice(0, 200) || "unknown error"}`);
         }

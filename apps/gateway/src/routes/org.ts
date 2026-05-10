@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
+import { formatZodError } from "../middleware/validation";
 
 export const orgSingularRoutes = new Hono<GatewayEnv>();
 
@@ -19,7 +20,7 @@ orgSingularRoutes.get("/", async (c) => {
 orgSingularRoutes.patch("/", async (c) => {
   const auth = c.get("auth");
   const body = UpdateOrgSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   const org = await getPlatform().orgs.updatePlatformOrg(auth, body.data);
   return c.json(org);
 });

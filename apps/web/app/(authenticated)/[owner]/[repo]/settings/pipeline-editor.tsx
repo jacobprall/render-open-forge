@@ -130,8 +130,8 @@ export function PipelineEditor({ owner, repo }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),
       });
-      const json = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(json.error ?? "Failed to save config");
+      const json = (await res.json()) as { error?: unknown };
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to save config");
       setMessage("Pipeline configuration saved.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
+import { formatZodError } from "../middleware/validation";
 
 export const projectRoutes = new Hono<GatewayEnv>();
 
@@ -36,7 +37,7 @@ projectRoutes.get("/", async (c) => {
 projectRoutes.post("/", async (c) => {
   const auth = c.get("auth");
   const body = CreateProjectSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   const project = await getPlatform().projects.create(auth, body.data);
   return c.json(project, 201);
 });
@@ -51,7 +52,7 @@ projectRoutes.get("/:id", async (c) => {
 projectRoutes.patch("/:id", async (c) => {
   const auth = c.get("auth");
   const body = UpdateProjectSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   const project = await getPlatform().projects.update(auth, c.req.param("id"), body.data);
   return c.json(project);
 });
@@ -65,7 +66,7 @@ projectRoutes.delete("/:id", async (c) => {
 projectRoutes.post("/:id/repos", async (c) => {
   const auth = c.get("auth");
   const body = AddRepoSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   const repo = await getPlatform().projects.addRepo(auth, c.req.param("id"), body.data);
   return c.json(repo, 201);
 });

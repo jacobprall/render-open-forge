@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
+import { formatZodError } from "../middleware/validation";
 
 export const settingsRoutes = new Hono<GatewayEnv>();
 
@@ -21,7 +22,7 @@ const CreateOrUpdateKeySchema = z.object({
 settingsRoutes.post("/api-keys", async (c) => {
   const auth = c.get("auth");
   const body = CreateOrUpdateKeySchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   const result = await getPlatform().settings.createOrUpdateApiKey(auth, body.data);
   return c.json(result, 201);
 });
@@ -35,7 +36,7 @@ settingsRoutes.patch("/api-keys/:id", async (c) => {
   const auth = c.get("auth");
   const id = c.req.param("id");
   const body = UpdateKeySchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   await getPlatform().settings.updateApiKey(auth, id, body.data);
   return c.json({ ok: true });
 });

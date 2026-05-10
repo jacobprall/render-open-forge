@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
+import { formatZodError } from "../middleware/validation";
 
 export const orgRoutes = new Hono<GatewayEnv>();
 
@@ -28,7 +29,7 @@ const CreateOrgSchema = z.object({
 orgRoutes.post("/", async (c) => {
   const auth = c.get("auth");
   const body = CreateOrgSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const org = await getPlatform().orgs.createOrg(auth, body.data);
   return c.json(org, 201);
@@ -104,7 +105,7 @@ orgRoutes.post("/:org/secrets", async (c) => {
   const auth = c.get("auth");
   const org = c.req.param("org");
   const body = SetOrgSecretSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   await getPlatform().orgs.setSecret(auth, org, body.data.name, body.data.value);
   return c.json({ ok: true });

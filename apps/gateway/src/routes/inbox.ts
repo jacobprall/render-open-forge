@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
+import { formatZodError } from "../middleware/validation";
 
 export const inboxRoutes = new Hono<GatewayEnv>();
 
@@ -25,7 +26,7 @@ const DismissSchema = z.object({ eventIds: z.array(z.string()).min(1) });
 inboxRoutes.post("/dismiss", async (c) => {
   const auth = c.get("auth");
   const body = DismissSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   await getPlatform().inbox.dismiss(auth, body.data.eventIds);
   return c.json({ ok: true });
 });
@@ -38,7 +39,7 @@ const MarkReadSchema = z.object({
 inboxRoutes.post("/read", async (c) => {
   const auth = c.get("auth");
   const body = MarkReadSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   await getPlatform().inbox.markRead(auth, body.data);
   return c.json({ ok: true });
 });

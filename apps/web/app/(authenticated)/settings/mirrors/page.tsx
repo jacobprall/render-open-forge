@@ -48,7 +48,7 @@ function extractProvider(url: string): string {
 async function mirrorsFetcher(url: string): Promise<Mirror[]> {
   const res = await fetch(url, { cache: "no-store" });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? "Failed to load mirrors");
+  if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to load mirrors");
   return json.mirrors ?? [];
 }
 
@@ -80,7 +80,7 @@ export default function MirrorsPage() {
         );
       } else {
         const json = await res.json();
-        setError(json.error ?? "Sync failed");
+        setError(typeof json.error === "string" ? json.error : "Sync failed");
       }
     } catch {
       setError("Sync request failed");
@@ -104,7 +104,7 @@ export default function MirrorsPage() {
         );
       } else {
         const json = await res.json();
-        setError(json.error ?? "Delete failed");
+        setError(typeof json.error === "string" ? json.error : "Delete failed");
       }
     } catch {
       setError("Delete request failed");

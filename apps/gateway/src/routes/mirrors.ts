@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
+import { formatZodError } from "../middleware/validation";
 
 export const mirrorRoutes = new Hono<GatewayEnv>();
 
@@ -33,7 +34,7 @@ const CreateMirrorSchema = z.object({
 mirrorRoutes.post("/", async (c) => {
   const auth = c.get("auth");
   const body = CreateMirrorSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const mirror = await getPlatform().mirrors.create(auth, body.data);
   return c.json(mirror, 201);
@@ -74,7 +75,7 @@ mirrorRoutes.post("/:id/resolve", async (c) => {
   const id = c.req.param("id");
   const raw = await c.req.json().catch(() => ({}));
   const body = ResolveConflictSchema.safeParse(raw);
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const result = await getPlatform().mirrors.resolveConflict(auth, id, body.data?.strategy);
   return c.json(result);

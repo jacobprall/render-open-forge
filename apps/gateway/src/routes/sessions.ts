@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
 import { getForgeProviderForAuth } from "@openforge/platform/forge";
+import { formatZodError } from "../middleware/validation";
 
 export const sessionRoutes = new Hono<GatewayEnv>();
 
@@ -23,7 +24,7 @@ const CreateSessionSchema = z.object({
 sessionRoutes.post("/", async (c) => {
   const auth = c.get("auth");
   const body = CreateSessionSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const data = body.data;
   const platform = getPlatform();
@@ -73,7 +74,7 @@ sessionRoutes.post("/:id/message", async (c) => {
   const auth = c.get("auth");
   const sessionId = c.req.param("id");
   const body = SendMessageSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
   const requestId = c.req.header("x-request-id");
   const result = await getPlatform().sessions.sendMessage(auth, sessionId, {
@@ -100,7 +101,7 @@ sessionRoutes.post("/:id/reply", async (c) => {
   const auth = c.get("auth");
   const sessionId = c.req.param("id");
   const body = ReplySchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   await getPlatform().sessions.reply(auth, sessionId, body.data);
   return c.json({ ok: true });
 });
@@ -118,7 +119,7 @@ sessionRoutes.post("/:id/phase", async (c) => {
   const auth = c.get("auth");
   const sessionId = c.req.param("id");
   const body = UpdatePhaseSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   await getPlatform().sessions.updatePhase(auth, sessionId, body.data.phase);
   return c.json({ ok: true });
 });
@@ -148,7 +149,7 @@ sessionRoutes.patch("/:id/skills", async (c) => {
   const auth = c.get("auth");
   const sessionId = c.req.param("id");
   const body = UpdateSkillsSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   await getPlatform().sessions.updateSkills(auth, sessionId, body.data.skills);
   return c.json({ ok: true });
 });
@@ -163,7 +164,7 @@ sessionRoutes.post("/:id/spec", async (c) => {
   const auth = c.get("auth");
   const sessionId = c.req.param("id");
   const body = SpecActionSchema.safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   const result = await getPlatform().sessions.handleSpecAction(auth, sessionId, body.data);
   return c.json(result);
 });
@@ -191,7 +192,7 @@ sessionRoutes.post("/:id/review", async (c) => {
   const sessionId = c.req.param("id");
   const raw = await c.req.json().catch(() => undefined);
   const body = ReviewJobSchema.safeParse(raw);
-  if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
   const result = await getPlatform().sessions.enqueueReviewJob(auth, sessionId, body.data);
   return c.json(result ?? { ok: true });
 });
