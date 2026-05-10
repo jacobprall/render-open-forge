@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { apiFetch } from "@/lib/api-fetch";
 
 export function ReviewButton({ sessionId }: { sessionId: string }) {
   const [isPending, startTransition] = useTransition();
@@ -11,11 +12,10 @@ export function ReviewButton({ sessionId }: { sessionId: string }) {
     setError(null);
     startTransition(async () => {
       try {
-        const res = await fetch(`/api/sessions/${sessionId}/review`, {
+        const { ok, data } = await apiFetch<{ error?: string }>(`/api/sessions/${sessionId}/review`, {
           method: "POST",
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
+        if (!ok) {
           setError(typeof data.error === "string" ? data.error : "Failed");
           return;
         }

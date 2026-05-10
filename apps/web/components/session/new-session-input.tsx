@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useTransition } from "react";
 import { Send } from "lucide-react";
+import { apiFetch } from "@/lib/api-fetch";
 import { RepoBranchPicker } from "./repo-branch-picker";
 import { ModelSelector } from "@/components/model-selector";
 import { DEFAULT_MODEL_ID } from "@/lib/model-defaults";
@@ -46,19 +47,15 @@ export function NewSessionInput({ defaultModelId, defaultRepo, defaultBranch, pr
             body.projectId = projectId;
           }
 
-          const res = await fetch("/api/sessions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          });
+          const { ok, status, data } = await apiFetch<{ id: string; error?: string }>(
+            "/api/sessions",
+            { method: "POST", body },
+          );
 
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            const msg = typeof data.error === "string" ? data.error : `Failed to create session (${res.status})`;
+          if (!ok) {
+            const msg = typeof data.error === "string" ? data.error : `Failed to create session (${status})`;
             throw new Error(msg);
           }
-
-          const data = await res.json();
           onSessionCreated?.(
             { id: data.id, firstMessage: message.trim(), modelId },
             repoBranch ? { repo: repoBranch.repo, branch: repoBranch.branch } : undefined,

@@ -83,6 +83,7 @@ export {
   publishRunEvent,
   readRunEventHistory,
   readRunEventHistoryDetailed,
+  readRunEventEntriesAfterId,
   readRunEventPayloadsAfterId,
   runEventStreamKey,
 } from "./events/run-stream";

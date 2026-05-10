@@ -3,6 +3,7 @@
 import { useState, useCallback, useTransition } from "react";
 import useSWR from "swr";
 import { Building2, Save, Users } from "lucide-react";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface Org {
   id: string;
@@ -36,10 +37,9 @@ export default function OrganizationPage() {
   const handleSave = useCallback(() => {
     if (!name.trim()) return;
     startSaving(async () => {
-      await fetch("/api/org", {
+      await apiFetch("/api/org", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() }),
+        body: { name: name.trim() },
       });
       setSaved(true);
       mutateOrg();

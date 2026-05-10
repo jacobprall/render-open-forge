@@ -12,6 +12,7 @@ import {
   EmptyState,
   ListRow,
 } from "@/components/primitives";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface Org {
   id: number;
@@ -43,24 +44,22 @@ export default function OrgsPage() {
 
     setCreating(true);
     setError(null);
-    const res = await fetch("/api/orgs", {
+    const { ok, data } = await apiFetch<{ error?: string }>("/api/orgs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: {
         login: login.trim(),
         fullName: fullName.trim() || undefined,
         description: description.trim() || undefined,
-      }),
+      },
     });
 
-    if (res.ok) {
+    if (ok) {
       setLogin("");
       setFullName("");
       setDescription("");
       await mutate();
     } else {
-      const data = await res.json().catch(() => ({}));
-      setError((data as { error?: string }).error || "Failed to create organization");
+      setError(data.error || "Failed to create organization");
     }
     setCreating(false);
   }

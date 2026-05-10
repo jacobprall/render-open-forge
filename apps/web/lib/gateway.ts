@@ -78,12 +78,18 @@ export async function gatewayProxy(
 export async function gatewayStream(
   gatewayPath: string,
   userId: string,
+  opts?: { lastEventId?: string | null },
 ): Promise<Response> {
+  const fwdHeaders: Record<string, string> = { Accept: "text/event-stream" };
+  if (opts?.lastEventId) {
+    fwdHeaders["Last-Event-ID"] = opts.lastEventId;
+  }
+
   let res: Response;
   try {
     res = await gatewayFetch(gatewayPath, {
       userId,
-      headers: { Accept: "text/event-stream" },
+      headers: fwdHeaders,
     });
   } catch {
     return sseError("Gateway unreachable");
@@ -151,4 +157,40 @@ export async function requireUserId(): Promise<string> {
     });
   }
   return session.user.id;
+}
+
+// ── Route handler factory ───────────────────────────────────────────────────
+
+type RouteContext = { params: Promise<Record<string, string>> };
+
+/**
+ * Creates a Next.js route handler that authenticates, resolves params, and
+ * proxies the request to the gateway.
+ *
+ * Usage:
+ *   export const POST = createGatewayHandler((p) => `/sessions/${p.id}/message`);
+ *   export const GET  = createGatewayHandler((p) => `/repos/${p.owner}/${p.repo}/contents`);
+ */
+export function createGatewayHandler(
+  buildPath: (params: Record<string, string>) => string,
+) {
+  return async (req: NextRequest, ctx: RouteContext) => {
+    const userId = await requireUserId();
+    const params = await ctx.params;
+    return gatewayProxy(req, buildPath(params), userId);
+  };
+}
+
+/**
+ * Same as createGatewayHandler but for SSE stream endpoints.
+ */
+export function createGatewayStreamHandler(
+  buildPath: (params: Record<string, string>) => string,
+) {
+  return async (req: NextRequest, ctx: RouteContext) => {
+    const userId = await requireUserId();
+    const params = await ctx.params;
+    const lastEventId = req.headers.get("Last-Event-ID") ?? undefined;
+    return gatewayStream(buildPath(params), userId, { lastEventId });
+  };
 }

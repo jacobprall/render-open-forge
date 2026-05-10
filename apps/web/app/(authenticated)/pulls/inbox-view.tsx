@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api-fetch";
 import { ReviewButton } from "./review-button";
 
 interface InboxItem {
@@ -92,23 +93,20 @@ export function InboxView({ initialItems }: { initialItems: InboxItem[] }) {
   async function handleDismiss(id: string) {
     setItems((prev) => prev.filter((item) => item.id !== id));
     startTransition(async () => {
-      await fetch("/api/inbox/dismiss", {
+      await apiFetch("/api/inbox/dismiss", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: [id] }),
+        body: { ids: [id] },
       });
       router.refresh();
     });
   }
 
   async function handleDismissAll() {
-    const ids = items.map((item) => item.id);
     setItems([]);
     startTransition(async () => {
-      await fetch("/api/inbox/read", {
+      await apiFetch("/api/inbox/read", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ markAll: true }),
+        body: { markAll: true },
       });
       router.refresh();
     });

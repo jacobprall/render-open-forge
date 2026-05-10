@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db";
 import { sessions } from "@openforge/db";
 import { eq, desc } from "drizzle-orm";
 import { getUserPreferences } from "@/lib/db/loaders";
+import { gatewayFetch } from "@/lib/gateway";
 import { NewChatView } from "./new-chat-view";
 
 export const metadata: Metadata = { title: "New Chat" };
@@ -20,7 +21,7 @@ export default async function NewSessionPage({
   const userId = String(session.userId);
   const db = getDb();
 
-  const [prefsRow, recentSessions] = await Promise.all([
+  const [prefsRow, recentSessions, reposResult] = await Promise.all([
     getUserPreferences(userId),
     db
       .select({
@@ -34,6 +35,9 @@ export default async function NewSessionPage({
       .where(eq(sessions.userId, userId))
       .orderBy(desc(sessions.createdAt))
       .limit(5),
+    gatewayFetch("/sessions/repos", { userId })
+      .then((r) => (r.ok ? r.json() : { repos: [] }))
+      .catch(() => ({ repos: [] })),
   ]);
 
   const defaultModelId = prefsRow?.data?.defaultModelId ?? undefined;
@@ -45,6 +49,7 @@ export default async function NewSessionPage({
       defaultBranch={params.branch}
       projectId={params.project}
       recentSessions={recentSessions}
+      initialRepos={reposResult.repos ?? []}
     />
   );
 }

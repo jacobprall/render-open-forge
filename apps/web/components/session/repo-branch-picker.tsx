@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { GitBranch, ChevronDown, Search } from "lucide-react";
-import useSWR from "swr";
+import { GitBranch, ChevronDown, Search, Plus } from "lucide-react";
+import useSWR, { useSWRConfig } from "swr";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface Repo {
   id: number | string;
@@ -19,25 +20,40 @@ interface Branch {
 interface RepoBranchPickerProps {
   value: { repo: string; branch: string } | null;
   onChange: (value: { repo: string; branch: string }) => void;
+  initialRepos?: Repo[];
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-export function RepoBranchPicker({ value, onChange }: RepoBranchPickerProps) {
+export function RepoBranchPicker({ value, onChange, initialRepos }: RepoBranchPickerProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"repo" | "branch">("repo");
   const [query, setQuery] = useState("");
   const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null);
+  const [creatingBranch, setCreatingBranch] = useState(false);
+  const [newBranchName, setNewBranchName] = useState("");
+  const [branchError, setBranchError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const newBranchRef = useRef<HTMLInputElement>(null);
+  const { mutate } = useSWRConfig();
 
-  const { data: reposData } = useSWR<{ repos: Repo[] }>("/api/sessions/repos", fetcher);
+  const reposFallback = initialRepos?.length ? { repos: initialRepos } : undefined;
+  const { data: reposData, isLoading: reposLoading } = useSWR<{ repos: Repo[] }>(
+    "/api/sessions/repos",
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60_000, fallbackData: reposFallback },
+  );
   const repos = reposData?.repos ?? [];
 
   const branchPath = selectedRepo
     ? `/api/sessions/repos/${encodeURIComponent(selectedRepo.fullName)}/branches`
     : null;
-  const { data: branchesData } = useSWR<{ branches: Branch[] }>(branchPath, fetcher);
+  const { data: branchesData, isLoading: branchesLoading } = useSWR<{ branches: Branch[] }>(
+    branchPath,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60_000 },
+  );
   const branches = branchesData?.branches ?? [];
 
   const filteredRepos = query
@@ -56,6 +72,7 @@ export function RepoBranchPicker({ value, onChange }: RepoBranchPickerProps) {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
+        setCreatingBranch(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -63,10 +80,16 @@ export function RepoBranchPicker({ value, onChange }: RepoBranchPickerProps) {
   }, []);
 
   useEffect(() => {
-    if (open && inputRef.current) {
+    if (open && !creatingBranch && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [open, step]);
+  }, [open, step, creatingBranch]);
+
+  useEffect(() => {
+    if (creatingBranch && newBranchRef.current) {
+      newBranchRef.current.focus();
+    }
+  }, [creatingBranch]);
 
   const handleRepoSelect = useCallback(
     (repo: Repo) => {
@@ -89,10 +112,43 @@ export function RepoBranchPicker({ value, onChange }: RepoBranchPickerProps) {
     [selectedRepo, onChange],
   );
 
+  const handleCreateBranch = useCallback(async () => {
+    if (!selectedRepo || !newBranchName.trim()) return;
+    setBranchError(null);
+
+    try {
+      const { ok, data } = await apiFetch<{ error?: string }>(
+        `/api/sessions/repos/${encodeURIComponent(selectedRepo.fullName)}/branches`,
+        {
+          method: "POST",
+          body: {
+            name: newBranchName.trim(),
+            from: value?.branch || selectedRepo.defaultBranch,
+          },
+        },
+      );
+
+      if (!ok) {
+        setBranchError(data.error || "Failed to create branch");
+        return;
+      }
+
+      // Revalidate the branches list and select the new branch
+      await mutate(branchPath);
+      onChange({ repo: selectedRepo.fullName, branch: newBranchName.trim() });
+      setCreatingBranch(false);
+      setNewBranchName("");
+      setOpen(false);
+    } catch {
+      setBranchError("Network error");
+    }
+  }, [selectedRepo, newBranchName, value, branchPath, mutate, onChange]);
+
   const handleOpen = useCallback(() => {
     setOpen(true);
     setStep(value?.repo ? "branch" : "repo");
     setQuery("");
+    setCreatingBranch(false);
     if (value?.repo) {
       const match = repos.find((r) => r.fullName === value.repo);
       if (match) setSelectedRepo(match);
@@ -133,21 +189,59 @@ export function RepoBranchPicker({ value, onChange }: RepoBranchPickerProps) {
               <button
                 type="button"
                 onClick={() => {
-                  setStep("repo");
-                  setQuery("");
+                  setCreatingBranch(true);
+                  setNewBranchName("");
+                  setBranchError(null);
                 }}
-                className="text-[11px] text-accent-text transition-colors duration-(--of-duration-instant) hover:text-text-primary"
+                className="inline-flex items-center gap-1 text-[11px] text-accent-text transition-colors duration-(--of-duration-instant) hover:text-text-primary"
               >
-                Change repo
+                <Plus className="h-3 w-3" />
+                New branch
               </button>
             )}
           </div>
+
+          {creatingBranch && selectedRepo && (
+            <div className="border-b border-stroke-subtle px-(--of-space-sm) py-2">
+              <div className="flex items-center gap-1.5">
+                <input
+                  ref={newBranchRef}
+                  type="text"
+                  value={newBranchName}
+                  onChange={(e) => setNewBranchName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleCreateBranch();
+                    }
+                    if (e.key === "Escape") setCreatingBranch(false);
+                  }}
+                  placeholder="new-branch-name"
+                  className="flex-1 border border-stroke-default bg-surface-2 px-2 py-1 text-[13px] font-mono text-text-primary placeholder-text-tertiary outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleCreateBranch()}
+                  disabled={!newBranchName.trim()}
+                  className="shrink-0 bg-accent px-2.5 py-1 text-[11px] font-medium text-white transition-colors duration-(--of-duration-instant) hover:bg-accent-hover disabled:opacity-50"
+                >
+                  Create
+                </button>
+              </div>
+              <p className="mt-1 text-[11px] text-text-tertiary">
+                From {value?.branch || selectedRepo.defaultBranch}
+              </p>
+              {branchError && (
+                <p className="mt-1 text-[11px] text-danger">{branchError}</p>
+              )}
+            </div>
+          )}
 
           <div className="max-h-60 overflow-y-auto">
             {step === "repo" ? (
               filteredRepos.length === 0 ? (
                 <div className="px-(--of-space-md) py-(--of-space-lg) text-center text-[13px] text-text-tertiary">
-                  {repos.length === 0 ? "Loading repositories…" : "No matching repositories"}
+                  {reposLoading ? "Loading repositories…" : "No matching repositories"}
                 </div>
               ) : (
                 filteredRepos.map((repo) => (
@@ -162,15 +256,12 @@ export function RepoBranchPicker({ value, onChange }: RepoBranchPickerProps) {
                     }`}
                   >
                     <span className="truncate font-mono">{repo.fullName}</span>
-                    <span className="ml-auto shrink-0 text-[11px] text-text-tertiary">
-                      {repo.defaultBranch}
-                    </span>
                   </button>
                 ))
               )
             ) : filteredBranches.length === 0 ? (
               <div className="px-(--of-space-md) py-(--of-space-lg) text-center text-[13px] text-text-tertiary">
-                {branches.length === 0 ? "Loading branches…" : "No matching branches"}
+                {branchesLoading ? "Loading branches…" : "No matching branches"}
               </div>
             ) : (
               filteredBranches.map((branch) => (

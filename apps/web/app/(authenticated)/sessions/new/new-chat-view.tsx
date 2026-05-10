@@ -16,6 +16,7 @@ import { MessageArea } from "@/components/session/message-list";
 import { RepoBranchPicker } from "@/components/session/repo-branch-picker";
 import { ModelSelector } from "@/components/model-selector";
 import { DEFAULT_MODEL_ID } from "@/lib/model-defaults";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface RecentSession {
   id: string;
@@ -31,6 +32,7 @@ interface NewChatViewProps {
   defaultBranch?: string;
   projectId?: string;
   recentSessions?: RecentSession[];
+  initialRepos?: Array<{ id: number | string; name: string; fullName: string; defaultBranch: string; isPrivate?: boolean }>;
 }
 
 export function NewChatView({
@@ -39,6 +41,7 @@ export function NewChatView({
   defaultBranch,
   projectId,
   recentSessions = [],
+  initialRepos,
 }: NewChatViewProps) {
   const [sessionId, setSessionId] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -122,19 +125,16 @@ export function NewChatView({
         }
         if (projectId) body.projectId = projectId;
 
-        const res = await fetch("/api/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
+        const { ok, status, data } = await apiFetch<{ id: string; error?: string }>(
+          "/api/sessions",
+          { method: "POST", body },
+        );
 
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          const msg = typeof data.error === "string" ? data.error : `Failed to create session (${res.status})`;
+        if (!ok) {
+          const msg = typeof data.error === "string" ? data.error : `Failed to create session (${status})`;
           throw new Error(msg);
         }
 
-        const data = await res.json();
         setSessionId(data.id);
         sessionIdRef.current = data.id;
         stream.startStreaming();
@@ -231,8 +231,8 @@ export function NewChatView({
         <div className="mx-auto max-w-2xl">
           {!hasSession && (
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />
-              <ModelSelector value={modelId} onChange={setModelId} compact />
+              <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} initialRepos={initialRepos} />
+              <ModelSelector value={modelId} onChange={setModelId} compact dropUp />
             </div>
           )}
           <form

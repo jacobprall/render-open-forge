@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/primitives/button";
+import { apiFetch } from "@/lib/api-fetch";
 import { Badge } from "@/components/primitives/badge";
 import type { Spec } from "@openforge/db/schema";
 import type { ActiveSkillRef } from "@openforge/skills";
@@ -21,14 +22,13 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
   async function handleAction(action: "approve" | "reject") {
     setLoading(true);
     try {
-      await fetch(`/api/sessions/${sessionId}/spec`, {
+      await apiFetch(`/api/sessions/${sessionId}/spec`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           action,
           specId: spec.id,
           rejectionNote: action === "reject" ? rejectionNote : undefined,
-        }),
+        },
       });
       onAction();
     } finally {
@@ -170,15 +170,15 @@ export function SpecPanel({ sessionId, spec, onAction }: Props) {
               onClick={async () => {
                 setLoading(true);
                 try {
-                  const cur = await fetch(`/api/sessions/${sessionId}/skills`);
-                  const data = (await cur.json()) as { activeSkills?: ActiveSkillRef[] };
+                  const { data } = await apiFetch<{ activeSkills?: ActiveSkillRef[] }>(
+                    `/api/sessions/${sessionId}/skills`,
+                  );
                   const next = (data.activeSkills ?? []).filter(
                     (s) => !(s.slug === "spec-first" && s.source === "builtin"),
                   );
-                  await fetch(`/api/sessions/${sessionId}/skills`, {
+                  await apiFetch(`/api/sessions/${sessionId}/skills`, {
                     method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ activeSkills: next }),
+                    body: { activeSkills: next },
                   });
                   onAction();
                 } finally {

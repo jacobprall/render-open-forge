@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { apiFetch } from "@/lib/api-fetch";
 
 export function InvitePasswordForm({ token }: { token: string }) {
   const [password, setPassword] = useState("");
@@ -24,15 +25,12 @@ export function InvitePasswordForm({ token }: { token: string }) {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/invite/accept", {
+      const { ok, data } = await apiFetch<{ ok?: boolean; email?: string; error?: string }>("/api/auth/invite/accept", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
+        body: { token, password },
       });
 
-      const data = (await res.json()) as { ok?: boolean; email?: string; error?: string };
-
-      if (!res.ok) {
+      if (!ok) {
         setError(typeof data.error === "string" ? data.error : "Could not complete invite");
         return;
       }

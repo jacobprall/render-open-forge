@@ -1,4 +1,5 @@
 import type { AssistantPart } from "@openforge/ui";
+import { apiFetch } from "@/lib/api-fetch";
 
 export interface Message {
   id: string;
@@ -50,14 +51,12 @@ export function useChatMessages({
       const body: Record<string, unknown> = { content };
       if (modelId) body.modelId = modelId;
 
-      const res = await fetch(`/api/sessions/${sessionId}/message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const { ok, data } = await apiFetch<{ error?: string }>(
+        `/api/sessions/${sessionId}/message`,
+        { method: "POST", body },
+      );
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Failed to send message" }));
+      if (!ok) {
         setError(typeof data.error === "string" ? data.error : "Failed to send message");
         return;
       }
@@ -73,17 +72,18 @@ export function useChatMessages({
     if (!askUserPrompt?.toolCallId || !activeRunId) return;
     setAskUserPrompt(null);
     try {
-      const res = await fetch(`/api/sessions/${sessionId}/reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          toolCallId: askUserPrompt.toolCallId,
-          message: answer,
-          runId: activeRunId,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Reply failed" }));
+      const { ok, data } = await apiFetch<{ error?: string }>(
+        `/api/sessions/${sessionId}/reply`,
+        {
+          method: "POST",
+          body: {
+            toolCallId: askUserPrompt.toolCallId,
+            message: answer,
+            runId: activeRunId,
+          },
+        },
+      );
+      if (!ok) {
         setError(typeof data.error === "string" ? data.error : "Failed to send reply to agent");
       }
     } catch {
@@ -93,7 +93,7 @@ export function useChatMessages({
 
   async function stopStreaming() {
     try {
-      await fetch(`/api/sessions/${sessionId}/stop`, { method: "POST" });
+      await apiFetch(`/api/sessions/${sessionId}/stop`, { method: "POST" });
     } catch {
       // best effort
     }

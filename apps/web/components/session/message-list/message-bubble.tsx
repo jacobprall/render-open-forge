@@ -7,8 +7,12 @@ export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
 
   if (isUser) {
+    const timestamp = message.createdAt
+      ? new Date(message.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      : null;
+
     return (
-      <div className="flex justify-end [content-visibility:auto]">
+      <div className="flex flex-col items-end gap-1 [content-visibility:auto]">
         <div className="max-w-[80%] bg-accent px-(--of-space-md) py-(--of-space-sm) text-[15px] leading-relaxed text-white">
           {message.parts
             .filter((p) => p.type === "text")
@@ -18,6 +22,9 @@ export function MessageBubble({ message }: { message: Message }) {
               </p>
             ))}
         </div>
+        {timestamp && (
+          <span className="mr-1 text-[11px] text-text-tertiary">{timestamp}</span>
+        )}
       </div>
     );
   }

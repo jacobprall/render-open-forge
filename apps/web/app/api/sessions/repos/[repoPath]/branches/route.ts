@@ -9,3 +9,12 @@ export async function GET(
   const { repoPath } = await params;
   return gatewayProxy(req, `/sessions/repos/${repoPath}/branches`, userId);
 }
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ repoPath: string }> },
+) {
+  const userId = await requireUserId();
+  const { repoPath } = await params;
+  return gatewayProxy(req, `/sessions/repos/${repoPath}/branches`, userId);
+}

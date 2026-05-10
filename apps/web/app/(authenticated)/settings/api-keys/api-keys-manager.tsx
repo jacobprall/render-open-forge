@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import useSWR from "swr";
+import { Select } from "@/components/primitives/select";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface ApiKeyRow {
   id: string;
@@ -43,18 +45,16 @@ export function ApiKeysManager() {
     e.preventDefault();
     setFormError(null);
     startSaving(async () => {
-      const r = await fetch("/api/settings/api-keys", {
+      const { ok, data: j } = await apiFetch<{ error?: string }>("/api/settings/api-keys", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           provider,
           scope: effectiveScope,
           label: label.trim() || undefined,
           apiKey,
-        }),
+        },
       });
-      const j = (await r.json().catch(() => ({}))) as { error?: string };
-      if (!r.ok) {
+      if (!ok) {
         setFormError(typeof j.error === "string" ? j.error : "Save failed");
         return;
       }
@@ -66,9 +66,8 @@ export function ApiKeysManager() {
 
   async function handleDelete(id: string) {
     if (!confirm("Remove this stored API key?")) return;
-    const r = await fetch(`/api/settings/api-keys/${id}`, { method: "DELETE" });
-    if (!r.ok) {
-      const j = (await r.json().catch(() => ({}))) as { error?: string };
+    const { ok, data: j } = await apiFetch<{ error?: string }>(`/api/settings/api-keys/${id}`, { method: "DELETE" });
+    if (!ok) {
       alert(typeof j.error === "string" ? j.error : "Delete failed");
       return;
     }
@@ -169,26 +168,28 @@ export function ApiKeysManager() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-text-tertiary">Provider</label>
-              <select
+              <Select
                 value={provider}
-                onChange={(e) => setProvider(e.target.value as "anthropic" | "openai")}
-                className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-              >
-                <option value="anthropic">Anthropic</option>
-                <option value="openai">OpenAI</option>
-              </select>
+                onChange={(v) => setProvider(v as "anthropic" | "openai")}
+                options={[
+                  { value: "anthropic", label: "Anthropic" },
+                  { value: "openai", label: "OpenAI" },
+                ]}
+              />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-text-tertiary">Scope</label>
-              <select
+              <Select
                 value={effectiveScope}
-                onChange={(e) => setScope(e.target.value as "platform" | "user")}
+                onChange={(v) => setScope(v as "platform" | "user")}
                 disabled={!data.isAdmin}
-                className="w-full border border-stroke-default bg-surface-2 px-3 py-2 text-sm text-text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50"
-              >
-                <option value="user">Personal (this account)</option>
-                {data.isAdmin ? <option value="platform">Platform (all users)</option> : null}
-              </select>
+                options={[
+                  { value: "user", label: "Personal (this account)" },
+                  ...(data.isAdmin
+                    ? [{ value: "platform", label: "Platform (all users)" }]
+                    : []),
+                ]}
+              />
               {!data.isAdmin && (
                 <p className="mt-1 text-[11px] text-text-tertiary">Only administrators can add platform keys.</p>
               )}

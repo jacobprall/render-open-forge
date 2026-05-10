@@ -42,12 +42,13 @@ export function useChatStream({
     toolCallId?: string;
   } | null>(null);
   const [liveFileChanges, setLiveFileChanges] = useState<LiveFileChange[]>([]);
-  const [streamGeneration, setStreamGeneration] = useState(0);
 
   const streamUrl = useMemo(
-    () => `/api/sessions/${sessionId}/stream?sg=${streamGeneration}`,
-    [sessionId, streamGeneration],
+    () => (sessionId ? `/api/sessions/${sessionId}/stream` : null),
+    [sessionId],
   );
+
+  const lastSeenIdRef = useRef<string | null>(null);
 
   const onFileChangesRef = useRef(onFileChanges);
   onFileChangesRef.current = onFileChanges;
@@ -92,6 +93,11 @@ export function useChatStream({
 
   const streamMessageRef = useRef<(event: MessageEvent) => void>(() => {});
   streamMessageRef.current = (event: MessageEvent) => {
+    // Client-side dedup: skip events we've already seen
+    const eventId: string | undefined = (event as MessageEvent & { lastEventId?: string }).lastEventId;
+    if (eventId && lastSeenIdRef.current && eventId <= lastSeenIdRef.current) return;
+    if (eventId) lastSeenIdRef.current = eventId;
+
     const rawData =
       typeof event.data === "string" ? event.data : String(event.data ?? "");
     try {
@@ -105,7 +111,7 @@ export function useChatStream({
           noRunRetries.current++;
           if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
           retryTimerRef.current = setTimeout(() => {
-            setStreamGeneration((g) => g + 1);
+            esRef.current?.reconnect();
           }, 1000);
         } else {
           setError("Agent job did not start. Try sending another message.");
@@ -167,19 +173,21 @@ export function useChatStream({
     streamErrorRef.current();
   }, []);
 
-  useEventSource({
+  const es = useEventSource({
     url: streamUrl,
     enabled: isStreaming,
     onMessage: onStreamMessage,
     onError: onStreamError,
     maxReconnectAttempts: 3,
   });
+  const esRef = useRef(es);
+  esRef.current = es;
 
   const startStreaming = useCallback(() => {
     setStreamingParts([]);
+    lastSeenIdRef.current = null;
     noRunRetries.current = 0;
     if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-    setStreamGeneration((g) => g + 1);
     setIsStreaming(true);
   }, []);
 
@@ -191,7 +199,5 @@ export function useChatStream({
     setAskUserPrompt,
     startStreaming,
     finishStreaming,
-    streamGeneration,
-    setStreamGeneration,
   };
 }

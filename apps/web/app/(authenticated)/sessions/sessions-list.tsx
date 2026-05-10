@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, MessageCircle, Filter } from "lucide-react";
+import { Select } from "@/components/primitives/select";
 import type { SessionCardSession } from "./session-card";
 import { SessionCard } from "./session-card";
 
@@ -64,37 +65,34 @@ export function SessionsList({
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {projectIds.length > 0 && (
-            <div className="relative flex items-center">
-              <Filter className="pointer-events-none absolute left-2.5 h-3 w-3 text-text-tertiary" />
-              <select
-                value={projectFilter}
-                onChange={(e) => {
-                  setProjectFilter(e.target.value);
-                  updateFilter("project", e.target.value);
-                }}
-                className="appearance-none border border-stroke-subtle bg-surface-1 py-1.5 pl-7 pr-6 text-[13px] text-text-secondary outline-none transition-colors duration-(--of-duration-instant) hover:bg-surface-2 focus:border-accent"
-              >
-                <option value="">All projects</option>
-                {projectIds.map((pid) => (
-                  <option key={pid} value={pid}>
-                    {projectNames[pid] ?? pid.slice(0, 8)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              size="sm"
+              value={projectFilter}
+              onChange={(v) => {
+                setProjectFilter(v);
+                updateFilter("project", v);
+              }}
+              placeholder="All projects"
+              icon={<Filter className="h-3 w-3" />}
+              options={projectIds.map((pid) => ({
+                value: pid,
+                label: projectNames[pid] ?? pid.slice(0, 8),
+              }))}
+            />
           )}
-          <select
+          <Select
+            size="sm"
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              updateFilter("status", e.target.value);
+            onChange={(v) => {
+              setStatusFilter(v);
+              updateFilter("status", v);
             }}
-            className="appearance-none border border-stroke-subtle bg-surface-1 px-3 py-1.5 text-[13px] text-text-secondary outline-none transition-colors duration-(--of-duration-instant) hover:bg-surface-2 focus:border-accent"
-          >
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+            placeholder="All statuses"
+            options={STATUS_OPTIONS.filter((o) => o.value !== "").map((o) => ({
+              value: o.value,
+              label: o.label,
+            }))}
+          />
         </div>
         <Link
           href="/sessions/new"

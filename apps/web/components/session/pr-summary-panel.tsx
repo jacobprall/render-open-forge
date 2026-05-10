@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface PrSummaryProps {
   sessionId: string;
@@ -29,11 +30,11 @@ export function PrSummaryPanel({ sessionId, repoPath, prNumber, prStatus, branch
     setError(null);
     startTransition(async () => {
       try {
-        const res = await fetch(`/api/sessions/${sessionId}/review`, {
-          method: "POST",
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
+        const { ok, data } = await apiFetch<{ error?: string }>(
+          `/api/sessions/${sessionId}/review`,
+          { method: "POST" },
+        );
+        if (!ok) {
           setError(typeof data.error === "string" ? data.error : "Failed to request review");
           return;
         }

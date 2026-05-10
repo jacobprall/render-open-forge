@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface Mirror {
   id: string;
@@ -69,8 +70,8 @@ export default function MirrorsPage() {
   const handleSync = async (id: string) => {
     setSyncing((prev) => new Set(prev).add(id));
     try {
-      const res = await fetch(`/api/mirrors/${id}/sync`, { method: "POST" });
-      if (res.ok) {
+      const { ok, data: json } = await apiFetch<{ error?: string }>(`/api/mirrors/${id}/sync`, { method: "POST" });
+      if (ok) {
         await mutate(
           (prev) =>
             (prev ?? []).map((m) =>
@@ -79,7 +80,6 @@ export default function MirrorsPage() {
           { revalidate: false },
         );
       } else {
-        const json = await res.json();
         setError(typeof json.error === "string" ? json.error : "Sync failed");
       }
     } catch {
@@ -96,14 +96,13 @@ export default function MirrorsPage() {
   const handleDelete = async (id: string) => {
     setDeleting((prev) => new Set(prev).add(id));
     try {
-      const res = await fetch(`/api/mirrors/${id}`, { method: "DELETE" });
-      if (res.ok) {
+      const { ok, data: json } = await apiFetch<{ error?: string }>(`/api/mirrors/${id}`, { method: "DELETE" });
+      if (ok) {
         await mutate(
           (prev) => (prev ?? []).filter((m) => m.id !== id),
           { revalidate: false },
         );
       } else {
-        const json = await res.json();
         setError(typeof json.error === "string" ? json.error : "Delete failed");
       }
     } catch {
@@ -119,12 +118,10 @@ export default function MirrorsPage() {
 
   const handleResolve = async (id: string, strategy: string) => {
     try {
-      const res = await fetch(`/api/mirrors/${id}/resolve`, {
+      const { data: json } = await apiFetch<{ resolved?: boolean }>(`/api/mirrors/${id}/resolve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ strategy }),
+        body: { strategy },
       });
-      const json = await res.json();
       if (json.resolved) {
         await mutate(
           (prev) => (prev ?? []).map((m) => (m.id === id ? { ...m, status: "active" as const } : m)),

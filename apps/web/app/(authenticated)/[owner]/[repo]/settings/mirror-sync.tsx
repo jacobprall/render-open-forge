@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface MirrorSyncProps {
   mirrorId: string;
@@ -47,17 +48,11 @@ export function MirrorSync({ mirrorId, remoteRepoUrl, direction, lastSyncAt, sta
     setSyncing(true);
     setError(null);
     try {
-      const res = await fetch(`/api/mirrors/${mirrorId}/sync`, { method: "POST" });
-      if (res.ok) {
+      const { ok, status, data } = await apiFetch<{ error?: string }>(`/api/mirrors/${mirrorId}/sync`, { method: "POST" });
+      if (ok) {
         setLastSync(new Date().toISOString());
       } else {
-        const text = await res.text();
-        try {
-          const json = JSON.parse(text);
-          setError(typeof json.error === "string" ? json.error : `Sync failed (${res.status})`);
-        } catch {
-          setError(`Sync failed (${res.status}): ${text.slice(0, 200) || "unknown error"}`);
-        }
+        setError(typeof data.error === "string" ? data.error : `Sync failed (${status})`);
       }
     } catch {
       setError("Sync request failed");

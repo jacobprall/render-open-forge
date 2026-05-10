@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { apiFetch } from "@/lib/api-fetch"
 
 type Props = {
   owner: string
@@ -55,13 +56,11 @@ export function SecretsSettings({ owner, repo }: Props) {
     setError(null)
     setMessage(null)
     try {
-      const res = await fetch(`${base}/${encodeURIComponent(trimmed)}`, {
+      const { ok, data: json } = await apiFetch<{ error?: unknown }>(`${base}/${encodeURIComponent(trimmed)}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: newValue }),
+        body: { value: newValue },
       })
-      const json = (await res.json()) as { error?: unknown }
-      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to save secret")
+      if (!ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to save secret")
       setMessage(`Secret "${trimmed}" saved.`)
       setNewName("")
       setNewValue("")
@@ -78,9 +77,8 @@ export function SecretsSettings({ owner, repo }: Props) {
     setError(null)
     setMessage(null)
     try {
-      const res = await fetch(`${base}/${encodeURIComponent(name)}`, { method: "DELETE" })
-      const json = (await res.json()) as { error?: unknown }
-      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to delete secret")
+      const { ok, data: json } = await apiFetch<{ error?: unknown }>(`${base}/${encodeURIComponent(name)}`, { method: "DELETE" })
+      if (!ok) throw new Error(typeof json.error === "string" ? json.error : "Failed to delete secret")
       setMessage(`Secret "${name}" deleted.`)
       await refresh()
     } catch (e) {
