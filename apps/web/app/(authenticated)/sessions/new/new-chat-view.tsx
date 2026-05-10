@@ -9,9 +9,8 @@ import {
 } from "react";
 import Link from "next/link";
 import { Send, GitBranch, MessageCircle } from "lucide-react";
-import { useChatStream } from "@/components/session/use-chat-stream";
-import { useChatMessages } from "@/components/session/use-chat-messages";
-import type { Message } from "@/components/session/use-chat-messages";
+import { useAgentChat } from "@/components/session/use-agent-chat";
+import type { Message } from "@/components/session/use-agent-chat";
 import { MessageArea } from "@/components/session/message-list";
 import { RepoBranchPicker } from "@/components/session/repo-branch-picker";
 import { ModelSelector } from "@/components/model-selector";
@@ -44,9 +43,8 @@ export function NewChatView({
   initialRepos,
 }: NewChatViewProps) {
   const [sessionId, setSessionId] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [repoBranch, setRepoBranch] = useState<{ repo: string; branch: string } | null>(
     defaultRepo ? { repo: defaultRepo, branch: defaultBranch ?? "main" } : null,
   );
@@ -58,22 +56,10 @@ export function NewChatView({
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
 
-  const stream = useChatStream({ sessionId, setMessages, setError });
-
-  const chat = useChatMessages({
-    sessionId,
-    modelId,
-    activeRunId: null,
-    isStreaming: stream.isStreaming,
-    startStreaming: stream.startStreaming,
-    finishStreaming: stream.finishStreaming,
-    askUserPrompt: stream.askUserPrompt,
-    setAskUserPrompt: stream.setAskUserPrompt,
-    setError,
-    setMessages,
-  });
+  const chat = useAgentChat({ sessionId, modelId });
 
   const hasSession = sessionId.length > 0;
+  const isStreaming = chat.status === "streaming" || chat.status === "waitingForRun";
 
   const scrollToBottom = useCallback(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -81,16 +67,16 @@ export function NewChatView({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, stream.streamingParts, scrollToBottom]);
+  }, [chat.messages, chat.streamingParts, scrollToBottom]);
 
   const pendingAsk = useMemo(() => {
-    if (!stream.isStreaming) return null;
-    for (let i = stream.streamingParts.length - 1; i >= 0; i--) {
-      const p = stream.streamingParts[i];
+    if (!isStreaming) return null;
+    for (let i = chat.streamingParts.length - 1; i >= 0; i--) {
+      const p = chat.streamingParts[i];
       if (p?.type === "ask_user" && p.toolCallId) return p;
     }
-    for (let mi = messages.length - 1; mi >= 0; mi--) {
-      const m = messages[mi];
+    for (let mi = chat.messages.length - 1; mi >= 0; mi--) {
+      const m = chat.messages[mi];
       if (m?.role !== "assistant") continue;
       for (let j = m.parts.length - 1; j >= 0; j--) {
         const p = m.parts[j];
@@ -98,14 +84,14 @@ export function NewChatView({
       }
     }
     return null;
-  }, [stream.isStreaming, stream.streamingParts, messages]);
+  }, [isStreaming, chat.streamingParts, chat.messages]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || creating || stream.isStreaming) return;
+    if (!text || creating || isStreaming) return;
 
     setInput("");
-    setError(null);
+    setCreateError(null);
 
     if (!sessionIdRef.current) {
       setCreating(true);
@@ -115,7 +101,6 @@ export function NewChatView({
         parts: [{ type: "text", text }],
         createdAt: new Date().toISOString(),
       };
-      setMessages([userMessage]);
 
       try {
         const body: Record<string, string> = { firstMessage: text, modelId };
@@ -125,7 +110,7 @@ export function NewChatView({
         }
         if (projectId) body.projectId = projectId;
 
-        const { ok, status, data } = await apiFetch<{ id: string; error?: string }>(
+        const { ok, status, data } = await apiFetch<{ id: string; activeRunId?: string; error?: string }>(
           "/api/sessions",
           { method: "POST", body },
         );
@@ -137,9 +122,14 @@ export function NewChatView({
 
         setSessionId(data.id);
         sessionIdRef.current = data.id;
-        stream.startStreaming();
+
+        // Dispatch user message manually since useAgentChat won't have the sessionId yet
+        // We need a tick for the state to update with the new sessionId
+        setTimeout(() => {
+          chat.startStreaming(data.activeRunId ?? undefined);
+        }, 0);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
+        setCreateError(err instanceof Error ? err.message : "Something went wrong");
       } finally {
         setCreating(false);
       }
@@ -147,7 +137,7 @@ export function NewChatView({
     }
 
     void chat.sendMessage(text);
-  }, [input, creating, stream, chat, modelId, repoBranch, projectId]);
+  }, [input, creating, isStreaming, chat, modelId, repoBranch, projectId]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -157,16 +147,17 @@ export function NewChatView({
   }
 
   function handleAskUserResponse(answer: string) {
-    if (stream.askUserPrompt?.toolCallId) {
+    if (chat.askUserPrompt?.toolCallId && chat.activeRunId) {
       void chat.submitAskUserReply(answer);
       return;
     }
     void chat.sendMessage(answer);
   }
 
-  const askResolved = stream.askUserPrompt ?? pendingAsk;
-  const hasMessages = messages.length > 0 || stream.streamingParts.length > 0;
-  const canSend = input.trim().length > 0 && !creating && !stream.isStreaming;
+  const askResolved = chat.askUserPrompt ?? pendingAsk;
+  const hasMessages = chat.messages.length > 0 || chat.streamingParts.length > 0;
+  const canSend = input.trim().length > 0 && !creating && !isStreaming;
+  const displayError = createError || chat.error;
 
   return (
     <div className="absolute inset-0 flex flex-col">
@@ -189,20 +180,20 @@ export function NewChatView({
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-(--of-space-md) py-(--of-space-xl)">
         {hasMessages ? (
-          <div className="mx-auto max-w-2xl flex min-h-full flex-col justify-end gap-(--of-space-lg)">
+          <div className="mx-auto max-w-4xl flex min-h-full flex-col justify-end gap-(--of-space-lg)">
             <MessageArea
-              messages={messages}
-              streamingParts={stream.streamingParts}
-              isStreaming={stream.isStreaming}
-              liveFileChanges={stream.liveFileChanges}
+              messages={chat.messages}
+              streamingParts={chat.streamingParts}
+              isStreaming={isStreaming}
+              liveFileChanges={chat.liveFileChanges}
               askResolved={askResolved}
               onAskUserResponse={handleAskUserResponse}
-              error={error}
+              error={displayError}
             />
             <div ref={endRef} />
           </div>
         ) : !hasSession && recentSessions.length > 0 ? (
-          <div className="mx-auto flex max-w-2xl flex-1 flex-col items-center justify-end pb-4">
+          <div className="mx-auto flex max-w-4xl flex-1 flex-col items-center justify-end pb-4">
             <h3 className="mb-2 self-start text-[12px] font-semibold uppercase tracking-wider text-text-tertiary">
               Recent sessions
             </h3>
@@ -228,7 +219,7 @@ export function NewChatView({
       </div>
 
       <div className="shrink-0 border-t border-stroke-subtle px-(--of-space-md) py-(--of-space-md)">
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-4xl">
           {!hasSession && (
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
               <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} initialRepos={initialRepos} />
@@ -250,9 +241,9 @@ export function NewChatView({
                 placeholder={hasSession ? "Message the agent…" : "Describe what you want to build…"}
                 rows={hasSession ? 1 : 3}
                 className="max-h-36 flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] text-text-primary placeholder-text-tertiary outline-none"
-                disabled={creating || stream.isStreaming}
+                disabled={creating || isStreaming}
               />
-              {stream.isStreaming ? (
+              {isStreaming ? (
                 <button
                   type="button"
                   onClick={() => void chat.stopStreaming()}
@@ -289,8 +280,8 @@ export function NewChatView({
               )}
             </div>
           </form>
-          {error && !hasSession && (
-            <p className="mt-2 text-[13px] text-danger">{error}</p>
+          {displayError && !hasSession && (
+            <p className="mt-2 text-[13px] text-danger">{displayError}</p>
           )}
         </div>
       </div>

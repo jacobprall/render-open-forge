@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useChatStream } from "./use-chat-stream";
-import { useChatMessages } from "./use-chat-messages";
-import type { Message } from "./use-chat-messages";
-import type { LiveFileChange } from "./use-chat-stream";
+import { useRef, useEffect, useCallback, useMemo } from "react";
+import { useAgentChat } from "./use-agent-chat";
+import type { Message, LiveFileChange } from "./use-agent-chat";
 import { MessageArea } from "./message-list";
 import { ChatInput } from "./chat-input";
 
-export type { Message } from "./use-chat-messages";
-export type { LiveFileChange } from "./use-chat-stream";
+export type { Message, LiveFileChange } from "./use-agent-chat";
 
 interface ChatPanelProps {
   sessionId: string;
@@ -18,7 +15,6 @@ interface ChatPanelProps {
   modelId: string;
   onFileChanges?: (files: LiveFileChange[]) => void;
   onViewFiles?: () => void;
-  /** Start streaming immediately on mount (used after inline session creation) */
   autoStream?: boolean;
 }
 
@@ -31,32 +27,24 @@ export function ChatPanel({
   onViewFiles,
   autoStream,
 }: ChatPanelProps) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [error, setError] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const autoStreamFired = useRef(false);
 
-  const stream = useChatStream({ sessionId, onFileChanges, setMessages, setError });
+  const chat = useAgentChat({
+    sessionId,
+    modelId,
+    activeRunId,
+    initialMessages,
+    onFileChanges,
+  });
 
   useEffect(() => {
     if (autoStream && !autoStreamFired.current) {
       autoStreamFired.current = true;
-      stream.startStreaming();
+      chat.startStreaming();
     }
-  }, [autoStream, stream.startStreaming]);
-  const { sendMessage, submitAskUserReply, stopStreaming } = useChatMessages({
-    sessionId,
-    modelId,
-    activeRunId,
-    isStreaming: stream.isStreaming,
-    startStreaming: stream.startStreaming,
-    finishStreaming: stream.finishStreaming,
-    askUserPrompt: stream.askUserPrompt,
-    setAskUserPrompt: stream.setAskUserPrompt,
-    setError,
-    setMessages,
-  });
+  }, [autoStream, chat.startStreaming]);
 
   const scrollToBottom = useCallback(() => {
     const el = scrollContainerRef.current;
@@ -66,16 +54,18 @@ export function ChatPanel({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, stream.streamingParts, scrollToBottom]);
+  }, [chat.messages, chat.streamingParts, scrollToBottom]);
+
+  const isStreaming = chat.status === "streaming" || chat.status === "waitingForRun";
 
   const pendingAsk = useMemo(() => {
-    if (!activeRunId && !stream.isStreaming) return null;
-    for (let i = stream.streamingParts.length - 1; i >= 0; i--) {
-      const p = stream.streamingParts[i];
+    if (!activeRunId && !isStreaming) return null;
+    for (let i = chat.streamingParts.length - 1; i >= 0; i--) {
+      const p = chat.streamingParts[i];
       if (p?.type === "ask_user" && p.toolCallId) return p;
     }
-    for (let mi = messages.length - 1; mi >= 0; mi--) {
-      const m = messages[mi];
+    for (let mi = chat.messages.length - 1; mi >= 0; mi--) {
+      const m = chat.messages[mi];
       if (m?.role !== "assistant") continue;
       for (let j = m.parts.length - 1; j >= 0; j--) {
         const p = m.parts[j];
@@ -83,39 +73,39 @@ export function ChatPanel({
       }
     }
     return null;
-  }, [activeRunId, stream.isStreaming, stream.streamingParts, messages]);
+  }, [activeRunId, isStreaming, chat.streamingParts, chat.messages]);
 
   function handleAskUserResponse(answer: string) {
-    if (stream.askUserPrompt?.toolCallId && activeRunId) {
-      void submitAskUserReply(answer);
+    if (chat.askUserPrompt?.toolCallId && (activeRunId || chat.activeRunId)) {
+      void chat.submitAskUserReply(answer);
       return;
     }
-    void sendMessage(answer);
+    void chat.sendMessage(answer);
   }
 
-  const askResolved = stream.askUserPrompt ?? pendingAsk;
+  const askResolved = chat.askUserPrompt ?? pendingAsk;
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-(--of-space-md) py-(--of-space-xl)">
-        <div className="mx-auto max-w-2xl flex flex-col gap-(--of-space-lg)">
+        <div className="mx-auto max-w-4xl flex flex-col gap-(--of-space-lg)">
           <MessageArea
-            messages={messages}
-            streamingParts={stream.streamingParts}
-            isStreaming={stream.isStreaming}
-            liveFileChanges={stream.liveFileChanges}
+            messages={chat.messages}
+            streamingParts={chat.streamingParts}
+            isStreaming={isStreaming}
+            liveFileChanges={chat.liveFileChanges}
             askResolved={askResolved}
             onAskUserResponse={handleAskUserResponse}
             onViewFiles={onViewFiles}
-            error={error}
+            error={chat.error}
           />
           <div ref={messagesEndRef} />
         </div>
       </div>
       <ChatInput
-        isStreaming={stream.isStreaming}
-        onSend={(content) => void sendMessage(content)}
-        onStop={() => void stopStreaming()}
+        isStreaming={isStreaming}
+        onSend={(content) => void chat.sendMessage(content)}
+        onStop={() => void chat.stopStreaming()}
       />
     </div>
   );

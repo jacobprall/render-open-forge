@@ -92,7 +92,8 @@ async function subscribeToRun(
 streamRoutes.get("/sessions/:id", async (c) => {
   const auth = c.get("auth");
   const sessionId = c.req.param("id");
-  const lastEventId = c.req.header("Last-Event-ID") ?? null;
+  const lastEventId =
+    c.req.header("Last-Event-ID") ?? c.req.query("lastEventId") ?? null;
   const db = getPlatform().db;
 
   const [sessionRow, chatRow] = await Promise.all([

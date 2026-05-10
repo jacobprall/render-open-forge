@@ -30,7 +30,7 @@ export function ChatInput({ isStreaming, onSend, onStop }: ChatInputProps) {
 
   return (
     <div className="shrink-0 border-t border-stroke-subtle px-(--of-space-md) py-(--of-space-md)">
-      <form onSubmit={handleSubmit} className="mx-auto max-w-2xl">
+      <form onSubmit={handleSubmit} className="mx-auto max-w-4xl">
         <div className="flex items-end gap-2 border border-stroke-default bg-surface-1 p-2 transition-colors duration-(--of-duration-instant) focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/25">
           <textarea
             ref={textareaRef}

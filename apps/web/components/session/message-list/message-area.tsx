@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import type { AssistantPart } from "@openforge/ui";
-import type { Message } from "../use-chat-messages";
-import type { LiveFileChange } from "../use-chat-stream";
+import type { Message, LiveFileChange } from "../chat-reducer";
 import { AskUserCard } from "../ask-user-card";
 import { AssistantParts } from "./assistant-parts";
 import { MessageBubble } from "./message-bubble";
@@ -101,10 +100,8 @@ export function MessageArea({
       )}
 
       {isStreaming && streamingParts.length > 0 ? (
-        <div className="flex justify-start [content-visibility:auto]">
-          <div className="max-w-[95%] sm:max-w-[85%]">
-            <AssistantParts parts={streamingParts} streaming />
-          </div>
+        <div className="[content-visibility:auto]">
+          <AssistantParts parts={streamingParts} streaming />
         </div>
       ) : null}
 

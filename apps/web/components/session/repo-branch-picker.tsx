@@ -47,7 +47,7 @@ export function RepoBranchPicker({ value, onChange, initialRepos }: RepoBranchPi
   const repos = reposData?.repos ?? [];
 
   const branchPath = selectedRepo
-    ? `/api/sessions/repos/${encodeURIComponent(selectedRepo.fullName)}/branches`
+    ? `/api/sessions/repos/${selectedRepo.fullName}/branches`
     : null;
   const { data: branchesData, isLoading: branchesLoading } = useSWR<{ branches: Branch[] }>(
     branchPath,
@@ -118,7 +118,7 @@ export function RepoBranchPicker({ value, onChange, initialRepos }: RepoBranchPi
 
     try {
       const { ok, data } = await apiFetch<{ error?: string }>(
-        `/api/sessions/repos/${encodeURIComponent(selectedRepo.fullName)}/branches`,
+        `/api/sessions/repos/${selectedRepo.fullName}/branches`,
         {
           method: "POST",
           body: {

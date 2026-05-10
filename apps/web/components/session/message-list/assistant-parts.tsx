@@ -13,18 +13,30 @@ const ToolCallLazy = dynamic(
   { ssr: false, loading: () => <span className="text-xs text-text-tertiary">…</span> },
 );
 
+function partKey(part: AssistantPart, index: number): string {
+  if ("id" in part && part.id) return part.id;
+  if (part.type === "tool_call" && part.toolCallId) return part.toolCallId;
+  if (part.type === "task" && part.taskId) return `task-${part.taskId}`;
+  return `${part.type}-${index}`;
+}
+
 export function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; streaming?: boolean }) {
   return (
     <div className="flex flex-col gap-1.5 w-full">
       {parts.map((part, i) => {
+        const key = partKey(part, i);
         switch (part.type) {
           case "text":
-            return <Markdown key={i}>{part.text}</Markdown>;
+            return (
+              <div key={key} className="inline-block border border-stroke-subtle bg-surface-1 px-(--of-space-md) py-(--of-space-md) shadow-xs text-[15px] leading-relaxed text-text-primary">
+                <Markdown>{part.text}</Markdown>
+              </div>
+            );
 
           case "tool_call":
             return (
               <ToolCallLazy
-                key={i}
+                key={key}
                 toolName={part.toolName ?? "tool"}
                 args={part.args as Record<string, unknown> | undefined}
                 result={part.result as Record<string, unknown> | undefined}
@@ -35,7 +47,7 @@ export function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; s
           case "file_changed":
             return (
               <div
-                key={i}
+                key={key}
                 className="inline-flex items-center gap-1.5 text-[11px] border border-stroke-subtle px-2 py-1 bg-surface-1"
               >
                 <span className="text-accent-text/80 tabular-nums font-mono">+{part.additions}</span>
@@ -48,7 +60,7 @@ export function AssistantParts({ parts, streaming }: { parts: AssistantPart[]; s
           case "task":
             return (
               <div
-                key={i}
+                key={key}
                 className="flex items-center gap-1.5 text-[11px] border border-stroke-subtle px-2.5 py-1.5 bg-surface-1"
               >
                 {part.status === "running" ? (

@@ -10,6 +10,9 @@ export async function GET(
 ) {
   const userId = await requireUserId();
   const { id } = await params;
-  const lastEventId = req.headers.get("Last-Event-ID") ?? undefined;
+  const lastEventId =
+    req.headers.get("Last-Event-ID") ??
+    req.nextUrl.searchParams.get("lastEventId") ??
+    undefined;
   return gatewayStream(`/stream/sessions/${id}`, userId, { lastEventId });
 }
