@@ -202,42 +202,39 @@ export function NewChatView({
             />
             <div ref={endRef} />
           </div>
+        ) : !hasSession && recentSessions.length > 0 ? (
+          <div className="mx-auto flex max-w-2xl flex-1 flex-col items-center justify-end pb-4">
+            <h3 className="mb-2 self-start text-[12px] font-semibold uppercase tracking-wider text-text-tertiary">
+              Recent sessions
+            </h3>
+            <div className="w-full divide-y divide-stroke-subtle border border-stroke-subtle bg-surface-0">
+              {recentSessions.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/sessions/${s.id}`}
+                  className="flex items-center gap-3 px-3 py-2.5 transition-colors duration-(--of-duration-instant) hover:bg-surface-1"
+                >
+                  <MessageCircle className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-text-secondary">
+                    {s.title || "Untitled session"}
+                  </span>
+                  <span className="shrink-0 text-[11px] font-mono text-text-tertiary">
+                    {s.repoPath ?? "scratch"}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
         ) : null}
       </div>
 
       <div className="shrink-0 border-t border-stroke-subtle px-(--of-space-md) py-(--of-space-md)">
         <div className="mx-auto max-w-2xl">
           {!hasSession && (
-            <>
-              {recentSessions.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-text-tertiary">
-                    Recent sessions
-                  </h3>
-                  <div className="divide-y divide-stroke-subtle border border-stroke-subtle bg-surface-0">
-                    {recentSessions.map((s) => (
-                      <Link
-                        key={s.id}
-                        href={`/sessions/${s.id}`}
-                        className="flex items-center gap-3 px-3 py-2.5 transition-colors duration-(--of-duration-instant) hover:bg-surface-1"
-                      >
-                        <MessageCircle className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
-                        <span className="min-w-0 flex-1 truncate text-[13px] text-text-secondary">
-                          {s.title || "Untitled session"}
-                        </span>
-                        <span className="shrink-0 text-[11px] font-mono text-text-tertiary">
-                          {s.repoPath ?? "scratch"}
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />
-                <ModelSelector value={modelId} onChange={setModelId} compact />
-              </div>
-            </>
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <RepoBranchPicker value={repoBranch} onChange={setRepoBranch} />
+              <ModelSelector value={modelId} onChange={setModelId} compact />
+            </div>
           )}
           <form
             onSubmit={(e) => {
