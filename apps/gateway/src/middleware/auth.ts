@@ -12,7 +12,7 @@ import { createMiddleware } from "hono/factory";
 import type { Context } from "hono";
 import { createHash } from "node:crypto";
 import { eq, and } from "drizzle-orm";
-import { users, accounts, apiKeys } from "@openforge/db";
+import { users, accounts, apiKeys, syncConnections } from "@openforge/db";
 import type { AuthContext } from "@openforge/platform";
 import { getPlatform } from "../platform";
 
@@ -182,15 +182,16 @@ type ForgeTokenInfo = {
 };
 
 /**
- * Look up a forge access token for a user, trying forgejo first, then github/gitlab.
- * Returns both the token and which provider it came from.
+ * Look up a forge access token for a user.
+ * Checks GitHub/GitLab OAuth accounts first, then sync connections,
+ * and only falls back to Forgejo as a last resort.
  */
 async function resolveForgeTokenInfo(
   db: ReturnType<typeof getPlatform>["db"],
   userId: string,
 ): Promise<ForgeTokenInfo | null> {
-  const providerOrder = ["github", "forgejo", "gitlab"] as const;
-  for (const provider of providerOrder) {
+  // Check GitHub/GitLab OAuth accounts first
+  for (const provider of ["github", "gitlab"] as const) {
     const [row] = await db
       .select({ accessToken: accounts.access_token })
       .from(accounts)
@@ -198,5 +199,24 @@ async function resolveForgeTokenInfo(
       .limit(1);
     if (row?.accessToken) return { token: row.accessToken, forgeType: provider };
   }
+
+  // Check sync connections (GitHub/GitLab tokens from connections page)
+  for (const provider of ["github", "gitlab"] as const) {
+    const [conn] = await db
+      .select({ accessToken: syncConnections.accessToken })
+      .from(syncConnections)
+      .where(and(eq(syncConnections.userId, userId), eq(syncConnections.provider, provider)))
+      .limit(1);
+    if (conn?.accessToken) return { token: conn.accessToken, forgeType: provider };
+  }
+
+  // Last resort: Forgejo
+  const [forgejoRow] = await db
+    .select({ accessToken: accounts.access_token })
+    .from(accounts)
+    .where(and(eq(accounts.userId, userId), eq(accounts.provider, "forgejo")))
+    .limit(1);
+  if (forgejoRow?.accessToken) return { token: forgejoRow.accessToken, forgeType: "forgejo" };
+
   return null;
 }

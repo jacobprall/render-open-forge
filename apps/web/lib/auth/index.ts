@@ -62,7 +62,9 @@ async function loadForgeAccessTokenForUser(
     ? [preferProvider as "github" | "forgejo" | "gitlab", ...defaultOrder.filter((p) => p !== preferProvider)]
     : defaultOrder;
 
+  // Check OAuth accounts first
   for (const provider of providerOrder) {
+    if (provider === "forgejo") continue; // deprioritize Forgejo -- check sync connections first
     const [row] = await db
       .select({ accessToken: accounts.access_token, providerAccountId: accounts.providerAccountId })
       .from(accounts)
@@ -72,6 +74,29 @@ async function loadForgeAccessTokenForUser(
       return { token: row.accessToken, forgeType: provider, username: row.providerAccountId };
     }
   }
+
+  // Check sync connections (GitHub/GitLab tokens from OAuth connections page)
+  for (const provider of ["github", "gitlab"] as const) {
+    const [conn] = await db
+      .select({ accessToken: syncConnections.accessToken, remoteUsername: syncConnections.remoteUsername })
+      .from(syncConnections)
+      .where(and(eq(syncConnections.userId, userId), eq(syncConnections.provider, provider)))
+      .limit(1);
+    if (conn?.accessToken) {
+      return { token: conn.accessToken, forgeType: provider, username: conn.remoteUsername ?? undefined };
+    }
+  }
+
+  // Last resort: Forgejo account
+  const [forgejoRow] = await db
+    .select({ accessToken: accounts.access_token, providerAccountId: accounts.providerAccountId })
+    .from(accounts)
+    .where(and(eq(accounts.userId, userId), eq(accounts.provider, "forgejo")))
+    .limit(1);
+  if (forgejoRow?.accessToken) {
+    return { token: forgejoRow.accessToken, forgeType: "forgejo", username: forgejoRow.providerAccountId };
+  }
+
   return undefined;
 }
 
