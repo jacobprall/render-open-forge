@@ -7,6 +7,8 @@ import {
   type SandboxAdapter,
   type SandboxSessionAuth,
 } from "@openforge/sandbox";
+import { ExeDevSandboxProvider, exeDevProviderFromEnv } from "@openforge/sandbox/providers/exedev";
+import type { SandboxProvider } from "@openforge/sandbox/provider";
 import type { UpstreamMirrorInfo } from "./context/agent-context";
 
 // ─── Forge providers ─────────────────────────────────────────────────────────
@@ -135,15 +137,13 @@ export async function resolveUpstreamMirror(
 
 // ─── Sandbox provider ────────────────────────────────────────────────────────
 
-let _sandboxProvider: SharedHttpSandboxProvider | null = null;
+const SANDBOX_PROVIDER_TYPE = process.env.SANDBOX_PROVIDER ?? "shared-http";
+
+let _sandboxProvider: SandboxProvider | null = null;
 let _sandboxProviderCreatedAt = 0;
 const SANDBOX_PROVIDER_MAX_AGE_MS = 10 * 60 * 1000; // 10 min
 
-function getSandboxProvider(): SharedHttpSandboxProvider {
-  const now = Date.now();
-  if (_sandboxProvider && now - _sandboxProviderCreatedAt < SANDBOX_PROVIDER_MAX_AGE_MS) {
-    return _sandboxProvider;
-  }
+function buildSharedHttpProvider(): SharedHttpSandboxProvider {
   const host = process.env.SANDBOX_SERVICE_HOST;
   if (!host) throw new Error("SANDBOX_SERVICE_HOST not configured");
   const secret = process.env.SANDBOX_SHARED_SECRET;
@@ -151,7 +151,21 @@ function getSandboxProvider(): SharedHttpSandboxProvider {
   const sessionAuth: SandboxSessionAuth | undefined = sessionSecret
     ? { secret: sessionSecret, userId: "openforge-agent" }
     : undefined;
-  _sandboxProvider = new SharedHttpSandboxProvider(host, secret, sessionAuth);
+  return new SharedHttpSandboxProvider(host, secret, sessionAuth);
+}
+
+function getSandboxProvider(): SandboxProvider {
+  const now = Date.now();
+  if (_sandboxProvider && now - _sandboxProviderCreatedAt < SANDBOX_PROVIDER_MAX_AGE_MS) {
+    return _sandboxProvider;
+  }
+
+  if (SANDBOX_PROVIDER_TYPE === "exedev") {
+    _sandboxProvider = exeDevProviderFromEnv();
+  } else {
+    _sandboxProvider = buildSharedHttpProvider();
+  }
+
   _sandboxProviderCreatedAt = now;
   return _sandboxProvider;
 }

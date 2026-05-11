@@ -21,3 +21,5 @@ export type {
   HealthResult,
 } from "./types";
 export { runSecurityAudit, formatAuditReport, type AuditCheck } from "./lib/security-audit";
+export { ExeDevSandboxAdapter, type ExeDevAdapterOptions } from "./adapters/exedev";
+export { ExeDevSandboxProvider, exeDevProviderFromEnv, type ExeDevProviderConfig, type VmStrategy } from "./providers/exedev";

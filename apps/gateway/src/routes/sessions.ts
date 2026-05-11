@@ -1,11 +1,34 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { syncConnections } from "@openforge/db";
 import type { GatewayEnv } from "../middleware/auth";
 import { getPlatform } from "../platform";
-import { getForgeProviderForAuth } from "@openforge/platform/forge";
+import { getForgeProviderForAuth, createForgeProvider, type ForgeProviderType } from "@openforge/platform/forge";
 import { formatZodError } from "../middleware/validation";
 
 export const sessionRoutes = new Hono<GatewayEnv>();
+
+/**
+ * Resolve the best forge provider for a user by checking sync connections first,
+ * falling back to the auth-context forge. This avoids depending on Forgejo when
+ * the user has a GitHub/GitLab sync connection.
+ */
+async function resolveForgeForUser(auth: { userId: string; forgeToken: string; forgeType?: "forgejo" | "github" | "gitlab" }): Promise<ReturnType<typeof getForgeProviderForAuth>> {
+  const db = getPlatform().db;
+  const [conn] = await db
+    .select({ provider: syncConnections.provider, accessToken: syncConnections.accessToken })
+    .from(syncConnections)
+    .where(eq(syncConnections.userId, auth.userId))
+    .limit(1);
+
+  if (conn?.accessToken) {
+    const baseUrl = conn.provider === "github" ? "https://api.github.com" : "https://gitlab.com";
+    return createForgeProvider({ type: conn.provider as ForgeProviderType, baseUrl, token: conn.accessToken });
+  }
+
+  return getForgeProviderForAuth(auth);
+}
 
 const CreateSessionSchema = z.object({
   repoPath: z.string().optional(),
@@ -57,9 +80,42 @@ sessionRoutes.get("/repos", async (c) => {
     return c.json(cached.data);
   }
 
-  const forge = getForgeProviderForAuth(auth);
-  const repos = await forge.repos.list();
-  const payload = { repos };
+  const db = getPlatform().db;
+  const allRepos: unknown[] = [];
+
+  // Try sync connections first (GitHub, GitLab) -- these don't depend on Forgejo
+  const conns = await db
+    .select({ provider: syncConnections.provider, accessToken: syncConnections.accessToken })
+    .from(syncConnections)
+    .where(eq(syncConnections.userId, auth.userId));
+
+  for (const conn of conns) {
+    try {
+      const baseUrl = conn.provider === "github" ? "https://api.github.com" : "https://gitlab.com";
+      const forge = createForgeProvider({
+        type: conn.provider as ForgeProviderType,
+        baseUrl,
+        token: conn.accessToken,
+      });
+      const repos = await forge.repos.list();
+      allRepos.push(...repos);
+    } catch (err) {
+      console.warn(`[sessions/repos] failed to list repos from ${conn.provider}:`, err instanceof Error ? err.message : err);
+    }
+  }
+
+  // If no repos from sync connections, fall back to auth forge (may be Forgejo)
+  if (allRepos.length === 0) {
+    try {
+      const forge = getForgeProviderForAuth(auth);
+      const repos = await forge.repos.list();
+      allRepos.push(...repos);
+    } catch (err) {
+      console.warn("[sessions/repos] auth forge fallback failed:", err instanceof Error ? err.message : err);
+    }
+  }
+
+  const payload = { repos: allRepos };
   reposCache.set(cacheKey, { data: payload, expiresAt: Date.now() + REPOS_CACHE_TTL });
   return c.json(payload);
 });
@@ -79,7 +135,7 @@ sessionRoutes.get("/repos/:repoPath/branches", async (c) => {
     return c.json(cached.data);
   }
 
-  const forge = getForgeProviderForAuth(auth);
+  const forge = await resolveForgeForUser(auth);
   const branches = await forge.branches.list(owner, repo);
   const payload = { branches };
   branchesCache.set(cacheKey, { data: payload, expiresAt: Date.now() + BRANCHES_CACHE_TTL });
@@ -97,7 +153,7 @@ sessionRoutes.post("/repos/:repoPath/branches", async (c) => {
     .safeParse(await c.req.json());
   if (!body.success) return c.json({ error: formatZodError(body.error) }, 400);
 
-  const forge = getForgeProviderForAuth(auth);
+  const forge = await resolveForgeForUser(auth);
   const fromBranch = body.data.from ?? "main";
   const branch = await forge.branches.create(owner, repo, body.data.name, fromBranch);
 
